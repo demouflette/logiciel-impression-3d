@@ -1,0 +1,7 @@
+Bambu Lab X1 Carbon|350|200|Spécifications Bambu Lab officielles
+Bambu Lab P1P|300|180|Spécifications Bambu Lab officielles
+Bambu Lab P2S|300|180|Spécifications Bambu Lab officielles
+Bambu Lab A1 Mini|200|120|Spécifications Bambu Lab officielles
+Creality Ender 3|270|150|Spécifications Creality officielles
+Prusa i3 MK3S+|240|140|Spécifications Prusa officielles
+Anycubic Kobra|250|145|Spécifications Anycubic officielles

@@ -1,0 +1,121 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace logiciel_d_impression_3d
+{
+    public partial class LoginForm : Form
+    {
+        private UserManager userManager;
+
+        public LoginForm(UserManager manager)
+        {
+            InitializeComponent();
+            userManager = manager;
+        }
+
+        private void btnLogin_Click(object sender, EventArgs e)
+        {
+            string username = txtLoginUsername.Text.Trim();
+            string password = txtLoginPassword.Text;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("Veuillez remplir tous les champs.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (userManager.AuthenticateUser(username, password))
+            {
+                MessageBox.Show($"Bienvenue {userManager.CurrentUser.Username} !\n" +
+                    $"Dernière connexion : {userManager.CurrentUser.DerniereConnexion:dd/MM/yyyy HH:mm}", 
+                    "Connexion réussie", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            }
+            else
+            {
+                MessageBox.Show("Nom d'utilisateur ou mot de passe incorrect.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnRegister_Click(object sender, EventArgs e)
+        {
+            string username = txtRegisterUsername.Text.Trim();
+            string email = txtRegisterEmail.Text.Trim();
+            string password = txtRegisterPassword.Text;
+            string confirmPassword = txtRegisterConfirmPassword.Text;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email) || 
+                string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("Veuillez remplir tous les champs.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!IsValidEmail(email))
+            {
+                MessageBox.Show("Veuillez entrer une adresse email valide.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (password != confirmPassword)
+            {
+                MessageBox.Show("Les mots de passe ne correspondent pas.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (password.Length < 6)
+            {
+                MessageBox.Show("Le mot de passe doit contenir au moins 6 caractères.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (userManager.RegisterUser(username, password, email))
+            {
+                MessageBox.Show("Inscription réussie ! Vous pouvez maintenant vous connecter.", "Succès", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                tabControl1.SelectedIndex = 0;
+                txtLoginUsername.Text = username;
+                txtRegisterUsername.Clear();
+                txtRegisterEmail.Clear();
+                txtRegisterPassword.Clear();
+                txtRegisterConfirmPassword.Clear();
+            }
+            else
+            {
+                MessageBox.Show("Ce nom d'utilisateur existe déjà.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void lnkForgotPassword_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            ResetPasswordForm resetForm = new ResetPasswordForm(userManager);
+            if (resetForm.ShowDialog() == DialogResult.OK)
+            {
+                MessageBox.Show("Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.", 
+                    "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+}

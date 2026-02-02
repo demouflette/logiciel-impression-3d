@@ -1,0 +1,107 @@
+; Script d'installation pour Logiciel d'Impression 3D
+; Généré avec Inno Setup
+
+#define MyAppName "Logiciel d'Impression 3D"
+#define MyAppVersion "1.0.0.0"
+#define MyAppPublisher "DemouFlette"
+#define MyAppURL "https://github.com/demouflette/logiciel-impression-3d-updates"
+#define MyAppExeName "logiciel d'impression 3d.exe"
+#define MyAppIcon "imprimante.ico"
+
+[Setup]
+; Informations de base
+AppId={{B7F2E8A9-3C1D-4F6B-9A2E-7D5C8B4F1A3E}}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+
+; Chemins d'installation
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+AllowNoIcons=yes
+
+; Fichiers de sortie
+OutputDir=D:\projet_3d\logiciel d'impression 3d\Installer
+OutputBaseFilename=Logiciel_Impression_3D_Setup_{#MyAppVersion}
+SetupIconFile=D:\projet_3d\logiciel d'impression 3d\{#MyAppIcon}
+Compression=lzma2/max
+SolidCompression=yes
+
+; Privilèges requis
+PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=dialog
+
+; Interface moderne
+WizardStyle=modern
+
+; Langue par défaut
+ShowLanguageDialog=auto
+
+; Informations de version
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=Installation de {#MyAppName}
+VersionInfoCopyright=Copyright (C) 2024 {#MyAppPublisher}
+
+[Languages]
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "quicklaunchicon"; Description: "Créer une icône dans la barre de lancement rapide"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
+
+[Files]
+; Fichier principal (.exe)
+Source: "D:\projet_3d\logiciel d'impression 3d\bin\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+; Raccourcis dans le menu démarrer
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+Name: "{group}\Désinstaller {#MyAppName}"; Filename: "{uninstallexe}"
+
+; Raccourci sur le bureau
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+
+; Raccourci barre de lancement rapide
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+
+[Run]
+; Lancer l'application à la fin de l'installation
+Filename: "{app}\{#MyAppExeName}"; Description: "Lancer {#MyAppName}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; Supprimer les fichiers de données lors de la désinstallation (OPTIONNEL)
+Type: files; Name: "{app}\users.dat"
+Type: files; Name: "{app}\parametres_impression.dat"
+Type: files; Name: "{app}\imprimantes_specs_cache.dat"
+
+[Code]
+// Vérifier si .NET Framework 4.8 ou supérieur est installé
+function IsDotNetInstalled: Boolean;
+var
+  success: Boolean;
+  release: Cardinal;
+begin
+  success := RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', release);
+  Result := success and (release >= 528040);
+end;
+
+// Fonction appelée au début de l'installation
+function InitializeSetup: Boolean;
+begin
+  if not IsDotNetInstalled then
+  begin
+    MsgBox('Ce logiciel nécessite .NET Framework 4.8 ou supérieur.'#13#13
+           'Veuillez installer .NET Framework 4.8.1 avant de continuer.'#13#13
+           'Téléchargement : https://dotnet.microsoft.com/download/dotnet-framework/net481', 
+           mbCriticalError, MB_OK);
+    Result := False;
+  end
+  else
+    Result := True;
+end;
