@@ -9,8 +9,16 @@ namespace logiciel_d_impression_3d
 {
     public class UpdateManager
     {
-        private const string UrlVersionServeur = "https://github.com/demouflette/logiciel-impression-3d-updates/raw/refs/heads/main/version.txt";
-        private const string UrlTelechargement = "https://github.com/demouflette/logiciel-impression-3d-updates/raw/refs/heads/main/logiciel_impression_3d.exe";
+        // Configuration GitHub - REMPLACEZ par votre nom d'utilisateur et nom de dépôt
+        private const string GithubOwner = "demouflette";
+        private const string GithubRepo = "logiciel-impression-3d";
+        
+        // URLs GitHub Releases
+        private const string UrlLatestRelease = "https://api.github.com/repos/{0}/{1}/releases/latest";
+        
+        // Nom des fichiers dans la release
+        private const string InstallerFileName = "Logiciel_Impression_3D_Setup_";  // Suffixe avec version
+        private const string ExeFileName = "logiciel-impression-3d.exe";
 
         public static void VerifierMiseAJour(bool afficherSiAJour = false)
         {
@@ -18,38 +26,49 @@ namespace logiciel_d_impression_3d
             {
                 string versionActuelle = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                 
-                using (WebClient client = new WebClient())
+                // Récupérer les informations de la dernière release GitHub
+                var releaseInfo = ObtenirDerniereRelease();
+                
+                if (releaseInfo == null)
                 {
-                    client.Encoding = System.Text.Encoding.UTF8;
-                    string versionDistante = client.DownloadString(UrlVersionServeur).Trim();
-                    
-                    Version verActuelle = new Version(versionActuelle);
-                    Version verDistante = new Version(versionDistante);
-                    
-                    if (verDistante > verActuelle)
+                    if (afficherSiAJour)
                     {
-                        DialogResult result = MessageBox.Show(
-                            $"Une nouvelle version est disponible !\n\n" +
-                            $"Version actuelle : {versionActuelle}\n" +
-                            $"Nouvelle version : {versionDistante}\n\n" +
-                            $"Voulez-vous télécharger la mise à jour ?",
-                            "Mise à jour disponible",
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Information);
+                        MessageBox.Show("Impossible de récupérer les informations de mise à jour.", 
+                            "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    return;
+                }
+                
+                string versionDistante = releaseInfo.Version;
+                string urlTelechargement = releaseInfo.DownloadUrl;
+                string urlPageRelease = releaseInfo.HtmlUrl;
+                
+                Version verActuelle = new Version(versionActuelle);
+                Version verDistante = new Version(versionDistante);
+                
+                if (verDistante > verActuelle)
+                {
+                    DialogResult result = MessageBox.Show(
+                        $"Une nouvelle version est disponible !\n\n" +
+                        $"Version actuelle : {versionActuelle}\n" +
+                        $"Nouvelle version : {versionDistante}\n\n" +
+                        $"Voulez-vous télécharger la mise à jour ?",
+                        "Mise à jour disponible",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
 
-                        if (result == DialogResult.Yes)
-                        {
-                            TelechargerMiseAJour();
-                        }
-                    }
-                    else if (afficherSiAJour)
+                    if (result == DialogResult.Yes)
                     {
-                        MessageBox.Show(
-                            $"Vous utilisez la dernière version ({versionActuelle}).",
-                            "À jour",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
+                        TelechargerMiseAJour(urlTelechargement, $"logiciel_impression_3d_v{versionDistante}.exe");
                     }
+                }
+                else if (afficherSiAJour)
+                {
+                    MessageBox.Show(
+                        $"Vous utilisez la dernière version ({versionActuelle}).",
+                        "À jour",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
                 }
             }
             catch (WebException)
@@ -71,11 +90,144 @@ namespace logiciel_d_impression_3d
             }
         }
 
-        private static void TelechargerMiseAJour()
+        private static ReleaseInfo ObtenirDerniereRelease()
         {
             try
             {
-                string cheminTemp = Path.Combine(Path.GetTempPath(), "logiciel_impression_3d_update.exe");
+                string url = string.Format(UrlLatestRelease, GithubOwner, GithubRepo);
+                
+                using (WebClient client = new WebClient())
+                {
+                    // GitHub API nécessite un User-Agent
+                    client.Headers.Add("User-Agent", "Logiciel-Impression-3D-Updater");
+                    
+                    string json = client.DownloadString(url);
+                    
+                    // Parse simple du JSON (sans dépendance externe)
+                    string version = ExtraireValeurJson(json, "tag_name");
+                    version = version.Replace("v", "").Trim(); // Retirer le 'v' du tag
+                    
+                    string htmlUrl = ExtraireValeurJson(json, "html_url");
+                    
+                    // Récupérer l'URL de téléchargement de l'exécutable
+                    string downloadUrl = TrouverUrlAsset(json, ExeFileName);
+                    
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        // Fallback: essayer de trouver l'installateur
+                        downloadUrl = TrouverUrlAssetPartiel(json, InstallerFileName);
+                    }
+                    
+                    return new ReleaseInfo
+                    {
+                        Version = version,
+                        DownloadUrl = downloadUrl,
+                        HtmlUrl = htmlUrl
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Erreur lors de la récupération de la release : {ex.Message}");
+                return null;
+            }
+        }
+
+        private static string ExtraireValeurJson(string json, string cle)
+        {
+            try
+            {
+                string pattern = $"\"{cle}\":\"";
+                int startIndex = json.IndexOf(pattern);
+                if (startIndex == -1) return string.Empty;
+                
+                startIndex += pattern.Length;
+                int endIndex = json.IndexOf("\"", startIndex);
+                if (endIndex == -1) return string.Empty;
+                
+                return json.Substring(startIndex, endIndex - startIndex);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string TrouverUrlAsset(string json, string nomFichier)
+        {
+            try
+            {
+                string pattern = $"\"name\":\"{nomFichier}\"";
+                int nameIndex = json.IndexOf(pattern);
+                if (nameIndex == -1) return string.Empty;
+                
+                // Chercher le browser_download_url dans le même objet
+                int urlStartPattern = json.IndexOf("\"browser_download_url\":\"", nameIndex);
+                if (urlStartPattern == -1) return string.Empty;
+                
+                urlStartPattern += "\"browser_download_url\":\"".Length;
+                int urlEnd = json.IndexOf("\"", urlStartPattern);
+                if (urlEnd == -1) return string.Empty;
+                
+                return json.Substring(urlStartPattern, urlEnd - urlStartPattern);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string TrouverUrlAssetPartiel(string json, string nomFichierPartiel)
+        {
+            try
+            {
+                // Chercher un asset dont le nom contient le pattern
+                int searchIndex = 0;
+                while (true)
+                {
+                    int nameStart = json.IndexOf("\"name\":\"", searchIndex);
+                    if (nameStart == -1) return string.Empty;
+                    
+                    nameStart += "\"name\":\"".Length;
+                    int nameEnd = json.IndexOf("\"", nameStart);
+                    if (nameEnd == -1) return string.Empty;
+                    
+                    string fileName = json.Substring(nameStart, nameEnd - nameStart);
+                    
+                    if (fileName.Contains(nomFichierPartiel) && fileName.EndsWith(".exe"))
+                    {
+                        // Trouver l'URL de téléchargement pour cet asset
+                        int urlStartPattern = json.IndexOf("\"browser_download_url\":\"", nameEnd);
+                        if (urlStartPattern == -1) return string.Empty;
+                        
+                        urlStartPattern += "\"browser_download_url\":\"".Length;
+                        int urlEnd = json.IndexOf("\"", urlStartPattern);
+                        if (urlEnd == -1) return string.Empty;
+                        
+                        return json.Substring(urlStartPattern, urlEnd - urlStartPattern);
+                    }
+                    
+                    searchIndex = nameEnd;
+                }
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static void TelechargerMiseAJour(string urlTelechargement, string nomFichier)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(urlTelechargement))
+                {
+                    MessageBox.Show("URL de téléchargement invalide.", 
+                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                string cheminTemp = Path.Combine(Path.GetTempPath(), nomFichier);
                 
                 Form progressForm = new Form
                 {
@@ -104,9 +256,12 @@ namespace logiciel_d_impression_3d
 
                 using (WebClient client = new WebClient())
                 {
+                    client.Headers.Add("User-Agent", "Logiciel-Impression-3D-Updater");
+                    
                     client.DownloadProgressChanged += (s, e) =>
                     {
                         progressBar.Value = e.ProgressPercentage;
+                        lblStatus.Text = $"Téléchargement : {e.ProgressPercentage}% ({e.BytesReceived / 1024 / 1024} MB / {e.TotalBytesToReceive / 1024 / 1024} MB)";
                     };
 
                     client.DownloadFileCompleted += (s, e) =>
@@ -128,7 +283,7 @@ namespace logiciel_d_impression_3d
                         }
                     };
 
-                    client.DownloadFileAsync(new Uri(UrlTelechargement), cheminTemp);
+                    client.DownloadFileAsync(new Uri(urlTelechargement), cheminTemp);
                     progressForm.ShowDialog();
                 }
             }
@@ -137,6 +292,14 @@ namespace logiciel_d_impression_3d
                 MessageBox.Show($"Erreur lors du téléchargement : {ex.Message}", 
                     "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // Classe pour stocker les informations de release
+        private class ReleaseInfo
+        {
+            public string Version { get; set; }
+            public string DownloadUrl { get; set; }
+            public string HtmlUrl { get; set; }
         }
     }
 }

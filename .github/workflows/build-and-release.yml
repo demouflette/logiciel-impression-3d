@@ -1,0 +1,215 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*.*'  # Déclenché lors de la création d'un tag (ex: v1.0.0.0)
+  workflow_dispatch:  # Permet de déclencher manuellement
+
+env:
+  DOTNET_FRAMEWORK_VERSION: '4.8.1'
+  SOLUTION_PATH: 'logiciel d''impression 3d.slnx'
+  PROJECT_PATH: 'logiciel d''impression 3d.csproj'
+  BUILD_CONFIGURATION: 'Release'
+  BUILD_PLATFORM: 'Any CPU'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Extract version from tag
+      id: get_version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_REF -match 'refs/tags/v(.*)') {
+          $version = $matches[1]
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version extraite: $version"
+        } else {
+          # Version par défaut si pas de tag
+          $version = "1.0.0.0"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version par défaut: $version"
+        }
+
+    - name: Update AssemblyInfo.cs with version
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $assemblyInfoPath = "Properties\AssemblyInfo.cs"
+        
+        $content = Get-Content $assemblyInfoPath
+        $content = $content -replace '\[assembly: AssemblyVersion\(".*"\)\]', "[assembly: AssemblyVersion(`"$version`")]"
+        $content = $content -replace '\[assembly: AssemblyFileVersion\(".*"\)\]', "[assembly: AssemblyFileVersion(`"$version`")]"
+        Set-Content $assemblyInfoPath $content
+        
+        echo "AssemblyInfo.cs mis à jour avec la version: $version"
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore "${{ env.SOLUTION_PATH }}"
+
+    - name: Build solution
+      run: |
+        msbuild "${{ env.SOLUTION_PATH }}" /p:Configuration=${{ env.BUILD_CONFIGURATION }} /p:Platform="${{ env.BUILD_PLATFORM }}" /m /verbosity:minimal
+
+    - name: Install Inno Setup
+      shell: pwsh
+      run: |
+        $innoSetupUrl = "https://jrsoftware.org/download.php/is.exe"
+        $installerPath = "$env:TEMP\innosetup.exe"
+        
+        Write-Host "Téléchargement d'Inno Setup..."
+        Invoke-WebRequest -Uri $innoSetupUrl -OutFile $installerPath
+        
+        Write-Host "Installation d'Inno Setup..."
+        Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-" -Wait
+        
+        # Vérifier l'installation
+        $innoPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (Test-Path $innoPath) {
+          Write-Host "Inno Setup installé avec succès: $innoPath"
+        } else {
+          Write-Error "Échec de l'installation d'Inno Setup"
+          exit 1
+        }
+
+    - name: Update Inno Setup script version
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $issPath = "iss setup_script.iss"
+        
+        $content = Get-Content $issPath
+        $content = $content -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`""
+        Set-Content $issPath $content
+        
+        echo "Script Inno Setup mis à jour avec la version: $version"
+
+    - name: Build installer with Inno Setup
+      shell: pwsh
+      run: |
+        $issPath = "iss setup_script.iss"
+        $innoPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        
+        Write-Host "Compilation de l'installateur..."
+        & $innoPath $issPath
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Échec de la compilation de l'installateur"
+          exit 1
+        }
+        
+        Write-Host "Installateur créé avec succès!"
+
+    - name: List generated files
+      shell: pwsh
+      run: |
+        Write-Host "Fichiers dans bin\Release:"
+        Get-ChildItem "bin\Release\" | ForEach-Object { Write-Host $_.FullName }
+        
+        Write-Host "`nFichiers dans Installer:"
+        if (Test-Path "Installer") {
+          Get-ChildItem "Installer\" | ForEach-Object { Write-Host $_.FullName }
+        } else {
+          Write-Host "Le dossier Installer n'existe pas"
+        }
+
+    - name: Create version.txt
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        Set-Content -Path "version.txt" -Value $version
+        echo "Fichier version.txt créé avec: $version"
+
+    - name: Find installer file
+      id: find_installer
+      shell: pwsh
+      run: |
+        $installerPattern = "Installer\Logiciel_Impression_3D_Setup_*.exe"
+        $installer = Get-ChildItem -Path $installerPattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        
+        if ($installer) {
+          echo "INSTALLER_PATH=$($installer.FullName)" >> $env:GITHUB_OUTPUT
+          echo "INSTALLER_NAME=$($installer.Name)" >> $env:GITHUB_OUTPUT
+          echo "Installateur trouvé: $($installer.FullName)"
+        } else {
+          Write-Error "Installateur non trouvé dans le pattern: $installerPattern"
+          exit 1
+        }
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Version ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## ?? Nouvelle version : ${{ steps.get_version.outputs.VERSION }}
+          
+          ### ?? Téléchargements disponibles
+          
+          - **Installateur Windows** : `${{ steps.find_installer.outputs.INSTALLER_NAME }}`
+          - **Exécutable portable** : `logiciel d'impression 3d.exe`
+          
+          ### ?? Mise à jour automatique
+          
+          Si vous avez déjà installé l'application, la mise à jour sera proposée automatiquement au prochain démarrage.
+          
+          ### ?? Nouveautés
+          
+          _(Ajoutez ici les notes de version)_
+          
+          ### ?? Corrections de bugs
+          
+          _(Ajoutez ici les corrections)_
+          
+        draft: false
+        prerelease: false
+
+    - name: Upload installer to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.find_installer.outputs.INSTALLER_PATH }}
+        asset_name: ${{ steps.find_installer.outputs.INSTALLER_NAME }}
+        asset_content_type: application/octet-stream
+
+    - name: Upload executable to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: bin/Release/logiciel d'impression 3d.exe
+        asset_name: logiciel-impression-3d.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload version.txt to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: version.txt
+        asset_name: version.txt
+        asset_content_type: text/plain
+
+    - name: Summary
+      shell: pwsh
+      run: |
+        echo "? Build terminé avec succès!"
+        echo "?? Version: ${{ steps.get_version.outputs.VERSION }}"
+        echo "?? Release créée: ${{ steps.create_release.outputs.html_url }}"

@@ -12,6 +12,7 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -22,10 +23,10 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationRevision>1</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -46,6 +47,18 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>27AFB89E9C12FA433B069AC559DDE11B53B7DA67</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>logiciel d%27impression 3d_TemporaryKey.pfx</ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>true</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -94,7 +107,7 @@
     <Compile Include="ResetPasswordForm.Designer.cs">
       <DependentUpon>ResetPasswordForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="UpdateManager.cs" />
+    <Compile Include="UpdateManager_New.cs" />
     <Compile Include="User.cs" />
     <Compile Include="UserManager.cs" />
     <Compile Include="UserManagerDuplicate.cs" />
@@ -110,8 +123,22 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include=".github\copilot-instructions.md" />
+    <None Include=".github\workflows\build-and-release.yml" />
+    <None Include="00_COMMENCEZ_ICI.md" />
+    <None Include="ACTION_IMMEDIATE.md" />
+    <None Include="ALTERNATIVE_GITHUB_DESKTOP.md" />
+    <None Include="ALTERNATIVE_SANS_GITHUB.md" />
+    <None Include="ARCHITECTURE.md" />
     <None Include="build_installer.bat" />
+    <None Include="CHANGELOG.md" />
+    <None Include="CHOISIR_VOTRE_SOLUTION.md" />
+    <None Include="CONFIGURATION_EXPRESS.md" />
     <None Include="EXEMPLE_SERVEUR\README_SERVEUR.md" />
+    <None Include="GUIDE_MISE_A_JOUR_GITHUB.md" />
+    <None Include="INDEX.md" />
+    <None Include="logiciel d%27impression 3d_TemporaryKey.pfx" />
+    <None Include="PC_DOIT_ETRE_ALLUME.md" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -121,6 +148,13 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="publish-release.ps1" />
+    <None Include="QUICK_START.md" />
+    <None Include="README.md" />
+    <None Include="RECAPITULATIF_CONFIGURATION.md" />
+    <None Include="RESUME_1_PAGE.md" />
+    <None Include="SANS_INSTALLER_GIT.md" />
+    <None Include="setup-github-updates.ps1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
