@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -9,8 +9,9 @@ namespace logiciel_d_impression_3d
 {
     public class UpdateManager
     {
-        // Configuration GitHub - REMPLACEZ par votre nom d'utilisateur et nom de dépôt
-        private const string GithubOwner = "demouflette";
+        // Configuration GitHub - REMPLACEZ par votre nom d'utilisateur et nom de dÃ©pÃ´t
+        // TODO: Remplacez "VOTRE_NOM_UTILISATEUR" par votre vrai nom d'utilisateur GitHub
+        private const string GithubOwner = "demouflette";  // â¬…ï¸ CHANGEZ ICI !
         private const string GithubRepo = "logiciel-impression-3d";
         
         // URLs GitHub Releases
@@ -26,14 +27,14 @@ namespace logiciel_d_impression_3d
             {
                 string versionActuelle = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                 
-                // Récupérer les informations de la dernière release GitHub
+                // RÃ©cupÃ©rer les informations de la derniÃ¨re release GitHub
                 var releaseInfo = ObtenirDerniereRelease();
                 
                 if (releaseInfo == null)
                 {
                     if (afficherSiAJour)
                     {
-                        MessageBox.Show("Impossible de récupérer les informations de mise à jour.", 
+                        MessageBox.Show("Impossible de rÃ©cupÃ©rer les informations de mise Ã  jour.", 
                             "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     return;
@@ -52,8 +53,8 @@ namespace logiciel_d_impression_3d
                         $"Une nouvelle version est disponible !\n\n" +
                         $"Version actuelle : {versionActuelle}\n" +
                         $"Nouvelle version : {versionDistante}\n\n" +
-                        $"Voulez-vous télécharger la mise à jour ?",
-                        "Mise à jour disponible",
+                        $"Voulez-vous tÃ©lÃ©charger la mise Ã  jour ?",
+                        "Mise Ã  jour disponible",
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Information);
 
@@ -65,8 +66,8 @@ namespace logiciel_d_impression_3d
                 else if (afficherSiAJour)
                 {
                     MessageBox.Show(
-                        $"Vous utilisez la dernière version ({versionActuelle}).",
-                        "À jour",
+                        $"Vous utilisez la derniÃ¨re version ({versionActuelle}).",
+                        "Ã€ jour",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
                 }
@@ -75,16 +76,16 @@ namespace logiciel_d_impression_3d
             {
                 if (afficherSiAJour)
                 {
-                    MessageBox.Show("Impossible de vérifier les mises à jour.\nVérifiez votre connexion Internet.", 
-                        "Erreur réseau", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Impossible de vÃ©rifier les mises Ã  jour.\nVÃ©rifiez votre connexion Internet.", 
+                        "Erreur rÃ©seau", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur vérification MAJ: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Erreur vÃ©rification MAJ: {ex.Message}");
                 if (afficherSiAJour)
                 {
-                    MessageBox.Show($"Erreur lors de la vérification : {ex.Message}", 
+                    MessageBox.Show($"Erreur lors de la vÃ©rification : {ex.Message}", 
                         "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -98,18 +99,18 @@ namespace logiciel_d_impression_3d
                 
                 using (WebClient client = new WebClient())
                 {
-                    // GitHub API nécessite un User-Agent
+                    // GitHub API nÃ©cessite un User-Agent
                     client.Headers.Add("User-Agent", "Logiciel-Impression-3D-Updater");
                     
                     string json = client.DownloadString(url);
                     
-                    // Parse simple du JSON (sans dépendance externe)
+                    // Parse simple du JSON (sans dÃ©pendance externe)
                     string version = ExtraireValeurJson(json, "tag_name");
                     version = version.Replace("v", "").Trim(); // Retirer le 'v' du tag
                     
                     string htmlUrl = ExtraireValeurJson(json, "html_url");
                     
-                    // Récupérer l'URL de téléchargement de l'exécutable
+                    // RÃ©cupÃ©rer l'URL de tÃ©lÃ©chargement de l'exÃ©cutable
                     string downloadUrl = TrouverUrlAsset(json, ExeFileName);
                     
                     if (string.IsNullOrEmpty(downloadUrl))
@@ -128,7 +129,7 @@ namespace logiciel_d_impression_3d
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Erreur lors de la récupération de la release : {ex.Message}");
+                Debug.WriteLine($"Erreur lors de la rÃ©cupÃ©ration de la release : {ex.Message}");
                 return null;
             }
         }
@@ -161,7 +162,7 @@ namespace logiciel_d_impression_3d
                 int nameIndex = json.IndexOf(pattern);
                 if (nameIndex == -1) return string.Empty;
                 
-                // Chercher le browser_download_url dans le même objet
+                // Chercher le browser_download_url dans le mÃªme objet
                 int urlStartPattern = json.IndexOf("\"browser_download_url\":\"", nameIndex);
                 if (urlStartPattern == -1) return string.Empty;
                 
@@ -196,7 +197,7 @@ namespace logiciel_d_impression_3d
                     
                     if (fileName.Contains(nomFichierPartiel) && fileName.EndsWith(".exe"))
                     {
-                        // Trouver l'URL de téléchargement pour cet asset
+                        // Trouver l'URL de tÃ©lÃ©chargement pour cet asset
                         int urlStartPattern = json.IndexOf("\"browser_download_url\":\"", nameEnd);
                         if (urlStartPattern == -1) return string.Empty;
                         
@@ -222,7 +223,7 @@ namespace logiciel_d_impression_3d
             {
                 if (string.IsNullOrEmpty(urlTelechargement))
                 {
-                    MessageBox.Show("URL de téléchargement invalide.", 
+                    MessageBox.Show("URL de tÃ©lÃ©chargement invalide.", 
                         "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
@@ -231,7 +232,7 @@ namespace logiciel_d_impression_3d
                 
                 Form progressForm = new Form
                 {
-                    Text = "Téléchargement en cours...",
+                    Text = "TÃ©lÃ©chargement en cours...",
                     Size = new System.Drawing.Size(400, 150),
                     StartPosition = FormStartPosition.CenterScreen,
                     FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -248,7 +249,7 @@ namespace logiciel_d_impression_3d
 
                 Label lblStatus = new Label
                 {
-                    Text = "Téléchargement de la mise à jour...",
+                    Text = "TÃ©lÃ©chargement de la mise Ã  jour...",
                     Location = new System.Drawing.Point(20, 15),
                     AutoSize = true
                 };
@@ -261,7 +262,7 @@ namespace logiciel_d_impression_3d
                     client.DownloadProgressChanged += (s, e) =>
                     {
                         progressBar.Value = e.ProgressPercentage;
-                        lblStatus.Text = $"Téléchargement : {e.ProgressPercentage}% ({e.BytesReceived / 1024 / 1024} MB / {e.TotalBytesToReceive / 1024 / 1024} MB)";
+                        lblStatus.Text = $"TÃ©lÃ©chargement : {e.ProgressPercentage}% ({e.BytesReceived / 1024 / 1024} MB / {e.TotalBytesToReceive / 1024 / 1024} MB)";
                     };
 
                     client.DownloadFileCompleted += (s, e) =>
@@ -270,15 +271,15 @@ namespace logiciel_d_impression_3d
                         
                         if (e.Error == null)
                         {
-                            MessageBox.Show("Téléchargement terminé ! L'application va redémarrer.", 
-                                "Mise à jour", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("TÃ©lÃ©chargement terminÃ© ! L'application va redÃ©marrer.", 
+                                "Mise Ã  jour", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             
                             Process.Start(cheminTemp);
                             Application.Exit();
                         }
                         else
                         {
-                            MessageBox.Show($"Erreur lors du téléchargement : {e.Error.Message}", 
+                            MessageBox.Show($"Erreur lors du tÃ©lÃ©chargement : {e.Error.Message}", 
                                 "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     };
@@ -289,7 +290,7 @@ namespace logiciel_d_impression_3d
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erreur lors du téléchargement : {ex.Message}", 
+                MessageBox.Show($"Erreur lors du tÃ©lÃ©chargement : {ex.Message}", 
                     "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
