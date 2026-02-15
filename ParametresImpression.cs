@@ -23,17 +23,17 @@ namespace logiciel_d_impression_3d
 
         private void InitialiserFormulaire()
         {
-            // Charger les paramètres existants ou créer nouveaux
+            // Charger les paramï¿½tres existants ou crï¿½er nouveaux
             parametres = ChargerParametres();
 
             // Initialiser le DataTable pour les bobines
             dtBobines = new DataTable();
             dtBobines.Columns.Add("Couleur", typeof(string));
-            dtBobines.Columns.Add("Matière", typeof(string));
+            dtBobines.Columns.Add("Matiï¿½re", typeof(string));
             dtBobines.Columns.Add("Marque", typeof(string));
             dtBobines.Columns.Add("Poids bobine (g)", typeof(decimal));
-            dtBobines.Columns.Add("Prix bobine (€)", typeof(decimal));
-            dtBobines.Columns.Add("Prix/kg (€)", typeof(decimal));
+            dtBobines.Columns.Add("Prix bobine (ï¿½)", typeof(decimal));
+            dtBobines.Columns.Add("Prix/kg (ï¿½)", typeof(decimal));
 
             // Charger les bobines dans le DataTable
             if (parametres.Bobines != null)
@@ -47,13 +47,14 @@ namespace logiciel_d_impression_3d
             dgvBobines.DataSource = dtBobines;
             ConfigurerColonnesBobines();
 
-            // Charger les valeurs dans les contrôles
+            // Charger les valeurs dans les contrï¿½les
             numCoutElectricite.Value = parametres.CoutElectriciteKwh;
             numPourcentagePurge.Value = parametres.PourcentagePurgeAMS;
             numTVA.Value = parametres.TVA;
             numMarge.Value = parametres.MargeParObjet;
+            txtTokenGithub.Text = parametres.TokenGithub ?? "";
 
-            // Événements
+            // ï¿½vï¿½nements
             dgvBobines.CellValueChanged += DgvBobines_CellValueChanged;
             dgvBobines.CellFormatting += DgvBobines_CellFormatting;
         }
@@ -78,12 +79,12 @@ namespace logiciel_d_impression_3d
             });
             dgvBobines.Columns.Add(colCouleur);
 
-            // Colonne Matière
+            // Colonne Matiï¿½re
             DataGridViewComboBoxColumn colMatiere = new DataGridViewComboBoxColumn
             {
-                Name = "Matière",
-                HeaderText = "Matière",
-                DataPropertyName = "Matière",
+                Name = "Matiï¿½re",
+                HeaderText = "Matiï¿½re",
+                DataPropertyName = "Matiï¿½re",
                 Width = 100
             };
             colMatiere.Items.AddRange(new string[] { "PLA", "PETG", "ABS", "TPU", "ASA", "Nylon" });
@@ -114,18 +115,18 @@ namespace logiciel_d_impression_3d
             DataGridViewTextBoxColumn colPrix = new DataGridViewTextBoxColumn
             {
                 Name = "Prix",
-                HeaderText = "Prix bobine (€)",
-                DataPropertyName = "Prix bobine (€)",
+                HeaderText = "Prix bobine (ï¿½)",
+                DataPropertyName = "Prix bobine (ï¿½)",
                 Width = 120
             };
             dgvBobines.Columns.Add(colPrix);
 
-            // Colonne Prix/kg (calculé automatiquement)
+            // Colonne Prix/kg (calculï¿½ automatiquement)
             DataGridViewTextBoxColumn colPrixKg = new DataGridViewTextBoxColumn
             {
                 Name = "PrixKg",
-                HeaderText = "Prix/kg (€)",
-                DataPropertyName = "Prix/kg (€)",
+                HeaderText = "Prix/kg (ï¿½)",
+                DataPropertyName = "Prix/kg (ï¿½)",
                 Width = 100,
                 ReadOnly = true
             };
@@ -186,12 +187,12 @@ namespace logiciel_d_impression_3d
             
             DataRow row = dtBobines.NewRow();
             row["Couleur"] = bobine.Couleur ?? "Rouge";
-            row["Matière"] = bobine.Matiere ?? "PLA";
+            row["Matiï¿½re"] = bobine.Matiere ?? "PLA";
             row["Marque"] = bobine.Marque ?? "Generic";
             row["Poids bobine (g)"] = bobine.PoidsBobine > 0 ? bobine.PoidsBobine : 1000;
-            row["Prix bobine (€)"] = bobine.PrixBobine > 0 ? bobine.PrixBobine : 20;
+            row["Prix bobine (ï¿½)"] = bobine.PrixBobine > 0 ? bobine.PrixBobine : 20;
             decimal prixKg = bobine.PoidsBobine > 0 ? (bobine.PrixBobine / bobine.PoidsBobine) * 1000 : 20;
-            row["Prix/kg (€)"] = Math.Round(prixKg, 2);
+            row["Prix/kg (ï¿½)"] = Math.Round(prixKg, 2);
             dtBobines.Rows.Add(row);
         }
 
@@ -199,11 +200,11 @@ namespace logiciel_d_impression_3d
         {
             DataRow row = dtBobines.NewRow();
             row["Couleur"] = "Rouge";
-            row["Matière"] = "PLA";
+            row["Matiï¿½re"] = "PLA";
             row["Marque"] = "Bambu Lab";
             row["Poids bobine (g)"] = 1000m;
-            row["Prix bobine (€)"] = 20.00m;
-            row["Prix/kg (€)"] = 20.00m;
+            row["Prix bobine (ï¿½)"] = 20.00m;
+            row["Prix/kg (ï¿½)"] = 20.00m;
             dtBobines.Rows.Add(row);
         }
 
@@ -223,11 +224,12 @@ namespace logiciel_d_impression_3d
 
         private void btnEnregistrer_Click(object sender, EventArgs e)
         {
-            // Sauvegarder les paramètres
+            // Sauvegarder les paramï¿½tres
             parametres.CoutElectriciteKwh = numCoutElectricite.Value;
             parametres.PourcentagePurgeAMS = numPourcentagePurge.Value;
             parametres.TVA = numTVA.Value;
             parametres.MargeParObjet = numMarge.Value;
+            parametres.TokenGithub = txtTokenGithub.Text.Trim();
 
             // Sauvegarder les bobines
             parametres.Bobines.Clear();
@@ -238,16 +240,16 @@ namespace logiciel_d_impression_3d
                     parametres.Bobines.Add(new Bobine
                     {
                         Couleur = row["Couleur"]?.ToString() ?? "Rouge",
-                        Matiere = row["Matière"]?.ToString() ?? "PLA",
+                        Matiere = row["Matiï¿½re"]?.ToString() ?? "PLA",
                         Marque = row["Marque"]?.ToString() ?? "Generic",
                         PoidsBobine = row["Poids bobine (g)"] != DBNull.Value ? Convert.ToDecimal(row["Poids bobine (g)"]) : 1000,
-                        PrixBobine = row["Prix bobine (€)"] != DBNull.Value ? Convert.ToDecimal(row["Prix bobine (€)"]) : 20
+                        PrixBobine = row["Prix bobine (ï¿½)"] != DBNull.Value ? Convert.ToDecimal(row["Prix bobine (ï¿½)"]) : 20
                     });
                 }
             }
 
             SauvegarderParametres(parametres);
-            MessageBox.Show("Paramètres enregistrés avec succès !", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Paramï¿½tres enregistrï¿½s avec succï¿½s !", "Succï¿½s", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
@@ -273,9 +275,17 @@ namespace logiciel_d_impression_3d
                         param.PourcentagePurgeAMS = ParseDecimal(lines[1], 10m);
                         param.TVA = ParseDecimal(lines[2], 20m);
                         param.MargeParObjet = ParseDecimal(lines[3], 50m);
-                        
-                        // Lire les bobines (à partir de la ligne 4)
-                        for (int i = 4; i < lines.Length; i++)
+
+                        // Ligne 4 : token GitHub (optionnel, compatibilitÃ© ancien format)
+                        int debutBobines = 4;
+                        if (lines.Length > 4 && !lines[4].Contains("|"))
+                        {
+                            param.TokenGithub = lines[4];
+                            debutBobines = 5;
+                        }
+
+                        // Lire les bobines
+                        for (int i = debutBobines; i < lines.Length; i++)
                         {
                             string[] parts = lines[i].Split('|');
                             if (parts.Length >= 5)
@@ -319,7 +329,8 @@ namespace logiciel_d_impression_3d
                     param.CoutElectriciteKwh.ToString(CultureInfo.InvariantCulture),
                     param.PourcentagePurgeAMS.ToString(CultureInfo.InvariantCulture),
                     param.TVA.ToString(CultureInfo.InvariantCulture),
-                    param.MargeParObjet.ToString(CultureInfo.InvariantCulture)
+                    param.MargeParObjet.ToString(CultureInfo.InvariantCulture),
+                    param.TokenGithub ?? ""
                 };
 
                 foreach (var bobine in param.Bobines)
@@ -364,6 +375,7 @@ namespace logiciel_d_impression_3d
         public decimal PourcentagePurgeAMS { get; set; } = 10m;
         public decimal TVA { get; set; } = 20m;
         public decimal MargeParObjet { get; set; } = 50m;
+        public string TokenGithub { get; set; } = "";
         public List<Bobine> Bobines { get; set; } = new List<Bobine>();
     }
 

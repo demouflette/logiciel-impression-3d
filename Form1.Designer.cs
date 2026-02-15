@@ -71,6 +71,20 @@
             this.chk3mfAMS = new System.Windows.Forms.CheckBox();
             this.num3mfNombreCouleurs = new System.Windows.Forms.NumericUpDown();
             this.lbl3mfNombreCouleurs = new System.Windows.Forms.Label();
+            this.groupBoxCalibration = new System.Windows.Forms.GroupBox();
+            this.rdo3mfAuto = new System.Windows.Forms.RadioButton();
+            this.rdo3mfManuel = new System.Windows.Forms.RadioButton();
+            this.lbl3mfMatiere = new System.Windows.Forms.Label();
+            this.cmb3mfMatiere = new System.Windows.Forms.ComboBox();
+            this.lbl3mfInfill = new System.Windows.Forms.Label();
+            this.num3mfInfill = new System.Windows.Forms.NumericUpDown();
+            this.lbl3mfPoidsReel = new System.Windows.Forms.Label();
+            this.num3mfPoidsReel = new System.Windows.Forms.NumericUpDown();
+            this.lbl3mfTempsReel = new System.Windows.Forms.Label();
+            this.num3mfTempsReel = new System.Windows.Forms.NumericUpDown();
+            this.btnEnregistrerCalibration = new System.Windows.Forms.Button();
+            this.btnPartagerCalibration = new System.Windows.Forms.Button();
+            this.lblCalibrationInfo = new System.Windows.Forms.Label();
             this.btnCalculerDevis3mf = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.tabControlMain.SuspendLayout();
@@ -87,9 +101,13 @@
             this.groupBox3mfFile.SuspendLayout();
             this.groupBox3mfInfo.SuspendLayout();
             this.groupBox3mfCalcul.SuspendLayout();
+            this.groupBoxCalibration.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.num3mfTempsImpression)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.num3mfPoidsFilament)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.num3mfNombreCouleurs)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfInfill)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfPoidsReel)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfTempsReel)).BeginInit();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -223,6 +241,7 @@
             // tabPage3mf
             // 
             this.tabPage3mf.Controls.Add(this.btnCalculerDevis3mf);
+            this.tabPage3mf.Controls.Add(this.groupBoxCalibration);
             this.tabPage3mf.Controls.Add(this.groupBox3mfCalcul);
             this.tabPage3mf.Controls.Add(this.groupBox3mfInfo);
             this.tabPage3mf.Controls.Add(this.groupBox3mfFile);
@@ -578,7 +597,7 @@
             this.groupBox3mfInfo.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.groupBox3mfInfo.Location = new System.Drawing.Point(10, 140);
             this.groupBox3mfInfo.Name = "groupBox3mfInfo";
-            this.groupBox3mfInfo.Size = new System.Drawing.Size(600, 460);
+            this.groupBox3mfInfo.Size = new System.Drawing.Size(600, 280);
             this.groupBox3mfInfo.TabIndex = 1;
             this.groupBox3mfInfo.TabStop = false;
             this.groupBox3mfInfo.Text = "Informations détectées";
@@ -591,7 +610,7 @@
             this.txt3mfInfo.Name = "txt3mfInfo";
             this.txt3mfInfo.ReadOnly = true;
             this.txt3mfInfo.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txt3mfInfo.Size = new System.Drawing.Size(570, 410);
+            this.txt3mfInfo.Size = new System.Drawing.Size(570, 230);
             this.txt3mfInfo.TabIndex = 0;
             // 
             // groupBox3mfCalcul
@@ -608,7 +627,7 @@
             this.groupBox3mfCalcul.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.groupBox3mfCalcul.Location = new System.Drawing.Point(620, 140);
             this.groupBox3mfCalcul.Name = "groupBox3mfCalcul";
-            this.groupBox3mfCalcul.Size = new System.Drawing.Size(338, 380);
+            this.groupBox3mfCalcul.Size = new System.Drawing.Size(338, 280);
             this.groupBox3mfCalcul.TabIndex = 2;
             this.groupBox3mfCalcul.TabStop = false;
             this.groupBox3mfCalcul.Text = "Paramètres d'impression";
@@ -701,7 +720,164 @@
             this.num3mfNombreCouleurs.TabIndex = 8;
             this.num3mfNombreCouleurs.Value = new decimal(new int[] { 2, 0, 0, 0 });
             this.num3mfNombreCouleurs.Visible = false;
-            // 
+            //
+            // groupBoxCalibration
+            //
+            this.groupBoxCalibration.Controls.Add(this.lblCalibrationInfo);
+            this.groupBoxCalibration.Controls.Add(this.rdo3mfAuto);
+            this.groupBoxCalibration.Controls.Add(this.rdo3mfManuel);
+            this.groupBoxCalibration.Controls.Add(this.lbl3mfMatiere);
+            this.groupBoxCalibration.Controls.Add(this.cmb3mfMatiere);
+            this.groupBoxCalibration.Controls.Add(this.lbl3mfInfill);
+            this.groupBoxCalibration.Controls.Add(this.num3mfInfill);
+            this.groupBoxCalibration.Controls.Add(this.lbl3mfPoidsReel);
+            this.groupBoxCalibration.Controls.Add(this.num3mfPoidsReel);
+            this.groupBoxCalibration.Controls.Add(this.lbl3mfTempsReel);
+            this.groupBoxCalibration.Controls.Add(this.num3mfTempsReel);
+            this.groupBoxCalibration.Controls.Add(this.btnEnregistrerCalibration);
+            this.groupBoxCalibration.Controls.Add(this.btnPartagerCalibration);
+            this.groupBoxCalibration.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.groupBoxCalibration.Location = new System.Drawing.Point(10, 430);
+            this.groupBoxCalibration.Name = "groupBoxCalibration";
+            this.groupBoxCalibration.Size = new System.Drawing.Size(948, 170);
+            this.groupBoxCalibration.TabIndex = 4;
+            this.groupBoxCalibration.TabStop = false;
+            this.groupBoxCalibration.Text = "Calibration - Enrichir l'algorithme";
+            //
+            // lblCalibrationInfo
+            //
+            this.lblCalibrationInfo.AutoSize = true;
+            this.lblCalibrationInfo.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Italic);
+            this.lblCalibrationInfo.ForeColor = System.Drawing.Color.Gray;
+            this.lblCalibrationInfo.Location = new System.Drawing.Point(15, 148);
+            this.lblCalibrationInfo.Name = "lblCalibrationInfo";
+            this.lblCalibrationInfo.Size = new System.Drawing.Size(200, 13);
+            this.lblCalibrationInfo.TabIndex = 12;
+            this.lblCalibrationInfo.Text = "0 donn\u00e9es de calibration disponibles";
+            //
+            // rdo3mfAuto
+            //
+            this.rdo3mfAuto.AutoSize = true;
+            this.rdo3mfAuto.Checked = true;
+            this.rdo3mfAuto.Location = new System.Drawing.Point(15, 30);
+            this.rdo3mfAuto.Name = "rdo3mfAuto";
+            this.rdo3mfAuto.Size = new System.Drawing.Size(176, 23);
+            this.rdo3mfAuto.TabIndex = 0;
+            this.rdo3mfAuto.TabStop = true;
+            this.rdo3mfAuto.Text = "Estimation automatique";
+            this.rdo3mfAuto.UseVisualStyleBackColor = true;
+            //
+            // rdo3mfManuel
+            //
+            this.rdo3mfManuel.AutoSize = true;
+            this.rdo3mfManuel.Location = new System.Drawing.Point(220, 30);
+            this.rdo3mfManuel.Name = "rdo3mfManuel";
+            this.rdo3mfManuel.Size = new System.Drawing.Size(268, 23);
+            this.rdo3mfManuel.TabIndex = 1;
+            this.rdo3mfManuel.Text = "Saisie manuelle (donn\u00e9es r\u00e9elles)";
+            this.rdo3mfManuel.UseVisualStyleBackColor = true;
+            //
+            // lbl3mfMatiere
+            //
+            this.lbl3mfMatiere.AutoSize = true;
+            this.lbl3mfMatiere.Location = new System.Drawing.Point(15, 68);
+            this.lbl3mfMatiere.Name = "lbl3mfMatiere";
+            this.lbl3mfMatiere.Size = new System.Drawing.Size(60, 19);
+            this.lbl3mfMatiere.TabIndex = 2;
+            this.lbl3mfMatiere.Text = "Mati\u00e8re:";
+            //
+            // cmb3mfMatiere
+            //
+            this.cmb3mfMatiere.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmb3mfMatiere.FormattingEnabled = true;
+            this.cmb3mfMatiere.Items.AddRange(new object[] { "PLA", "PETG", "ABS", "TPU", "ASA", "Nylon" });
+            this.cmb3mfMatiere.Location = new System.Drawing.Point(80, 65);
+            this.cmb3mfMatiere.Name = "cmb3mfMatiere";
+            this.cmb3mfMatiere.Size = new System.Drawing.Size(100, 25);
+            this.cmb3mfMatiere.TabIndex = 3;
+            //
+            // lbl3mfInfill
+            //
+            this.lbl3mfInfill.AutoSize = true;
+            this.lbl3mfInfill.Location = new System.Drawing.Point(200, 68);
+            this.lbl3mfInfill.Name = "lbl3mfInfill";
+            this.lbl3mfInfill.Size = new System.Drawing.Size(62, 19);
+            this.lbl3mfInfill.TabIndex = 4;
+            this.lbl3mfInfill.Text = "Infill (%):";
+            //
+            // num3mfInfill
+            //
+            this.num3mfInfill.Location = new System.Drawing.Point(270, 65);
+            this.num3mfInfill.Name = "num3mfInfill";
+            this.num3mfInfill.Size = new System.Drawing.Size(70, 25);
+            this.num3mfInfill.TabIndex = 5;
+            this.num3mfInfill.Value = new decimal(new int[] { 20, 0, 0, 0 });
+            //
+            // lbl3mfPoidsReel
+            //
+            this.lbl3mfPoidsReel.AutoSize = true;
+            this.lbl3mfPoidsReel.Location = new System.Drawing.Point(15, 108);
+            this.lbl3mfPoidsReel.Name = "lbl3mfPoidsReel";
+            this.lbl3mfPoidsReel.Size = new System.Drawing.Size(107, 19);
+            this.lbl3mfPoidsReel.TabIndex = 6;
+            this.lbl3mfPoidsReel.Text = "Poids r\u00e9el (g):";
+            this.lbl3mfPoidsReel.Visible = false;
+            //
+            // num3mfPoidsReel
+            //
+            this.num3mfPoidsReel.DecimalPlaces = 2;
+            this.num3mfPoidsReel.Location = new System.Drawing.Point(130, 105);
+            this.num3mfPoidsReel.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            this.num3mfPoidsReel.Name = "num3mfPoidsReel";
+            this.num3mfPoidsReel.Size = new System.Drawing.Size(100, 25);
+            this.num3mfPoidsReel.TabIndex = 7;
+            this.num3mfPoidsReel.Visible = false;
+            //
+            // lbl3mfTempsReel
+            //
+            this.lbl3mfTempsReel.AutoSize = true;
+            this.lbl3mfTempsReel.Location = new System.Drawing.Point(250, 108);
+            this.lbl3mfTempsReel.Name = "lbl3mfTempsReel";
+            this.lbl3mfTempsReel.Size = new System.Drawing.Size(119, 19);
+            this.lbl3mfTempsReel.TabIndex = 8;
+            this.lbl3mfTempsReel.Text = "Temps r\u00e9el (min):";
+            this.lbl3mfTempsReel.Visible = false;
+            //
+            // num3mfTempsReel
+            //
+            this.num3mfTempsReel.DecimalPlaces = 1;
+            this.num3mfTempsReel.Location = new System.Drawing.Point(380, 105);
+            this.num3mfTempsReel.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            this.num3mfTempsReel.Name = "num3mfTempsReel";
+            this.num3mfTempsReel.Size = new System.Drawing.Size(100, 25);
+            this.num3mfTempsReel.TabIndex = 9;
+            this.num3mfTempsReel.Visible = false;
+            //
+            // btnEnregistrerCalibration
+            //
+            this.btnEnregistrerCalibration.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
+            this.btnEnregistrerCalibration.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnEnregistrerCalibration.ForeColor = System.Drawing.Color.White;
+            this.btnEnregistrerCalibration.Location = new System.Drawing.Point(510, 103);
+            this.btnEnregistrerCalibration.Name = "btnEnregistrerCalibration";
+            this.btnEnregistrerCalibration.Size = new System.Drawing.Size(200, 30);
+            this.btnEnregistrerCalibration.TabIndex = 10;
+            this.btnEnregistrerCalibration.Text = "Enregistrer calibration";
+            this.btnEnregistrerCalibration.UseVisualStyleBackColor = false;
+            this.btnEnregistrerCalibration.Visible = false;
+            //
+            // btnPartagerCalibration
+            //
+            this.btnPartagerCalibration.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.btnPartagerCalibration.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPartagerCalibration.ForeColor = System.Drawing.Color.White;
+            this.btnPartagerCalibration.Location = new System.Drawing.Point(730, 103);
+            this.btnPartagerCalibration.Name = "btnPartagerCalibration";
+            this.btnPartagerCalibration.Size = new System.Drawing.Size(200, 30);
+            this.btnPartagerCalibration.TabIndex = 11;
+            this.btnPartagerCalibration.Text = "Partager mes donn\u00e9es";
+            this.btnPartagerCalibration.UseVisualStyleBackColor = false;
+            //
             // btnCalculerDevis3mf
             // 
             this.btnCalculerDevis3mf.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));  
@@ -709,9 +885,9 @@
             this.btnCalculerDevis3mf.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCalculerDevis3mf.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.btnCalculerDevis3mf.ForeColor = System.Drawing.Color.White;
-            this.btnCalculerDevis3mf.Location = new System.Drawing.Point(620, 530);
+            this.btnCalculerDevis3mf.Location = new System.Drawing.Point(620, 430);
             this.btnCalculerDevis3mf.Name = "btnCalculerDevis3mf";
-            this.btnCalculerDevis3mf.Size = new System.Drawing.Size(338, 60);
+            this.btnCalculerDevis3mf.Size = new System.Drawing.Size(338, 50);
             this.btnCalculerDevis3mf.TabIndex = 3;
             this.btnCalculerDevis3mf.Text = "💰 Calculer le devis";
             this.btnCalculerDevis3mf.UseVisualStyleBackColor = false;
@@ -750,9 +926,14 @@
             this.groupBox3mfInfo.PerformLayout();
             this.groupBox3mfCalcul.ResumeLayout(false);
             this.groupBox3mfCalcul.PerformLayout();
+            this.groupBoxCalibration.ResumeLayout(false);
+            this.groupBoxCalibration.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.num3mfTempsImpression)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.num3mfPoidsFilament)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.num3mfNombreCouleurs)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfInfill)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfPoidsReel)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfTempsReel)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -815,6 +996,20 @@
         private System.Windows.Forms.NumericUpDown num3mfNombreCouleurs;
         private System.Windows.Forms.Label lbl3mfNombreCouleurs;
         private System.Windows.Forms.Button btnCalculerDevis3mf;
+        private System.Windows.Forms.GroupBox groupBoxCalibration;
+        private System.Windows.Forms.RadioButton rdo3mfAuto;
+        private System.Windows.Forms.RadioButton rdo3mfManuel;
+        private System.Windows.Forms.Label lbl3mfMatiere;
+        private System.Windows.Forms.ComboBox cmb3mfMatiere;
+        private System.Windows.Forms.Label lbl3mfInfill;
+        private System.Windows.Forms.NumericUpDown num3mfInfill;
+        private System.Windows.Forms.Label lbl3mfPoidsReel;
+        private System.Windows.Forms.NumericUpDown num3mfPoidsReel;
+        private System.Windows.Forms.Label lbl3mfTempsReel;
+        private System.Windows.Forms.NumericUpDown num3mfTempsReel;
+        private System.Windows.Forms.Button btnEnregistrerCalibration;
+        private System.Windows.Forms.Button btnPartagerCalibration;
+        private System.Windows.Forms.Label lblCalibrationInfo;
     }
 }
 

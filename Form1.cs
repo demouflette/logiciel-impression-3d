@@ -25,6 +25,16 @@ namespace logiciel_d_impression_3d
             // Connecter les événements des boutons 3MF
             btnBrowse3mf.Click += BtnBrowse3mf_Click;
             btnAnalyser3mf.Click += BtnAnalyser3mf_Click;
+
+            // Connecter les événements de calibration
+            rdo3mfAuto.CheckedChanged += Rdo3mfMode_CheckedChanged;
+            rdo3mfManuel.CheckedChanged += Rdo3mfMode_CheckedChanged;
+            btnEnregistrerCalibration.Click += BtnEnregistrerCalibration_Click;
+            btnPartagerCalibration.Click += BtnPartagerCalibration_Click;
+            cmb3mfMatiere.SelectedIndex = 0; // PLA par défaut
+
+            // Afficher le nombre de données de calibration
+            MettreAJourInfoCalibration();
             
             // Initialiser les imprimantes Bambu Lab pour l'onglet 3MF
             cmb3mfPrinter.Items.AddRange(new string[]
@@ -152,11 +162,12 @@ namespace logiciel_d_impression_3d
                     // Ratio moyen: ~0.0000395 g/vertex (40g par million de vertices)
                     // ═══════════════════════════════════════════════════════════════════
                     
-                    // Formule calibrée basée sur vertices (plus fiable que bounding box)
-                    decimal poidsEstime = fichier3mfAnalyse.TotalVertices * 0.0000395m;
-                    
-                    // TODO: Ajouter formule multi-couleur avec purge AMS (en attente de données réelles)
-                    
+                    // Utiliser l'algorithme calibré si des données sont disponibles
+                    string matiere3mf = cmb3mfMatiere.SelectedItem?.ToString() ?? "PLA";
+                    int infill3mf = (int)num3mfInfill.Value;
+                    decimal poidsEstime = CalibrationManager.EstimerPoids(
+                        fichier3mfAnalyse.TotalVertices, matiere3mf, infill3mf);
+
                     num3mfPoidsFilament.Value = Math.Round(poidsEstime, 2);
                 }
                 
@@ -174,11 +185,11 @@ namespace logiciel_d_impression_3d
                 
                 if (fichier3mfAnalyse.TotalVertices > 0)
                 {
-                    // Formule calibrée basée sur vertices
-                    decimal tempsEstimeMinutes = fichier3mfAnalyse.TotalVertices * 0.000124m;
-                    
-                    // TODO: Ajouter formule multi-couleur avec temps de purge AMS
-                    
+                    // Utiliser l'algorithme calibré pour le temps
+                    string imprimante3mf = cmb3mfPrinter.SelectedItem?.ToString() ?? "";
+                    decimal tempsEstimeMinutes = CalibrationManager.EstimerTemps(
+                        fichier3mfAnalyse.TotalVertices, imprimante3mf);
+
                     decimal tempsEstimeHeures = tempsEstimeMinutes / 60m;
                     num3mfTempsImpression.Value = Math.Round(tempsEstimeHeures, 2);
                 }
@@ -889,6 +900,94 @@ namespace logiciel_d_impression_3d
             {
                 MessageBox.Show($"Erreur lors de la mise à jour :\n{ex.Message}", 
                     "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void Rdo3mfMode_CheckedChanged(object sender, EventArgs e)
+        {
+            bool modeManuel = rdo3mfManuel.Checked;
+            lbl3mfPoidsReel.Visible = modeManuel;
+            num3mfPoidsReel.Visible = modeManuel;
+            lbl3mfTempsReel.Visible = modeManuel;
+            num3mfTempsReel.Visible = modeManuel;
+            btnEnregistrerCalibration.Visible = modeManuel;
+        }
+
+        private void BtnEnregistrerCalibration_Click(object sender, EventArgs e)
+        {
+            if (fichier3mfAnalyse == null)
+            {
+                MessageBox.Show("Veuillez d'abord analyser un fichier 3MF.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (num3mfPoidsReel.Value == 0 || num3mfTempsReel.Value == 0)
+            {
+                MessageBox.Show("Veuillez entrer le poids réel et le temps réel.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var donnee = new DonneeCalibration
+            {
+                NomFichier = System.IO.Path.GetFileName(txt3mfFile.Text),
+                NombreVertices = fichier3mfAnalyse.TotalVertices,
+                PoidsReel = num3mfPoidsReel.Value,
+                TempsReel = num3mfTempsReel.Value,
+                Matiere = cmb3mfMatiere.SelectedItem?.ToString() ?? "PLA",
+                PourcentageInfill = (int)num3mfInfill.Value,
+                Imprimante = cmb3mfPrinter.SelectedItem?.ToString() ?? "",
+                DateSaisie = DateTime.Now,
+                Utilisateur = userManager.CurrentUser.Username
+            };
+
+            CalibrationManager.EnregistrerDonnee(donnee);
+            MettreAJourInfoCalibration();
+
+            MessageBox.Show(
+                $"Données de calibration enregistrées !\n\n" +
+                $"Fichier : {donnee.NomFichier}\n" +
+                $"Vertices : {donnee.NombreVertices:N0}\n" +
+                $"Poids réel : {donnee.PoidsReel:F2} g\n" +
+                $"Temps réel : {donnee.TempsReel:F1} min\n" +
+                $"Ratio poids : {donnee.RatioPoids:F7} g/vertex\n" +
+                $"Ratio temps : {donnee.RatioTemps:F7} min/vertex",
+                "Calibration enregistrée",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void BtnPartagerCalibration_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+                CalibrationManager.PartagerDonnees(parametres.TokenGithub);
+                MessageBox.Show("Données de calibration partagées avec succès !",
+                    "Partage réussi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(ex.Message, "Erreur de partage",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors du partage :\n{ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void MettreAJourInfoCalibration()
+        {
+            try
+            {
+                int nbDonnees = CalibrationManager.ObtenirNombreDonnees();
+                lblCalibrationInfo.Text = $"{nbDonnees} donnée(s) de calibration disponible(s)";
+            }
+            catch
+            {
+                lblCalibrationInfo.Text = "0 donnée(s) de calibration disponible(s)";
             }
         }
 

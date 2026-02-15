@@ -82,6 +82,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="CalibrationManager.cs" />
     <Compile Include="ImprimanteSpecsManager.cs" />
     <Compile Include="LoginForm.cs">
       <SubType>Form</SubType>

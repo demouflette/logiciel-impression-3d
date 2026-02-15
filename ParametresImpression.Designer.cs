@@ -34,6 +34,9 @@ namespace logiciel_d_impression_3d
             this.btnSupprimerBobine = new System.Windows.Forms.Button();
             this.btnAjouterBobine = new System.Windows.Forms.Button();
             this.dgvBobines = new System.Windows.Forms.DataGridView();
+            this.groupBoxGithub = new System.Windows.Forms.GroupBox();
+            this.txtTokenGithub = new System.Windows.Forms.TextBox();
+            this.lblTokenGithub = new System.Windows.Forms.Label();
             this.btnEnregistrer = new System.Windows.Forms.Button();
             this.btnAnnuler = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
@@ -63,6 +66,7 @@ namespace logiciel_d_impression_3d
             // tabPageGeneral
             // 
             this.tabPageGeneral.BackColor = System.Drawing.Color.White;
+            this.tabPageGeneral.Controls.Add(this.groupBoxGithub);
             this.tabPageGeneral.Controls.Add(this.groupBox3);
             this.tabPageGeneral.Controls.Add(this.groupBox2);
             this.tabPageGeneral.Controls.Add(this.groupBox1);
@@ -71,7 +75,7 @@ namespace logiciel_d_impression_3d
             this.tabPageGeneral.Padding = new System.Windows.Forms.Padding(3);
             this.tabPageGeneral.Size = new System.Drawing.Size(752, 450);
             this.tabPageGeneral.TabIndex = 0;
-            this.tabPageGeneral.Text = "Paramètres généraux";
+            this.tabPageGeneral.Text = "Paramï¿½tres gï¿½nï¿½raux";
             // 
             // groupBox3
             // 
@@ -176,7 +180,7 @@ namespace logiciel_d_impression_3d
             this.lblPourcentagePurge.Name = "lblPourcentagePurge";
             this.lblPourcentagePurge.Size = new System.Drawing.Size(239, 19);
             this.lblPourcentagePurge.TabIndex = 0;
-            this.lblPourcentagePurge.Text = "Pourcentage de perte dû à la purge (%):";
+            this.lblPourcentagePurge.Text = "Pourcentage de perte dï¿½ ï¿½ la purge (%):";
             // 
             // groupBox1
             // 
@@ -187,7 +191,7 @@ namespace logiciel_d_impression_3d
             this.groupBox1.Size = new System.Drawing.Size(710, 90);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Électricité";
+            this.groupBox1.Text = "ï¿½lectricitï¿½";
             // 
             // numCoutElectricite
             // 
@@ -219,7 +223,7 @@ namespace logiciel_d_impression_3d
             this.lblCoutElectricite.Name = "lblCoutElectricite";
             this.lblCoutElectricite.Size = new System.Drawing.Size(177, 19);
             this.lblCoutElectricite.TabIndex = 0;
-            this.lblCoutElectricite.Text = "Coût de l\'électricité (€/kWh):";
+            this.lblCoutElectricite.Text = "Coï¿½t de l\'ï¿½lectricitï¿½ (ï¿½/kWh):";
             // 
             // tabPageBobines
             // 
@@ -269,7 +273,35 @@ namespace logiciel_d_impression_3d
             this.dgvBobines.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgvBobines.Size = new System.Drawing.Size(710, 365);
             this.dgvBobines.TabIndex = 0;
-            // 
+            //
+            // groupBoxGithub
+            //
+            this.groupBoxGithub.Controls.Add(this.txtTokenGithub);
+            this.groupBoxGithub.Controls.Add(this.lblTokenGithub);
+            this.groupBoxGithub.Location = new System.Drawing.Point(20, 360);
+            this.groupBoxGithub.Name = "groupBoxGithub";
+            this.groupBoxGithub.Size = new System.Drawing.Size(710, 80);
+            this.groupBoxGithub.TabIndex = 3;
+            this.groupBoxGithub.TabStop = false;
+            this.groupBoxGithub.Text = "Partage des donn\u00e9es de calibration";
+            //
+            // txtTokenGithub
+            //
+            this.txtTokenGithub.Location = new System.Drawing.Point(300, 35);
+            this.txtTokenGithub.Name = "txtTokenGithub";
+            this.txtTokenGithub.Size = new System.Drawing.Size(390, 25);
+            this.txtTokenGithub.TabIndex = 1;
+            this.txtTokenGithub.UseSystemPasswordChar = true;
+            //
+            // lblTokenGithub
+            //
+            this.lblTokenGithub.AutoSize = true;
+            this.lblTokenGithub.Location = new System.Drawing.Point(20, 38);
+            this.lblTokenGithub.Name = "lblTokenGithub";
+            this.lblTokenGithub.Size = new System.Drawing.Size(240, 19);
+            this.lblTokenGithub.TabIndex = 0;
+            this.lblTokenGithub.Text = "Token GitHub (pour partager les donn\u00e9es):";
+            //
             // btnEnregistrer
             // 
             this.btnEnregistrer.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
@@ -311,7 +343,7 @@ namespace logiciel_d_impression_3d
             this.MinimizeBox = false;
             this.Name = "ParametresImpressionForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Paramètres d\'impression";
+            this.Text = "Paramï¿½tres d\'impression";
             this.tabControl1.ResumeLayout(false);
             this.tabPageGeneral.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
@@ -349,6 +381,9 @@ namespace logiciel_d_impression_3d
         private System.Windows.Forms.DataGridView dgvBobines;
         private System.Windows.Forms.Button btnAjouterBobine;
         private System.Windows.Forms.Button btnSupprimerBobine;
+        private System.Windows.Forms.GroupBox groupBoxGithub;
+        private System.Windows.Forms.TextBox txtTokenGithub;
+        private System.Windows.Forms.Label lblTokenGithub;
         private System.Windows.Forms.Button btnEnregistrer;
         private System.Windows.Forms.Button btnAnnuler;
     }
