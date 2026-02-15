@@ -371,3 +371,6 @@ FodyWeavers.xsd
 # Dossiers externes
 desktop-tutorial/
 logiciel-impression-3d/
+
+# VS Code
+.vscode/
