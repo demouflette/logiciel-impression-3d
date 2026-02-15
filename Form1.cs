@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace logiciel_d_impression_3d
@@ -13,12 +14,29 @@ namespace logiciel_d_impression_3d
         private DataTable dtCouleurs;
         private List<NumericUpDown> tempsPlateauxControls;
         private Dictionary<string, Color> couleursDictionnaire;
+        private ThreeMFParser.ThreeMFFile fichier3mfAnalyse;
 
         public Form1(UserManager manager)
         {
             InitializeComponent();
             userManager = manager;
             InitializeForm();
+            
+            // Connecter les événements des boutons 3MF
+            btnBrowse3mf.Click += BtnBrowse3mf_Click;
+            btnAnalyser3mf.Click += BtnAnalyser3mf_Click;
+            
+            // Initialiser les imprimantes Bambu Lab pour l'onglet 3MF
+            cmb3mfPrinter.Items.AddRange(new string[]
+            {
+                "Bambu Lab X1 Carbon",
+                "Bambu Lab X1E",
+                "Bambu Lab P1P",
+                "Bambu Lab P1S",
+                "Bambu Lab A1",
+                "Bambu Lab A1 Mini"
+            });
+            cmb3mfPrinter.SelectedIndex = 0;
         }
 
         private void InitializeForm()
@@ -52,38 +70,278 @@ namespace logiciel_d_impression_3d
             dtCouleurs.Columns.Add("Type", typeof(string));
             dtCouleurs.Columns.Add("Marque", typeof(string));
             dtCouleurs.Columns.Add("Poids (g)", typeof(decimal));
-
-            // Configuration du DataGridView
-            dgvCouleurs.DataSource = dtCouleurs;
-            dgvCouleurs.AutoGenerateColumns = false;
-            dgvCouleurs.AllowUserToAddRows = true;
-            dgvCouleurs.AllowUserToDeleteRows = true;
             
-            // Configurer les colonnes avec ComboBox pour Type et Marque
             ConfigurerColonnesDataGrid(marques);
             
-            // Ajouter l'événement pour colorier les cellules
+            dgvCouleurs.DataSource = dtCouleurs;
             dgvCouleurs.CellFormatting += DgvCouleurs_CellFormatting;
-
-            // Valeurs par défaut
-            rdoMonoCouleur.Checked = true;
-            chkAMS.Checked = false;
-            numNombreAMS.Value = 1;
-            numNombreAMS.Enabled = false;
-            numNombrePlateaux.Value = 1;
-            numNombrePlateaux.Enabled = false;
-            numNombreCouleurs.Value = 1;
-            numNombreCouleurs.Enabled = false;
-            numNombreObjets.Value = 1;
             
-            // Initialiser la liste des temps de plateaux
-            tempsPlateauxControls = new List<NumericUpDown>();
-            
-            // Mode mono-couleur par défaut - ajouter une seule ligne vide
             AjouterLigneVide();
+            
+            // Initialiser les contrôles de temps par plateau
+            tempsPlateauxControls = new List<NumericUpDown>();
             InitialiserTempsPlateaux(1);
             
-            lblNombreCouleurs.Text = "Couleurs: 0 | Plateaux: 1";
+            // Désactiver AMS et multi-couleur au démarrage
+            chkAMS.Enabled = false;
+            rdoMultiCouleur.Enabled = false;
+        }
+
+        /// <summary>
+        /// Événement pour parcourir et sélectionner un fichier 3MF
+        /// </summary>
+        private void BtnBrowse3mf_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Fichiers 3MF (*.3mf)|*.3mf|Tous les fichiers (*.*)|*.*";
+                openFileDialog.Title = "Sélectionnez un fichier 3MF";
+                openFileDialog.RestoreDirectory = true;
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    txt3mfFile.Text = openFileDialog.FileName;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Événement pour analyser le fichier 3MF sélectionné
+        /// </summary>
+        private void BtnAnalyser3mf_Click(object sender, EventArgs e)
+        {
+            // Vérifier qu'un fichier est sélectionné
+            if (string.IsNullOrWhiteSpace(txt3mfFile.Text))
+            {
+                MessageBox.Show("Veuillez sélectionner un fichier 3MF.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!System.IO.File.Exists(txt3mfFile.Text))
+            {
+                MessageBox.Show("Le fichier sélectionné n'existe pas.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                // Analyser le fichier 3MF
+                fichier3mfAnalyse = ThreeMFParser.ParseFile(txt3mfFile.Text);
+                
+                // Générer le rapport
+                string rapport = ThreeMFParser.GenerateReport(fichier3mfAnalyse);
+                
+                // Afficher le rapport dans la zone de texte
+                txt3mfInfo.Text = rapport;
+                txt3mfInfo.Select(0, 0); // Aller au début
+                
+                // Pré-remplir le poids estimé si disponible
+                if (fichier3mfAnalyse.TotalVertices > 0)
+                {
+                    // ═══════════════════════════════════════════════════════════════════
+                    // FORMULE MONO-COULEUR (SANS AMS) - BASÉE SUR VERTICES
+                    // ═══════════════════════════════════════════════════════════════════
+                    // Référence Crocs Keychain:
+                    //   • Vertices: 613 492
+                    //   • Poids: 24,27g
+                    // Référence Dragon:
+                    //   • Vertices: 1 326 122
+                    //   • Poids: 41,54g
+                    // Ratio moyen: ~0.0000395 g/vertex (40g par million de vertices)
+                    // ═══════════════════════════════════════════════════════════════════
+                    
+                    // Formule calibrée basée sur vertices (plus fiable que bounding box)
+                    decimal poidsEstime = fichier3mfAnalyse.TotalVertices * 0.0000395m;
+                    
+                    // TODO: Ajouter formule multi-couleur avec purge AMS (en attente de données réelles)
+                    
+                    num3mfPoidsFilament.Value = Math.Round(poidsEstime, 2);
+                }
+                
+                // ═══════════════════════════════════════════════════════════════════
+                // FORMULE TEMPS MONO-COULEUR (SANS AMS) - BASÉE SUR VERTICES
+                // ═══════════════════════════════════════════════════════════════════
+                // Référence Crocs Keychain:
+                //   • Vertices: 613 492
+                //   • Temps: 93 minutes
+                // Référence Dragon:
+                //   • Vertices: 1 326 122
+                //   • Temps: 165 minutes
+                // Ratio moyen: ~0.000124 min/vertex (7,44 min par million de vertices)
+                // ═══════════════════════════════════════════════════════════════════
+                
+                if (fichier3mfAnalyse.TotalVertices > 0)
+                {
+                    // Formule calibrée basée sur vertices
+                    decimal tempsEstimeMinutes = fichier3mfAnalyse.TotalVertices * 0.000124m;
+                    
+                    // TODO: Ajouter formule multi-couleur avec temps de purge AMS
+                    
+                    decimal tempsEstimeHeures = tempsEstimeMinutes / 60m;
+                    num3mfTempsImpression.Value = Math.Round(tempsEstimeHeures, 2);
+                }
+                
+                // Pré-remplir les informations d'impression si disponibles
+                if (fichier3mfAnalyse.PrintInfo != null)
+                {
+                    var printInfo = fichier3mfAnalyse.PrintInfo;
+                    
+                    // Déterminer si multi-couleur basé sur les métadonnées
+                    if (printInfo.FilamentColors != null && printInfo.FilamentColors.Count > 1)
+                    {
+                        chk3mfAMS.Checked = true;
+                        num3mfNombreCouleurs.Value = printInfo.FilamentColors.Count;
+                    }
+                }
+                
+                MessageBox.Show($"✓ Analyse terminée! {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).",
+                    "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (InvalidOperationException ex)
+            {
+                txt3mfInfo.Text = $"❌ Erreur lors de l'analyse du fichier 3MF:\n\n{ex.Message}";
+                MessageBox.Show($"Erreur: {ex.Message}", "Erreur d'analyse",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                txt3mfInfo.Text = $"❌ Erreur inattendue:\n\n{ex.Message}";
+                MessageBox.Show($"Erreur inattendue: {ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Événement checkbox AMS pour l'onglet 3MF
+        /// </summary>
+        private void chk3mfAMS_CheckedChanged(object sender, EventArgs e)
+        {
+            lbl3mfNombreCouleurs.Visible = chk3mfAMS.Checked;
+            num3mfNombreCouleurs.Visible = chk3mfAMS.Checked;
+        }
+
+        /// <summary>
+        /// Calculer le devis basé sur le fichier 3MF
+        /// </summary>
+        private void btnCalculerDevis3mf_Click(object sender, EventArgs e)
+        {
+            // Vérifier qu'un fichier a été analysé
+            if (fichier3mfAnalyse == null)
+            {
+                MessageBox.Show("Veuillez d'abord analyser un fichier 3MF.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Valider les entrées
+            if (num3mfTempsImpression.Value == 0)
+            {
+                MessageBox.Show("Veuillez entrer le temps d'impression.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (num3mfPoidsFilament.Value == 0)
+            {
+                MessageBox.Show("Veuillez entrer le poids de filament.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Charger les paramètres
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+
+                // Calculer les coûts
+                decimal poidsFilament = num3mfPoidsFilament.Value;
+                decimal tempsHeures = num3mfTempsImpression.Value;
+                int nombreCouleurs = chk3mfAMS.Checked ? (int)num3mfNombreCouleurs.Value : 1;
+
+                // Calcul du poids de purge si AMS
+                decimal poidsPurge = 0;
+                if (chk3mfAMS.Checked && nombreCouleurs > 1)
+                {
+                    poidsPurge = poidsFilament * (parametres.PourcentagePurgeAMS / 100m);
+                }
+
+                decimal poidsTotal = poidsFilament + poidsPurge;
+
+                // Calcul du coût matière (PLA par défaut à 20€/kg)
+                decimal prixKgFilament = 20.00m;
+                decimal coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
+
+                // Calcul du coût électricité
+                // Estimation: X1 Carbon ~300W, P1P ~200W, A1 Mini ~150W
+                decimal puissanceKw = 0.30m; // Par défaut 300W
+                if (cmb3mfPrinter.SelectedItem?.ToString().Contains("P1") == true)
+                    puissanceKw = 0.20m;
+                else if (cmb3mfPrinter.SelectedItem?.ToString().Contains("A1") == true)
+                    puissanceKw = 0.15m;
+
+                decimal consommationKwh = puissanceKw * tempsHeures;
+                decimal coutElectricite = consommationKwh * parametres.CoutElectriciteKwh;
+
+                // Coût de production HT
+                decimal coutProductionHT = coutMatiere + coutElectricite;
+
+                // Appliquer la marge (en pourcentage)
+                decimal marge = coutProductionHT * (parametres.MargeParObjet / 100m);
+                decimal sousTotalHT = coutProductionHT + marge;
+
+                // Calculer la TVA
+                decimal montantTVA = sousTotalHT * (parametres.TVA / 100m);
+
+                // Prix total TTC
+                decimal prixTotalTTC = sousTotalHT + montantTVA;
+
+                // Afficher le résultat
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine("           DEVIS D'IMPRESSION 3D - BAMBU LAB");
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine();
+                sb.AppendLine($"📄 Fichier: {fichier3mfAnalyse.FileName}");
+                sb.AppendLine($"🖨️  Imprimante: {cmb3mfPrinter.SelectedItem}");
+                sb.AppendLine($"📦 Nombre d'objets: {fichier3mfAnalyse.Objects.Count}");
+                sb.AppendLine();
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine("  DÉTAILS DE L'IMPRESSION");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine($"⏱️  Temps d'impression: {tempsHeures:F2} heures");
+                sb.AppendLine($"🎨 Mode: {(chk3mfAMS.Checked ? $"Multi-couleur ({nombreCouleurs} couleurs)" : "Mono-couleur")}");
+                sb.AppendLine($"📊 Poids filament net: {poidsFilament:F2} g");
+                if (poidsPurge > 0)
+                    sb.AppendLine($"🔄 Poids purge AMS ({parametres.PourcentagePurgeAMS}%): {poidsPurge:F2} g");
+                sb.AppendLine($"📦 Poids total: {poidsTotal:F2} g");
+                sb.AppendLine();
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine("  DÉTAILS DES COÛTS");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine($"💰 Coût matière: {coutMatiere:F2} €");
+                sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
+                sb.AppendLine($"⚡ Coût électricité: {coutElectricite:F2} €");
+                sb.AppendLine($"    ({consommationKwh:F3} kWh × {parametres.CoutElectriciteKwh:F2} €/kWh)");
+                sb.AppendLine($"🔧 Coût production HT: {coutProductionHT:F2} €");
+                sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%): {marge:F2} €");
+                sb.AppendLine();
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine($"   Sous-total HT: {sousTotalHT:F2} €");
+                sb.AppendLine($"   TVA ({parametres.TVA}%): {montantTVA:F2} €");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine($"   💰 PRIX TOTAL TTC: {prixTotalTTC:F2} €");
+                sb.AppendLine("═══════════════════════════════════════════════════");
+
+                MessageBox.Show(sb.ToString(), "Devis calculé",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors du calcul:\n{ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void InitialiserCouleursDictionnaire()

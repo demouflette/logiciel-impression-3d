@@ -30,6 +30,9 @@
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.àProposToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lblWelcomeUser = new System.Windows.Forms.Label();
+            this.tabControlMain = new System.Windows.Forms.TabControl();
+            this.tabPageCalculManuel = new System.Windows.Forms.TabPage();
+            this.tabPage3mf = new System.Windows.Forms.TabPage();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.cmbPrinter = new System.Windows.Forms.ComboBox();
             this.lblPrinter = new System.Windows.Forms.Label();
@@ -51,7 +54,28 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.panelTemps = new System.Windows.Forms.Panel();
             this.btnCalculerDevis = new System.Windows.Forms.Button();
+            this.groupBox3mfFile = new System.Windows.Forms.GroupBox();
+            this.lbl3mfFile = new System.Windows.Forms.Label();
+            this.txt3mfFile = new System.Windows.Forms.TextBox();
+            this.btnBrowse3mf = new System.Windows.Forms.Button();
+            this.btnAnalyser3mf = new System.Windows.Forms.Button();
+            this.groupBox3mfInfo = new System.Windows.Forms.GroupBox();
+            this.txt3mfInfo = new System.Windows.Forms.TextBox();
+            this.groupBox3mfCalcul = new System.Windows.Forms.GroupBox();
+            this.cmb3mfPrinter = new System.Windows.Forms.ComboBox();
+            this.lbl3mfPrinter = new System.Windows.Forms.Label();
+            this.num3mfTempsImpression = new System.Windows.Forms.NumericUpDown();
+            this.lbl3mfTempsImpression = new System.Windows.Forms.Label();
+            this.lbl3mfPoidsFilament = new System.Windows.Forms.Label();
+            this.num3mfPoidsFilament = new System.Windows.Forms.NumericUpDown();
+            this.chk3mfAMS = new System.Windows.Forms.CheckBox();
+            this.num3mfNombreCouleurs = new System.Windows.Forms.NumericUpDown();
+            this.lbl3mfNombreCouleurs = new System.Windows.Forms.Label();
+            this.btnCalculerDevis3mf = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
+            this.tabControlMain.SuspendLayout();
+            this.tabPageCalculManuel.SuspendLayout();
+            this.tabPage3mf.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvCouleurs)).BeginInit();
@@ -60,6 +84,12 @@
             ((System.ComponentModel.ISupportInitialize)(this.numNombreAMS)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numNombreObjets)).BeginInit();
             this.groupBox3.SuspendLayout();
+            this.groupBox3mfFile.SuspendLayout();
+            this.groupBox3mfInfo.SuspendLayout();
+            this.groupBox3mfCalcul.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfTempsImpression)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfPoidsFilament)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfNombreCouleurs)).BeginInit();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -166,15 +196,53 @@
             this.lblWelcomeUser.TabIndex = 1;
             this.lblWelcomeUser.Text = "Bienvenue";
             // 
+            // tabControlMain
+            // 
+            this.tabControlMain.Controls.Add(this.tabPageCalculManuel);
+            this.tabControlMain.Controls.Add(this.tabPage3mf);
+            this.tabControlMain.Location = new System.Drawing.Point(12, 65);
+            this.tabControlMain.Name = "tabControlMain";
+            this.tabControlMain.SelectedIndex = 0;
+            this.tabControlMain.Size = new System.Drawing.Size(976, 643);
+            this.tabControlMain.TabIndex = 2;
+            // 
+            // tabPageCalculManuel
+            // 
+            this.tabPageCalculManuel.Controls.Add(this.groupBox1);
+            this.tabPageCalculManuel.Controls.Add(this.groupBox2);
+            this.tabPageCalculManuel.Controls.Add(this.groupBox3);
+            this.tabPageCalculManuel.Controls.Add(this.btnCalculerDevis);
+            this.tabPageCalculManuel.Location = new System.Drawing.Point(4, 22);
+            this.tabPageCalculManuel.Name = "tabPageCalculManuel";
+            this.tabPageCalculManuel.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageCalculManuel.Size = new System.Drawing.Size(968, 617);
+            this.tabPageCalculManuel.TabIndex = 0;
+            this.tabPageCalculManuel.Text = "Calcul manuel";
+            this.tabPageCalculManuel.UseVisualStyleBackColor = true;
+            // 
+            // tabPage3mf
+            // 
+            this.tabPage3mf.Controls.Add(this.btnCalculerDevis3mf);
+            this.tabPage3mf.Controls.Add(this.groupBox3mfCalcul);
+            this.tabPage3mf.Controls.Add(this.groupBox3mfInfo);
+            this.tabPage3mf.Controls.Add(this.groupBox3mfFile);
+            this.tabPage3mf.Location = new System.Drawing.Point(4, 22);
+            this.tabPage3mf.Name = "tabPage3mf";
+            this.tabPage3mf.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3mf.Size = new System.Drawing.Size(968, 617);
+            this.tabPage3mf.TabIndex = 1;
+            this.tabPage3mf.Text = "Calcul depuis fichier 3MF (Bambu Lab)";
+            this.tabPage3mf.UseVisualStyleBackColor = true;
+            // 
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.cmbPrinter);
             this.groupBox1.Controls.Add(this.lblPrinter);
             this.groupBox1.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.groupBox1.Location = new System.Drawing.Point(17, 75);
+            this.groupBox1.Location = new System.Drawing.Point(10, 10);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(960, 80);
-            this.groupBox1.TabIndex = 2;
+            this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Imprimante";
             // 
@@ -213,10 +281,10 @@
             this.groupBox2.Controls.Add(this.numNombreObjets);
             this.groupBox2.Controls.Add(this.lblNombreObjets);
             this.groupBox2.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.groupBox2.Location = new System.Drawing.Point(17, 170);
+            this.groupBox2.Location = new System.Drawing.Point(10, 105);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(650, 530);
-            this.groupBox2.TabIndex = 3;
+            this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Configuration couleurs et filaments";
             // 
@@ -444,23 +512,217 @@
             this.btnCalculerDevis.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCalculerDevis.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.btnCalculerDevis.ForeColor = System.Drawing.Color.White;
-            this.btnCalculerDevis.Location = new System.Drawing.Point(687, 630);
+            this.btnCalculerDevis.Location = new System.Drawing.Point(670, 560);
             this.btnCalculerDevis.Name = "btnCalculerDevis";
             this.btnCalculerDevis.Size = new System.Drawing.Size(290, 60);
-            this.btnCalculerDevis.TabIndex = 5;
+            this.btnCalculerDevis.TabIndex = 3;
             this.btnCalculerDevis.Text = "📊 Calculer le devis";
             this.btnCalculerDevis.UseVisualStyleBackColor = false;
             this.btnCalculerDevis.Click += new System.EventHandler(this.btnCalculerDevis_Click);
+            // 
+            // groupBox3mfFile
+            // 
+            this.groupBox3mfFile.Controls.Add(this.btnAnalyser3mf);
+            this.groupBox3mfFile.Controls.Add(this.btnBrowse3mf);
+            this.groupBox3mfFile.Controls.Add(this.txt3mfFile);
+            this.groupBox3mfFile.Controls.Add(this.lbl3mfFile);
+            this.groupBox3mfFile.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.groupBox3mfFile.Location = new System.Drawing.Point(10, 10);
+            this.groupBox3mfFile.Name = "groupBox3mfFile";
+            this.groupBox3mfFile.Size = new System.Drawing.Size(948, 120);
+            this.groupBox3mfFile.TabIndex = 0;
+            this.groupBox3mfFile.TabStop = false;
+            this.groupBox3mfFile.Text = "Fichier 3MF";
+            // 
+            // lbl3mfFile
+            // 
+            this.lbl3mfFile.AutoSize = true;
+            this.lbl3mfFile.Location = new System.Drawing.Point(15, 35);
+            this.lbl3mfFile.Name = "lbl3mfFile";
+            this.lbl3mfFile.Size = new System.Drawing.Size(137, 19);
+            this.lbl3mfFile.TabIndex = 0;
+            this.lbl3mfFile.Text = "Chemin du fichier :";
+            // 
+            // txt3mfFile
+            // 
+            this.txt3mfFile.Location = new System.Drawing.Point(160, 32);
+            this.txt3mfFile.Name = "txt3mfFile";
+            this.txt3mfFile.Size = new System.Drawing.Size(600, 25);
+            this.txt3mfFile.TabIndex = 1;
+            // 
+            // btnBrowse3mf
+            // 
+            this.btnBrowse3mf.Location = new System.Drawing.Point(770, 30);
+            this.btnBrowse3mf.Name = "btnBrowse3mf";
+            this.btnBrowse3mf.Size = new System.Drawing.Size(160, 30);
+            this.btnBrowse3mf.TabIndex = 2;
+            this.btnBrowse3mf.Text = "Parcourir...";
+            this.btnBrowse3mf.UseVisualStyleBackColor = true;
+            // 
+            // btnAnalyser3mf
+            // 
+            this.btnAnalyser3mf.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.btnAnalyser3mf.FlatAppearance.BorderSize = 0;
+            this.btnAnalyser3mf.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAnalyser3mf.ForeColor = System.Drawing.Color.White;
+            this.btnAnalyser3mf.Location = new System.Drawing.Point(160, 70);
+            this.btnAnalyser3mf.Name = "btnAnalyser3mf";
+            this.btnAnalyser3mf.Size = new System.Drawing.Size(200, 30);
+            this.btnAnalyser3mf.TabIndex = 3;
+            this.btnAnalyser3mf.Text = "Analyser le fichier 3MF";
+            this.btnAnalyser3mf.UseVisualStyleBackColor = false;
+            // 
+            // groupBox3mfInfo
+            // 
+            this.groupBox3mfInfo.Controls.Add(this.txt3mfInfo);
+            this.groupBox3mfInfo.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.groupBox3mfInfo.Location = new System.Drawing.Point(10, 140);
+            this.groupBox3mfInfo.Name = "groupBox3mfInfo";
+            this.groupBox3mfInfo.Size = new System.Drawing.Size(600, 460);
+            this.groupBox3mfInfo.TabIndex = 1;
+            this.groupBox3mfInfo.TabStop = false;
+            this.groupBox3mfInfo.Text = "Informations détectées";
+            // 
+            // txt3mfInfo
+            // 
+            this.txt3mfInfo.Font = new System.Drawing.Font("Consolas", 9F);
+            this.txt3mfInfo.Location = new System.Drawing.Point(15, 30);
+            this.txt3mfInfo.Multiline = true;
+            this.txt3mfInfo.Name = "txt3mfInfo";
+            this.txt3mfInfo.ReadOnly = true;
+            this.txt3mfInfo.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txt3mfInfo.Size = new System.Drawing.Size(570, 410);
+            this.txt3mfInfo.TabIndex = 0;
+            // 
+            // groupBox3mfCalcul
+            // 
+            this.groupBox3mfCalcul.Controls.Add(this.lbl3mfNombreCouleurs);
+            this.groupBox3mfCalcul.Controls.Add(this.num3mfNombreCouleurs);
+            this.groupBox3mfCalcul.Controls.Add(this.chk3mfAMS);
+            this.groupBox3mfCalcul.Controls.Add(this.num3mfPoidsFilament);
+            this.groupBox3mfCalcul.Controls.Add(this.lbl3mfPoidsFilament);
+            this.groupBox3mfCalcul.Controls.Add(this.lbl3mfTempsImpression);
+            this.groupBox3mfCalcul.Controls.Add(this.num3mfTempsImpression);
+            this.groupBox3mfCalcul.Controls.Add(this.lbl3mfPrinter);
+            this.groupBox3mfCalcul.Controls.Add(this.cmb3mfPrinter);
+            this.groupBox3mfCalcul.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.groupBox3mfCalcul.Location = new System.Drawing.Point(620, 140);
+            this.groupBox3mfCalcul.Name = "groupBox3mfCalcul";
+            this.groupBox3mfCalcul.Size = new System.Drawing.Size(338, 380);
+            this.groupBox3mfCalcul.TabIndex = 2;
+            this.groupBox3mfCalcul.TabStop = false;
+            this.groupBox3mfCalcul.Text = "Paramètres d'impression";
+            // 
+            // cmb3mfPrinter
+            // 
+            this.cmb3mfPrinter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmb3mfPrinter.FormattingEnabled = true;
+            this.cmb3mfPrinter.Location = new System.Drawing.Point(15, 60);
+            this.cmb3mfPrinter.Name = "cmb3mfPrinter";
+            this.cmb3mfPrinter.Size = new System.Drawing.Size(300, 25);
+            this.cmb3mfPrinter.TabIndex = 1;
+            // 
+            // lbl3mfPrinter
+            // 
+            this.lbl3mfPrinter.AutoSize = true;
+            this.lbl3mfPrinter.Location = new System.Drawing.Point(15, 35);
+            this.lbl3mfPrinter.Name = "lbl3mfPrinter";
+            this.lbl3mfPrinter.Size = new System.Drawing.Size(152, 19);
+            this.lbl3mfPrinter.TabIndex = 0;
+            this.lbl3mfPrinter.Text = "Imprimante Bambu Lab:";
+            // 
+            // lbl3mfTempsImpression
+            // 
+            this.lbl3mfTempsImpression.AutoSize = true;
+            this.lbl3mfTempsImpression.Location = new System.Drawing.Point(15, 100);
+            this.lbl3mfTempsImpression.Name = "lbl3mfTempsImpression";
+            this.lbl3mfTempsImpression.Size = new System.Drawing.Size(186, 19);
+            this.lbl3mfTempsImpression.TabIndex = 2;
+            this.lbl3mfTempsImpression.Text = "Temps d'impression (heures):";
+            // 
+            // num3mfTempsImpression
+            // 
+            this.num3mfTempsImpression.DecimalPlaces = 2;
+            this.num3mfTempsImpression.Increment = new decimal(new int[] { 5, 0, 0, 131072 });
+            this.num3mfTempsImpression.Location = new System.Drawing.Point(15, 125);
+            this.num3mfTempsImpression.Maximum = new decimal(new int[] { 500, 0, 0, 0 });
+            this.num3mfTempsImpression.Name = "num3mfTempsImpression";
+            this.num3mfTempsImpression.Size = new System.Drawing.Size(150, 25);
+            this.num3mfTempsImpression.TabIndex = 3;
+            this.num3mfTempsImpression.Value = new decimal(new int[] { 1, 0, 0, 0 });
+            // 
+            // lbl3mfPoidsFilament
+            // 
+            this.lbl3mfPoidsFilament.AutoSize = true;
+            this.lbl3mfPoidsFilament.Location = new System.Drawing.Point(15, 165);
+            this.lbl3mfPoidsFilament.Name = "lbl3mfPoidsFilament";
+            this.lbl3mfPoidsFilament.Size = new System.Drawing.Size(161, 19);
+            this.lbl3mfPoidsFilament.TabIndex = 4;
+            this.lbl3mfPoidsFilament.Text = "Poids filament total (g):";
+            // 
+            // num3mfPoidsFilament
+            // 
+            this.num3mfPoidsFilament.DecimalPlaces = 2;
+            this.num3mfPoidsFilament.Location = new System.Drawing.Point(15, 190);
+            this.num3mfPoidsFilament.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            this.num3mfPoidsFilament.Name = "num3mfPoidsFilament";
+            this.num3mfPoidsFilament.Size = new System.Drawing.Size(150, 25);
+            this.num3mfPoidsFilament.TabIndex = 5;
+            this.num3mfPoidsFilament.Value = new decimal(new int[] { 10, 0, 0, 0 });
+            // 
+            // chk3mfAMS
+            // 
+            this.chk3mfAMS.AutoSize = true;
+            this.chk3mfAMS.Location = new System.Drawing.Point(15, 235);
+            this.chk3mfAMS.Name = "chk3mfAMS";
+            this.chk3mfAMS.Size = new System.Drawing.Size(154, 23);
+            this.chk3mfAMS.TabIndex = 6;
+            this.chk3mfAMS.Text = "Utiliser AMS (multi-couleur)";
+            this.chk3mfAMS.UseVisualStyleBackColor = true;
+            this.chk3mfAMS.CheckedChanged += new System.EventHandler(this.chk3mfAMS_CheckedChanged);
+            // 
+            // lbl3mfNombreCouleurs
+            // 
+            this.lbl3mfNombreCouleurs.AutoSize = true;
+            this.lbl3mfNombreCouleurs.Location = new System.Drawing.Point(15, 275);
+            this.lbl3mfNombreCouleurs.Name = "lbl3mfNombreCouleurs";
+            this.lbl3mfNombreCouleurs.Size = new System.Drawing.Size(142, 19);
+            this.lbl3mfNombreCouleurs.TabIndex = 7;
+            this.lbl3mfNombreCouleurs.Text = "Nombre de couleurs:";
+            this.lbl3mfNombreCouleurs.Visible = false;
+            // 
+            // num3mfNombreCouleurs
+            // 
+            this.num3mfNombreCouleurs.Location = new System.Drawing.Point(15, 300);
+            this.num3mfNombreCouleurs.Maximum = new decimal(new int[] { 16, 0, 0, 0 });
+            this.num3mfNombreCouleurs.Minimum = new decimal(new int[] { 2, 0, 0, 0 });
+            this.num3mfNombreCouleurs.Name = "num3mfNombreCouleurs";
+            this.num3mfNombreCouleurs.Size = new System.Drawing.Size(120, 25);
+            this.num3mfNombreCouleurs.TabIndex = 8;
+            this.num3mfNombreCouleurs.Value = new decimal(new int[] { 2, 0, 0, 0 });
+            this.num3mfNombreCouleurs.Visible = false;
+            // 
+            // btnCalculerDevis3mf
+            // 
+            this.btnCalculerDevis3mf.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));  
+            this.btnCalculerDevis3mf.FlatAppearance.BorderSize = 0;
+            this.btnCalculerDevis3mf.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCalculerDevis3mf.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.btnCalculerDevis3mf.ForeColor = System.Drawing.Color.White;
+            this.btnCalculerDevis3mf.Location = new System.Drawing.Point(620, 530);
+            this.btnCalculerDevis3mf.Name = "btnCalculerDevis3mf";
+            this.btnCalculerDevis3mf.Size = new System.Drawing.Size(338, 60);
+            this.btnCalculerDevis3mf.TabIndex = 3;
+            this.btnCalculerDevis3mf.Text = "💰 Calculer le devis";
+            this.btnCalculerDevis3mf.UseVisualStyleBackColor = false;
+            this.btnCalculerDevis3mf.Click += new System.EventHandler(this.btnCalculerDevis3mf_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1000, 720);
-            this.Controls.Add(this.btnCalculerDevis);
-            this.Controls.Add(this.groupBox3);
-            this.Controls.Add(this.groupBox2);
-            this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.tabControlMain);
             this.Controls.Add(this.lblWelcomeUser);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
@@ -469,6 +731,9 @@
             this.Text = "Logiciel d\'Impression 3D - Calcul de Devis";
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            this.tabControlMain.ResumeLayout(false);
+            this.tabPageCalculManuel.ResumeLayout(false);
+            this.tabPage3mf.ResumeLayout(false);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
@@ -479,6 +744,15 @@
             ((System.ComponentModel.ISupportInitialize)(this.numNombreAMS)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numNombreObjets)).EndInit();
             this.groupBox3.ResumeLayout(false);
+            this.groupBox3mfFile.ResumeLayout(false);
+            this.groupBox3mfFile.PerformLayout();
+            this.groupBox3mfInfo.ResumeLayout(false);
+            this.groupBox3mfInfo.PerformLayout();
+            this.groupBox3mfCalcul.ResumeLayout(false);
+            this.groupBox3mfCalcul.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfTempsImpression)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfPoidsFilament)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.num3mfNombreCouleurs)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -499,6 +773,9 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem àProposToolStripMenuItem;
         private System.Windows.Forms.Label lblWelcomeUser;
+        private System.Windows.Forms.TabControl tabControlMain;
+        private System.Windows.Forms.TabPage tabPageCalculManuel;
+        private System.Windows.Forms.TabPage tabPage3mf;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.ComboBox cmbPrinter;
         private System.Windows.Forms.Label lblPrinter;
@@ -520,6 +797,24 @@
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.Panel panelTemps;
         private System.Windows.Forms.Button btnCalculerDevis;
+        private System.Windows.Forms.GroupBox groupBox3mfFile;
+        private System.Windows.Forms.Label lbl3mfFile;
+        private System.Windows.Forms.TextBox txt3mfFile;
+        private System.Windows.Forms.Button btnBrowse3mf;
+        private System.Windows.Forms.Button btnAnalyser3mf;
+        private System.Windows.Forms.GroupBox groupBox3mfInfo;
+        private System.Windows.Forms.TextBox txt3mfInfo;
+        private System.Windows.Forms.GroupBox groupBox3mfCalcul;
+        private System.Windows.Forms.ComboBox cmb3mfPrinter;
+        private System.Windows.Forms.Label lbl3mfPrinter;
+        private System.Windows.Forms.NumericUpDown num3mfTempsImpression;
+        private System.Windows.Forms.Label lbl3mfTempsImpression;
+        private System.Windows.Forms.Label lbl3mfPoidsFilament;
+        private System.Windows.Forms.NumericUpDown num3mfPoidsFilament;
+        private System.Windows.Forms.CheckBox chk3mfAMS;
+        private System.Windows.Forms.NumericUpDown num3mfNombreCouleurs;
+        private System.Windows.Forms.Label lbl3mfNombreCouleurs;
+        private System.Windows.Forms.Button btnCalculerDevis3mf;
     }
 }
 
