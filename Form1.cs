@@ -269,17 +269,13 @@ namespace logiciel_d_impression_3d
 
                 decimal poidsTotal = poidsFilament + poidsPurge;
 
-                // Calcul du coût matière (PLA par défaut à 20€/kg)
-                decimal prixKgFilament = 20.00m;
+                // Calcul du coût matière (prix moyen des bobines PLA ou prix par défaut)
+                decimal prixKgFilament = ObtenirPrixMoyenBobines(parametres, "PLA");
                 decimal coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
 
-                // Calcul du coût électricité
-                // Estimation: X1 Carbon ~300W, P1P ~200W, A1 Mini ~150W
-                decimal puissanceKw = 0.30m; // Par défaut 300W
-                if (cmb3mfPrinter.SelectedItem?.ToString().Contains("P1") == true)
-                    puissanceKw = 0.20m;
-                else if (cmb3mfPrinter.SelectedItem?.ToString().Contains("A1") == true)
-                    puissanceKw = 0.15m;
+                // Calcul du coût électricité selon l'imprimante sélectionnée
+                var specs3mf = ImprimanteSpecsManager.ObtenirSpecs(cmb3mfPrinter.SelectedItem?.ToString() ?? "");
+                decimal puissanceKw = specs3mf.ConsommationMoyenneKw;
 
                 decimal consommationKwh = puissanceKw * tempsHeures;
                 decimal coutElectricite = consommationKwh * parametres.CoutElectriciteKwh;
@@ -667,22 +663,28 @@ namespace logiciel_d_impression_3d
             details.PoidsTotal = details.PoidsNet + details.PoidsPurge;
             
             // 3. Calculer le coût de la matière en utilisant les bobines des paramètres
-            details.CoutMatiere = CalculerCoutMatiere(parametres);
+            // Le coût matière net est calculé sur le poids net, puis ajusté avec la purge
+            decimal coutMatiereNet = CalculerCoutMatiere(parametres);
+            // Appliquer la purge proportionnellement au coût matière
+            details.CoutMatiere = chkAMS.Checked
+                ? coutMatiereNet * (1 + parametres.PourcentagePurgeAMS / 100m)
+                : coutMatiereNet;
             
             // 4. Calculer le temps total
             details.TempsTotal = CalculerTempsTotal();
             
-            // 5. Calculer la consommation électrique (estimation moyenne : 0.15 kW pour une imprimante 3D)
-            decimal puissanceMoyenneKw = 0.15m;
+            // 5. Calculer la consommation électrique selon l'imprimante sélectionnée
+            var specsImprimante = ImprimanteSpecsManager.ObtenirSpecs(cmbPrinter.SelectedItem?.ToString() ?? "");
+            decimal puissanceMoyenneKw = specsImprimante.ConsommationMoyenneKw;
             details.ConsommationKwh = (details.TempsTotal / 60m) * puissanceMoyenneKw;
             details.CoutElectricite = details.ConsommationKwh * parametres.CoutElectriciteKwh;
             
             // 6. Coût de production HT
             details.CoutProductionHT = details.CoutMatiere + details.CoutElectricite;
             
-            // 7. Marge (par objet)
+            // 7. Marge
             int nbObjets = (int)numNombreObjets.Value;
-            details.Marge = details.CoutProductionHT * (parametres.MargeParObjet / 100m) * nbObjets;
+            details.Marge = details.CoutProductionHT * (parametres.MargeParObjet / 100m);
             
             // 8. Sous-total HT
             details.SousTotalHT = details.CoutProductionHT + details.Marge;
@@ -716,30 +718,18 @@ namespace logiciel_d_impression_3d
                     string marque = row["Marque"].ToString();
                     decimal poids = Convert.ToDecimal(row["Poids (g)"]);
                     
-                    // Ajouter le poids de purge si AMS
-                    decimal poidsAvecPurge = poids;
-                    if (chkAMS.Checked)
-                    {
-                        poidsAvecPurge = poids * (1 + parametres.PourcentagePurgeAMS / 100m);
-                    }
-                    
-                    // Chercher la bobine correspondante dans les paramètres
-                    Bobine bobine = parametres.Bobines.FirstOrDefault(b => 
-                        b.Matiere == type && 
-                        b.Couleur == couleur && 
-                        b.Marque == marque);
-                    
-                    if (bobine != null)
-                    {
-                        // Utiliser le prix de la bobine
-                        coutTotal += (poidsAvecPurge / 1000m) * bobine.PrixParKg;
-                    }
-                    else
-                    {
-                        // Utiliser un prix par défaut si la bobine n'est pas trouvée
-                        decimal prixParKg = ObtenirPrixFilament(type);
-                        coutTotal += (poidsAvecPurge / 1000m) * prixParKg;
-                    }
+                    // Chercher la bobine correspondante dans les paramètres (insensible à la casse)
+                    Bobine bobine = parametres.Bobines.FirstOrDefault(b =>
+                        string.Equals(b.Matiere, type, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(b.Couleur, couleur, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(b.Marque, marque, StringComparison.OrdinalIgnoreCase));
+
+                    // Calculer le prix/kg (bobine ou prix par défaut)
+                    decimal prixParKg = bobine != null ? bobine.PrixParKg : ObtenirPrixFilament(type);
+
+                    // Le poids de purge est déjà inclus dans PoidsTotal via CalculerCoutsDetailles()
+                    // Ici on calcule le coût proportionnel de chaque couleur sur le poids net
+                    coutTotal += (poids / 1000m) * prixParKg;
                 }
             }
             
@@ -811,6 +801,20 @@ namespace logiciel_d_impression_3d
         {
             ParametresImpression parametres = ParametresImpressionForm.ObtenirParametres();
             return CalculerCoutsDetailles(parametres).PrixTotalTTC;
+        }
+
+        private decimal ObtenirPrixMoyenBobines(ParametresImpression parametres, string type)
+        {
+            var bobinesType = parametres.Bobines
+                .Where(b => string.Equals(b.Matiere, type, StringComparison.OrdinalIgnoreCase) && b.PrixParKg > 0)
+                .ToList();
+
+            if (bobinesType.Count > 0)
+            {
+                return bobinesType.Average(b => b.PrixParKg);
+            }
+
+            return ObtenirPrixFilament(type);
         }
 
         private decimal ObtenirPrixFilament(string type)
