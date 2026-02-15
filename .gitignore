@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Fichiers 3MF (fichiers d'impression 3D)
 *.3mf
+
+# Fichiers de données locales
+*.dat
