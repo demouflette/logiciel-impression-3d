@@ -367,3 +367,7 @@ FodyWeavers.xsd
 
 # Fichiers de données locales
 *.dat
+
+# Dossiers externes
+desktop-tutorial/
+logiciel-impression-3d/
