@@ -12,6 +12,28 @@ namespace logiciel_d_impression_3d
         {
             InitializeComponent();
             userManager = manager;
+            this.AcceptButton = btnLogin;
+            tabControl1.SelectedIndexChanged += (s, e) =>
+            {
+                this.AcceptButton = tabControl1.SelectedIndex == 0 ? btnLogin : btnRegister;
+            };
+            AppliquerTheme();
+        }
+
+        private void AppliquerTheme()
+        {
+            ThemeManager.ApplyThemeToForm(this);
+            ThemeManager.StyleAllControls(this);
+
+            // Titres colorÃ©s
+            lblLoginTitle.ForeColor = ThemeManager.PrimaryBlue;
+            lblLoginTitle.Font = ThemeManager.FontTitle;
+            lblRegisterTitle.ForeColor = ThemeManager.SecondaryGreen;
+            lblRegisterTitle.Font = ThemeManager.FontTitle;
+
+            // Boutons spÃ©cifiques
+            ThemeManager.StyleButton(btnLogin, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButton(btnRegister, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
         }
 
         private void btnLogin_Click(object sender, EventArgs e)
@@ -29,8 +51,8 @@ namespace logiciel_d_impression_3d
             if (userManager.AuthenticateUser(username, password))
             {
                 MessageBox.Show($"Bienvenue {userManager.CurrentUser.Username} !\n" +
-                    $"Dernière connexion : {userManager.CurrentUser.DerniereConnexion:dd/MM/yyyy HH:mm}", 
-                    "Connexion réussie", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    $"Derniï¿½re connexion : {userManager.CurrentUser.DerniereConnexion:dd/MM/yyyy HH:mm}", 
+                    "Connexion rï¿½ussie", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
@@ -72,14 +94,14 @@ namespace logiciel_d_impression_3d
 
             if (password.Length < 6)
             {
-                MessageBox.Show("Le mot de passe doit contenir au moins 6 caractères.", "Erreur", 
+                MessageBox.Show("Le mot de passe doit contenir au moins 6 caractï¿½res.", "Erreur", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (userManager.RegisterUser(username, password, email))
             {
-                MessageBox.Show("Inscription réussie ! Vous pouvez maintenant vous connecter.", "Succès", 
+                MessageBox.Show("Inscription rï¿½ussie ! Vous pouvez maintenant vous connecter.", "Succï¿½s", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 tabControl1.SelectedIndex = 0;
                 txtLoginUsername.Text = username;
@@ -90,7 +112,7 @@ namespace logiciel_d_impression_3d
             }
             else
             {
-                MessageBox.Show("Ce nom d'utilisateur existe déjà.", "Erreur", 
+                MessageBox.Show("Ce nom d'utilisateur existe dï¿½jï¿½.", "Erreur", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

@@ -65,7 +65,7 @@ namespace logiciel_d_impression_3d
             // 
             // tabPageGeneral
             // 
-            this.tabPageGeneral.BackColor = System.Drawing.Color.White;
+            this.tabPageGeneral.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.tabPageGeneral.Controls.Add(this.groupBoxGithub);
             this.tabPageGeneral.Controls.Add(this.groupBox3);
             this.tabPageGeneral.Controls.Add(this.groupBox2);
@@ -227,7 +227,7 @@ namespace logiciel_d_impression_3d
             // 
             // tabPageBobines
             // 
-            this.tabPageBobines.BackColor = System.Drawing.Color.White;
+            this.tabPageBobines.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.tabPageBobines.Controls.Add(this.btnSupprimerBobine);
             this.tabPageBobines.Controls.Add(this.btnAjouterBobine);
             this.tabPageBobines.Controls.Add(this.dgvBobines);

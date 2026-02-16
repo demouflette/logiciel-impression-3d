@@ -11,6 +11,15 @@ namespace logiciel_d_impression_3d
         {
             InitializeComponent();
             this.userManager = userManager;
+            AppliquerTheme();
+        }
+
+        private void AppliquerTheme()
+        {
+            ThemeManager.ApplyThemeToForm(this);
+            ThemeManager.StyleAllControls(this);
+            ThemeManager.StyleButton(btnReset, ThemeManager.DangerRed, ThemeManager.DangerRedDark);
+            ThemeManager.StyleButton(btnCancel, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
         }
 
         private void btnReset_Click(object sender, EventArgs e)
@@ -37,14 +46,14 @@ namespace logiciel_d_impression_3d
 
             if (newPassword.Length < 6)
             {
-                MessageBox.Show("Le mot de passe doit contenir au moins 6 caractères.", "Erreur", 
+                MessageBox.Show("Le mot de passe doit contenir au moins 6 caractï¿½res.", "Erreur", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (userManager.ResetPassword(username, email, newPassword))
             {
-                MessageBox.Show("Votre mot de passe a été réinitialisé avec succès !", "Succès", 
+                MessageBox.Show("Votre mot de passe a ï¿½tï¿½ rï¿½initialisï¿½ avec succï¿½s !", "Succï¿½s", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();

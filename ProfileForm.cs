@@ -14,6 +14,15 @@ namespace logiciel_d_impression_3d
             userManager = manager;
             currentUser = userManager.CurrentUser;
             LoadUserInfo();
+            AppliquerTheme();
+        }
+
+        private void AppliquerTheme()
+        {
+            ThemeManager.ApplyThemeToForm(this);
+            ThemeManager.StyleAllControls(this);
+            ThemeManager.StyleButton(btnChangePassword, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButton(btnClose, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
         }
 
         private void LoadUserInfo()
@@ -41,7 +50,7 @@ namespace logiciel_d_impression_3d
                 return;
             }
 
-            // Vérifier le mot de passe actuel
+            // Vï¿½rifier le mot de passe actuel
             if (!userManager.AuthenticateUser(currentUser.Username, currentPassword))
             {
                 MessageBox.Show("Le mot de passe actuel est incorrect.", "Erreur", 
@@ -58,14 +67,14 @@ namespace logiciel_d_impression_3d
 
             if (newPassword.Length < 6)
             {
-                MessageBox.Show("Le nouveau mot de passe doit contenir au moins 6 caractères.", "Erreur", 
+                MessageBox.Show("Le nouveau mot de passe doit contenir au moins 6 caractï¿½res.", "Erreur", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (userManager.ResetPassword(currentUser.Username, currentUser.Email, newPassword))
             {
-                MessageBox.Show("Mot de passe modifié avec succès !", "Succès", 
+                MessageBox.Show("Mot de passe modifiï¿½ avec succï¿½s !", "Succï¿½s", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 txtCurrentPassword.Clear();
                 txtNewPassword.Clear();

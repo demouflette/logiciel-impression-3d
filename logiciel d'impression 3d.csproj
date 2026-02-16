@@ -83,6 +83,8 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="CalibrationManager.cs" />
+    <Compile Include="ThemeManager.cs" />
+    <Compile Include="RoundedPanel.cs" />
     <Compile Include="ImprimanteSpecsManager.cs" />
     <Compile Include="LoginForm.cs">
       <SubType>Form</SubType>

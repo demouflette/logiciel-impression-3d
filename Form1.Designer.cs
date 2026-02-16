@@ -86,10 +86,12 @@
             this.btnPartagerCalibration = new System.Windows.Forms.Button();
             this.lblCalibrationInfo = new System.Windows.Forms.Label();
             this.btnCalculerDevis3mf = new System.Windows.Forms.Button();
+            this.panelHeader = new System.Windows.Forms.Panel();
             this.menuStrip1.SuspendLayout();
             this.tabControlMain.SuspendLayout();
             this.tabPageCalculManuel.SuspendLayout();
             this.tabPage3mf.SuspendLayout();
+            this.panelHeader.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvCouleurs)).BeginInit();
@@ -202,26 +204,37 @@
             this.àProposToolStripMenuItem.Size = new System.Drawing.Size(236, 22);
             this.àProposToolStripMenuItem.Text = "À propos";
             this.àProposToolStripMenuItem.Click += new System.EventHandler(this.àProposToolStripMenuItem_Click);
-            // 
+            //
+            // panelHeader
+            //
+            this.panelHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(152)))), ((int)(((byte)(219)))));
+            this.panelHeader.Controls.Add(this.lblWelcomeUser);
+            this.panelHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panelHeader.Location = new System.Drawing.Point(0, 24);
+            this.panelHeader.Name = "panelHeader";
+            this.panelHeader.Size = new System.Drawing.Size(1000, 50);
+            this.panelHeader.TabIndex = 3;
+            //
             // lblWelcomeUser
-            // 
+            //
             this.lblWelcomeUser.AutoSize = true;
-            this.lblWelcomeUser.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
-            this.lblWelcomeUser.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
-            this.lblWelcomeUser.Location = new System.Drawing.Point(12, 35);
+            this.lblWelcomeUser.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.lblWelcomeUser.ForeColor = System.Drawing.Color.White;
+            this.lblWelcomeUser.Location = new System.Drawing.Point(16, 12);
             this.lblWelcomeUser.Name = "lblWelcomeUser";
             this.lblWelcomeUser.Size = new System.Drawing.Size(100, 25);
             this.lblWelcomeUser.TabIndex = 1;
             this.lblWelcomeUser.Text = "Bienvenue";
-            // 
+            //
             // tabControlMain
-            // 
+            //
             this.tabControlMain.Controls.Add(this.tabPageCalculManuel);
             this.tabControlMain.Controls.Add(this.tabPage3mf);
-            this.tabControlMain.Location = new System.Drawing.Point(12, 65);
+            this.tabControlMain.Location = new System.Drawing.Point(12, 80);
             this.tabControlMain.Name = "tabControlMain";
             this.tabControlMain.SelectedIndex = 0;
-            this.tabControlMain.Size = new System.Drawing.Size(976, 643);
+            this.tabControlMain.Size = new System.Drawing.Size(976, 630);
+            this.tabControlMain.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.tabControlMain.TabIndex = 2;
             // 
             // tabPageCalculManuel
@@ -233,10 +246,10 @@
             this.tabPageCalculManuel.Location = new System.Drawing.Point(4, 22);
             this.tabPageCalculManuel.Name = "tabPageCalculManuel";
             this.tabPageCalculManuel.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageCalculManuel.Size = new System.Drawing.Size(968, 617);
+            this.tabPageCalculManuel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
+            this.tabPageCalculManuel.Size = new System.Drawing.Size(968, 604);
             this.tabPageCalculManuel.TabIndex = 0;
             this.tabPageCalculManuel.Text = "Calcul manuel";
-            this.tabPageCalculManuel.UseVisualStyleBackColor = true;
             // 
             // tabPage3mf
             // 
@@ -248,10 +261,10 @@
             this.tabPage3mf.Location = new System.Drawing.Point(4, 22);
             this.tabPage3mf.Name = "tabPage3mf";
             this.tabPage3mf.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3mf.Size = new System.Drawing.Size(968, 617);
+            this.tabPage3mf.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
+            this.tabPage3mf.Size = new System.Drawing.Size(968, 604);
             this.tabPage3mf.TabIndex = 1;
             this.tabPage3mf.Text = "Calcul depuis fichier 3MF (Bambu Lab)";
-            this.tabPage3mf.UseVisualStyleBackColor = true;
             // 
             // groupBox1
             // 
@@ -261,6 +274,7 @@
             this.groupBox1.Location = new System.Drawing.Point(10, 10);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(960, 80);
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Imprimante";
@@ -272,6 +286,7 @@
             this.cmbPrinter.Location = new System.Drawing.Point(100, 35);
             this.cmbPrinter.Name = "cmbPrinter";
             this.cmbPrinter.Size = new System.Drawing.Size(240, 25);
+            this.cmbPrinter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.cmbPrinter.TabIndex = 1;
             // 
             // lblPrinter
@@ -303,6 +318,7 @@
             this.groupBox2.Location = new System.Drawing.Point(10, 105);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(650, 530);
+            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left))));
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Configuration couleurs et filaments";
@@ -315,6 +331,7 @@
             this.dgvCouleurs.Location = new System.Drawing.Point(19, 250);
             this.dgvCouleurs.Name = "dgvCouleurs";
             this.dgvCouleurs.Size = new System.Drawing.Size(610, 260);
+            this.dgvCouleurs.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.dgvCouleurs.TabIndex = 11;
             // 
             // lblNombreCouleurs
@@ -510,7 +527,8 @@
             this.groupBox3.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.groupBox3.Location = new System.Drawing.Point(687, 170);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(290, 440);
+            this.groupBox3.Size = new System.Drawing.Size(290, 380);
+            this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox3.TabIndex = 4;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Temps d\'impression par plateau";
@@ -521,7 +539,8 @@
             this.panelTemps.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panelTemps.Location = new System.Drawing.Point(15, 30);
             this.panelTemps.Name = "panelTemps";
-            this.panelTemps.Size = new System.Drawing.Size(260, 390);
+            this.panelTemps.Size = new System.Drawing.Size(260, 330);
+            this.panelTemps.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.panelTemps.TabIndex = 0;
             // 
             // btnCalculerDevis
@@ -534,6 +553,7 @@
             this.btnCalculerDevis.Location = new System.Drawing.Point(670, 560);
             this.btnCalculerDevis.Name = "btnCalculerDevis";
             this.btnCalculerDevis.Size = new System.Drawing.Size(290, 60);
+            this.btnCalculerDevis.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCalculerDevis.TabIndex = 3;
             this.btnCalculerDevis.Text = "📊 Calculer le devis";
             this.btnCalculerDevis.UseVisualStyleBackColor = false;
@@ -549,6 +569,7 @@
             this.groupBox3mfFile.Location = new System.Drawing.Point(10, 10);
             this.groupBox3mfFile.Name = "groupBox3mfFile";
             this.groupBox3mfFile.Size = new System.Drawing.Size(948, 120);
+            this.groupBox3mfFile.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox3mfFile.TabIndex = 0;
             this.groupBox3mfFile.TabStop = false;
             this.groupBox3mfFile.Text = "Fichier 3MF";
@@ -567,6 +588,7 @@
             this.txt3mfFile.Location = new System.Drawing.Point(160, 32);
             this.txt3mfFile.Name = "txt3mfFile";
             this.txt3mfFile.Size = new System.Drawing.Size(600, 25);
+            this.txt3mfFile.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.txt3mfFile.TabIndex = 1;
             // 
             // btnBrowse3mf
@@ -574,6 +596,7 @@
             this.btnBrowse3mf.Location = new System.Drawing.Point(770, 30);
             this.btnBrowse3mf.Name = "btnBrowse3mf";
             this.btnBrowse3mf.Size = new System.Drawing.Size(160, 30);
+            this.btnBrowse3mf.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnBrowse3mf.TabIndex = 2;
             this.btnBrowse3mf.Text = "Parcourir...";
             this.btnBrowse3mf.UseVisualStyleBackColor = true;
@@ -598,6 +621,7 @@
             this.groupBox3mfInfo.Location = new System.Drawing.Point(10, 140);
             this.groupBox3mfInfo.Name = "groupBox3mfInfo";
             this.groupBox3mfInfo.Size = new System.Drawing.Size(600, 280);
+            this.groupBox3mfInfo.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left))));
             this.groupBox3mfInfo.TabIndex = 1;
             this.groupBox3mfInfo.TabStop = false;
             this.groupBox3mfInfo.Text = "Informations détectées";
@@ -611,6 +635,7 @@
             this.txt3mfInfo.ReadOnly = true;
             this.txt3mfInfo.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txt3mfInfo.Size = new System.Drawing.Size(570, 230);
+            this.txt3mfInfo.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.txt3mfInfo.TabIndex = 0;
             // 
             // groupBox3mfCalcul
@@ -628,6 +653,7 @@
             this.groupBox3mfCalcul.Location = new System.Drawing.Point(620, 140);
             this.groupBox3mfCalcul.Name = "groupBox3mfCalcul";
             this.groupBox3mfCalcul.Size = new System.Drawing.Size(338, 280);
+            this.groupBox3mfCalcul.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right))));
             this.groupBox3mfCalcul.TabIndex = 2;
             this.groupBox3mfCalcul.TabStop = false;
             this.groupBox3mfCalcul.Text = "Paramètres d'impression";
@@ -740,6 +766,7 @@
             this.groupBoxCalibration.Location = new System.Drawing.Point(10, 430);
             this.groupBoxCalibration.Name = "groupBoxCalibration";
             this.groupBoxCalibration.Size = new System.Drawing.Size(948, 170);
+            this.groupBoxCalibration.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBoxCalibration.TabIndex = 4;
             this.groupBoxCalibration.TabStop = false;
             this.groupBoxCalibration.Text = "Calibration - Enrichir l'algorithme";
@@ -888,18 +915,20 @@
             this.btnCalculerDevis3mf.Location = new System.Drawing.Point(620, 430);
             this.btnCalculerDevis3mf.Name = "btnCalculerDevis3mf";
             this.btnCalculerDevis3mf.Size = new System.Drawing.Size(338, 50);
+            this.btnCalculerDevis3mf.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCalculerDevis3mf.TabIndex = 3;
             this.btnCalculerDevis3mf.Text = "💰 Calculer le devis";
             this.btnCalculerDevis3mf.UseVisualStyleBackColor = false;
             this.btnCalculerDevis3mf.Click += new System.EventHandler(this.btnCalculerDevis3mf_Click);
-            // 
+            //
             // Form1
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.ClientSize = new System.Drawing.Size(1000, 720);
             this.Controls.Add(this.tabControlMain);
-            this.Controls.Add(this.lblWelcomeUser);
+            this.Controls.Add(this.panelHeader);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "Form1";
@@ -910,6 +939,8 @@
             this.tabControlMain.ResumeLayout(false);
             this.tabPageCalculManuel.ResumeLayout(false);
             this.tabPage3mf.ResumeLayout(false);
+            this.panelHeader.ResumeLayout(false);
+            this.panelHeader.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
@@ -953,6 +984,7 @@
         private System.Windows.Forms.ToolStripMenuItem rafraîchirSpécsImprimantesToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem àProposToolStripMenuItem;
+        private System.Windows.Forms.Panel panelHeader;
         private System.Windows.Forms.Label lblWelcomeUser;
         private System.Windows.Forms.TabControl tabControlMain;
         private System.Windows.Forms.TabPage tabPageCalculManuel;

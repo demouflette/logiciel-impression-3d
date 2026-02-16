@@ -19,6 +19,19 @@ namespace logiciel_d_impression_3d
         {
             InitializeComponent();
             InitialiserFormulaire();
+            AppliquerTheme();
+        }
+
+        private void AppliquerTheme()
+        {
+            ThemeManager.ApplyThemeToForm(this);
+            ThemeManager.StyleAllControls(this);
+
+            // Boutons spécifiques
+            ThemeManager.StyleButton(btnEnregistrer, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
+            ThemeManager.StyleButton(btnAnnuler, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
+            ThemeManager.StyleButton(btnAjouterBobine, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButton(btnSupprimerBobine, ThemeManager.DangerRed, ThemeManager.DangerRedDark);
         }
 
         private void InitialiserFormulaire()

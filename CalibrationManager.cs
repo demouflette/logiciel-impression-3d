@@ -218,12 +218,21 @@ namespace logiciel_d_impression_3d
         }
 
         /// <summary>
-        /// Estime le temps basé sur les données de calibration
+        /// Estime le temps basé sur les données de calibration et le coefficient de vitesse de l'imprimante
         /// </summary>
         public static decimal EstimerTemps(long nombreVertices, string imprimante)
         {
             decimal ratio = ObtenirRatioTemps(imprimante);
-            return nombreVertices * ratio;
+            decimal tempsBase = nombreVertices * ratio;
+
+            // Appliquer le coefficient de vitesse de l'imprimante
+            var specs = ImprimanteSpecsManager.ObtenirSpecs(imprimante);
+            if (specs.CoefficientVitesse > 0)
+            {
+                tempsBase = tempsBase / specs.CoefficientVitesse;
+            }
+
+            return tempsBase;
         }
 
         /// <summary>

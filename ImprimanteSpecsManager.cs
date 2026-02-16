@@ -17,7 +17,7 @@ namespace logiciel_d_impression_3d
 
         public static SpecsImprimante ObtenirSpecs(string nomImprimante)
         {
-            // Charger depuis le cache si disponible et récent (moins de 7 jours)
+            // Charger depuis le cache si disponible et rï¿½cent (moins de 7 jours)
             if (specsCache == null || (DateTime.Now - derniereMiseAJour).TotalDays > 7)
             {
                 ChargerSpecsDepuisInternet();
@@ -28,7 +28,7 @@ namespace logiciel_d_impression_3d
                 return specsCache[nomImprimante];
             }
 
-            // Retourner des specs par défaut si non trouvé
+            // Retourner des specs par dï¿½faut si non trouvï¿½
             return ObtenirSpecsParDefaut(nomImprimante);
         }
 
@@ -46,7 +46,7 @@ namespace logiciel_d_impression_3d
                     // Sauvegarder en cache local
                     SauvegarderCacheLocal(contenu);
                     
-                    System.Diagnostics.Debug.WriteLine("Specs chargées depuis Internet avec succès");
+                    System.Diagnostics.Debug.WriteLine("Specs chargï¿½es depuis Internet avec succï¿½s");
                 }
             }
             catch (WebException)
@@ -105,7 +105,7 @@ namespace logiciel_d_impression_3d
             
             foreach (string line in lines)
             {
-                // Format: Nom|PuissanceWatts|ConsommationMoyenne|Source
+                // Format: Nom|PuissanceWatts|ConsommationMoyenne|Source|CoeffVitesse|CoeffDechet
                 string[] parts = line.Split('|');
                 if (parts.Length >= 2)
                 {
@@ -113,13 +113,17 @@ namespace logiciel_d_impression_3d
                     decimal puissance = ParseDecimal(parts[1], 250);
                     decimal consoMoyenne = parts.Length > 2 ? ParseDecimal(parts[2], puissance) : puissance;
                     string source = parts.Length > 3 ? parts[3] : "API en ligne";
-                    
+                    decimal coeffVitesse = parts.Length > 4 ? ParseDecimal(parts[4], 1.0m) : 1.0m;
+                    decimal coeffDechet = parts.Length > 5 ? ParseDecimal(parts[5], 1.0m) : 1.0m;
+
                     specs[nom] = new SpecsImprimante
                     {
                         Nom = nom,
                         PuissanceMaxWatts = puissance,
                         ConsommationMoyenneWatts = consoMoyenne,
                         SourceDonnees = source,
+                        CoefficientVitesse = coeffVitesse,
+                        CoefficientDechetAMS = coeffDechet,
                         DateMiseAJour = DateTime.Now
                     };
                 }
@@ -139,71 +143,60 @@ namespace logiciel_d_impression_3d
 
         private static Dictionary<string, SpecsImprimante> CreerSpecsParDefaut()
         {
+            string src = "SpÃ©cifications fabricant";
             return new Dictionary<string, SpecsImprimante>
             {
-                { "Bambu Lab X1 Carbon", new SpecsImprimante 
-                    { 
-                        Nom = "Bambu Lab X1 Carbon", 
-                        PuissanceMaxWatts = 350, 
-                        ConsommationMoyenneWatts = 200,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                },
-                { "Bambu Lab P1P", new SpecsImprimante 
-                    { 
-                        Nom = "Bambu Lab P1P", 
-                        PuissanceMaxWatts = 300, 
-                        ConsommationMoyenneWatts = 180,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                },
-                { "Bambu Lab P2S", new SpecsImprimante 
-                    { 
-                        Nom = "Bambu Lab P2S", 
-                        PuissanceMaxWatts = 300, 
-                        ConsommationMoyenneWatts = 180,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                },
-                { "Bambu Lab A1 Mini", new SpecsImprimante 
-                    { 
-                        Nom = "Bambu Lab A1 Mini", 
-                        PuissanceMaxWatts = 200, 
-                        ConsommationMoyenneWatts = 120,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                },
-                { "Creality Ender 3", new SpecsImprimante 
-                    { 
-                        Nom = "Creality Ender 3", 
-                        PuissanceMaxWatts = 270, 
-                        ConsommationMoyenneWatts = 150,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                },
-                { "Prusa i3 MK3S+", new SpecsImprimante 
-                    { 
-                        Nom = "Prusa i3 MK3S+", 
-                        PuissanceMaxWatts = 240, 
-                        ConsommationMoyenneWatts = 140,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                },
-                { "Anycubic Kobra", new SpecsImprimante 
-                    { 
-                        Nom = "Anycubic Kobra", 
-                        PuissanceMaxWatts = 250, 
-                        ConsommationMoyenneWatts = 145,
-                        SourceDonnees = "Spécifications fabricant",
-                        DateMiseAJour = DateTime.Now
-                    } 
-                }
+                // === Bambu Lab - SÃ©rie X (Core XY haut de gamme) ===
+                { "Bambu Lab X1 Carbon", new SpecsImprimante
+                    { Nom = "Bambu Lab X1 Carbon", PuissanceMaxWatts = 350, ConsommationMoyenneWatts = 200,
+                      CoefficientVitesse = 1.0m, CoefficientDechetAMS = 1.0m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab X1E", new SpecsImprimante
+                    { Nom = "Bambu Lab X1E", PuissanceMaxWatts = 350, ConsommationMoyenneWatts = 200,
+                      CoefficientVitesse = 1.0m, CoefficientDechetAMS = 1.0m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab X1", new SpecsImprimante
+                    { Nom = "Bambu Lab X1", PuissanceMaxWatts = 350, ConsommationMoyenneWatts = 200,
+                      CoefficientVitesse = 1.0m, CoefficientDechetAMS = 1.0m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+
+                // === Bambu Lab - SÃ©rie P (milieu de gamme) ===
+                { "Bambu Lab P1P", new SpecsImprimante
+                    { Nom = "Bambu Lab P1P", PuissanceMaxWatts = 300, ConsommationMoyenneWatts = 180,
+                      CoefficientVitesse = 0.85m, CoefficientDechetAMS = 1.1m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab P1S", new SpecsImprimante
+                    { Nom = "Bambu Lab P1S", PuissanceMaxWatts = 300, ConsommationMoyenneWatts = 180,
+                      CoefficientVitesse = 0.85m, CoefficientDechetAMS = 1.1m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab P2S", new SpecsImprimante
+                    { Nom = "Bambu Lab P2S", PuissanceMaxWatts = 300, ConsommationMoyenneWatts = 180,
+                      CoefficientVitesse = 0.90m, CoefficientDechetAMS = 1.15m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+
+                // === Bambu Lab - SÃ©rie H (Core XY nouvelle gen, purge optimisÃ©e) ===
+                { "Bambu Lab H2C", new SpecsImprimante
+                    { Nom = "Bambu Lab H2C", PuissanceMaxWatts = 300, ConsommationMoyenneWatts = 170,
+                      CoefficientVitesse = 1.1m, CoefficientDechetAMS = 0.85m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab H2D", new SpecsImprimante
+                    { Nom = "Bambu Lab H2D", PuissanceMaxWatts = 300, ConsommationMoyenneWatts = 170,
+                      CoefficientVitesse = 1.1m, CoefficientDechetAMS = 0.85m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+
+                // === Bambu Lab - SÃ©rie A (entrÃ©e de gamme) ===
+                { "Bambu Lab A1", new SpecsImprimante
+                    { Nom = "Bambu Lab A1", PuissanceMaxWatts = 250, ConsommationMoyenneWatts = 150,
+                      CoefficientVitesse = 0.80m, CoefficientDechetAMS = 1.05m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab A1 Combo", new SpecsImprimante
+                    { Nom = "Bambu Lab A1 Combo", PuissanceMaxWatts = 250, ConsommationMoyenneWatts = 150,
+                      CoefficientVitesse = 0.80m, CoefficientDechetAMS = 1.05m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Bambu Lab A1 Mini", new SpecsImprimante
+                    { Nom = "Bambu Lab A1 Mini", PuissanceMaxWatts = 200, ConsommationMoyenneWatts = 120,
+                      CoefficientVitesse = 0.70m, CoefficientDechetAMS = 1.1m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+
+                // === Autres marques ===
+                { "Creality Ender 3", new SpecsImprimante
+                    { Nom = "Creality Ender 3", PuissanceMaxWatts = 270, ConsommationMoyenneWatts = 150,
+                      CoefficientVitesse = 0.50m, CoefficientDechetAMS = 1.0m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Prusa i3 MK3S+", new SpecsImprimante
+                    { Nom = "Prusa i3 MK3S+", PuissanceMaxWatts = 240, ConsommationMoyenneWatts = 140,
+                      CoefficientVitesse = 0.55m, CoefficientDechetAMS = 1.0m, SourceDonnees = src, DateMiseAJour = DateTime.Now } },
+                { "Anycubic Kobra", new SpecsImprimante
+                    { Nom = "Anycubic Kobra", PuissanceMaxWatts = 250, ConsommationMoyenneWatts = 145,
+                      CoefficientVitesse = 0.50m, CoefficientDechetAMS = 1.0m, SourceDonnees = src, DateMiseAJour = DateTime.Now } }
             };
         }
 
@@ -220,9 +213,18 @@ namespace logiciel_d_impression_3d
                 Nom = nomImprimante, 
                 PuissanceMaxWatts = 250,
                 ConsommationMoyenneWatts = 150,
-                SourceDonnees = "Valeur estimée par défaut",
+                SourceDonnees = "Valeur estimï¿½e par dï¿½faut",
                 DateMiseAJour = DateTime.Now
             };
+        }
+
+        public static List<string> ObtenirListeImprimantes()
+        {
+            if (specsCache == null || (DateTime.Now - derniereMiseAJour).TotalDays > 7)
+            {
+                ChargerSpecsDepuisInternet();
+            }
+            return specsCache != null ? specsCache.Keys.ToList() : CreerSpecsParDefaut().Keys.ToList();
         }
 
         public static void RafraichirSpecsDepuisInternet()
@@ -239,6 +241,18 @@ namespace logiciel_d_impression_3d
         public decimal ConsommationMoyenneWatts { get; set; }
         public string SourceDonnees { get; set; } = "Local";
         public DateTime DateMiseAJour { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// Multiplicateur de vitesse (1.0 = rÃ©fÃ©rence X1 Carbon).
+        /// Plus Ã©levÃ© = imprimante plus rapide â†’ temps estimÃ© plus court.
+        /// </summary>
+        public decimal CoefficientVitesse { get; set; } = 1.0m;
+
+        /// <summary>
+        /// Multiplicateur de dÃ©chet AMS (1.0 = rÃ©fÃ©rence X1 Carbon).
+        /// Plus Ã©levÃ© = plus de purge. Plus bas = systÃ¨me de purge optimisÃ©.
+        /// </summary>
+        public decimal CoefficientDechetAMS { get; set; } = 1.0m;
 
         public decimal PuissanceMaxKw
         {

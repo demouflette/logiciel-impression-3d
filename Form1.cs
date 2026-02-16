@@ -21,7 +21,7 @@ namespace logiciel_d_impression_3d
             InitializeComponent();
             userManager = manager;
             InitializeForm();
-            
+
             // Connecter les événements des boutons 3MF
             btnBrowse3mf.Click += BtnBrowse3mf_Click;
             btnAnalyser3mf.Click += BtnAnalyser3mf_Click;
@@ -35,18 +35,48 @@ namespace logiciel_d_impression_3d
 
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
-            
-            // Initialiser les imprimantes Bambu Lab pour l'onglet 3MF
-            cmb3mfPrinter.Items.AddRange(new string[]
-            {
-                "Bambu Lab X1 Carbon",
-                "Bambu Lab X1E",
-                "Bambu Lab P1P",
-                "Bambu Lab P1S",
-                "Bambu Lab A1",
-                "Bambu Lab A1 Mini"
-            });
+
+            // Initialiser les imprimantes depuis ImprimanteSpecsManager
+            var listeImprimantes = ImprimanteSpecsManager.ObtenirListeImprimantes();
+            cmb3mfPrinter.Items.AddRange(listeImprimantes.ToArray());
             cmb3mfPrinter.SelectedIndex = 0;
+
+            // Appliquer le thème flat design
+            AppliquerTheme();
+        }
+
+        private void AppliquerTheme()
+        {
+            ThemeManager.ApplyThemeToForm(this);
+
+            // En-tête bleu
+            panelHeader.BackColor = ThemeManager.PrimaryBlue;
+            lblWelcomeUser.ForeColor = ThemeManager.TextOnDark;
+            lblWelcomeUser.Font = ThemeManager.FontSubtitle;
+
+            // Styler tous les contrôles récursivement
+            ThemeManager.StyleAllControls(this);
+
+            // Boutons principaux (style large + couleurs spécifiques)
+            ThemeManager.StyleButtonLarge(btnCalculerDevis, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButtonLarge(btnCalculerDevis3mf, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+
+            // Boutons secondaires avec couleurs spécifiques
+            ThemeManager.StyleButton(btnAnalyser3mf, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButton(btnBrowse3mf, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
+            ThemeManager.StyleButton(btnEnregistrerCalibration, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
+            ThemeManager.StyleButton(btnPartagerCalibration, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+
+            // Label info calibration
+            lblCalibrationInfo.ForeColor = ThemeManager.TextSecondary;
+
+            // Label statut AMS
+            if (!chkAMS.Checked)
+                lblAMSStatus.ForeColor = ThemeManager.TextSecondary;
+
+            // Compteur couleurs
+            lblNombreCouleurs.ForeColor = ThemeManager.PrimaryBlue;
+            lblNombreCouleurs.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         }
 
         private void InitializeForm()
@@ -57,17 +87,8 @@ namespace logiciel_d_impression_3d
             // Initialiser le dictionnaire des couleurs
             InitialiserCouleursDictionnaire();
             
-            // Initialiser les imprimantes disponibles
-            cmbPrinter.Items.AddRange(new string[] 
-            { 
-                "Bambu Lab X1 Carbon",
-                "Bambu Lab P1P",
-                "Bambu Lab P2S",
-                "Bambu Lab A1 Mini",
-                "Creality Ender 3",
-                "Prusa i3 MK3S+",
-                "Anycubic Kobra"
-            });
+            // Initialiser les imprimantes depuis ImprimanteSpecsManager
+            cmbPrinter.Items.AddRange(ImprimanteSpecsManager.ObtenirListeImprimantes().ToArray());
             cmbPrinter.SelectedIndex = 0;
 
             // Initialiser les marques de filament
@@ -275,7 +296,8 @@ namespace logiciel_d_impression_3d
                 decimal poidsPurge = 0;
                 if (chk3mfAMS.Checked && nombreCouleurs > 1)
                 {
-                    poidsPurge = poidsFilament * (parametres.PourcentagePurgeAMS / 100m);
+                    var specsImprimante = ImprimanteSpecsManager.ObtenirSpecs(cmb3mfPrinter.SelectedItem?.ToString() ?? "");
+                    poidsPurge = poidsFilament * (parametres.PourcentagePurgeAMS / 100m) * specsImprimante.CoefficientDechetAMS;
                 }
 
                 decimal poidsTotal = poidsFilament + poidsPurge;
@@ -665,20 +687,20 @@ namespace logiciel_d_impression_3d
             // 1. Calculer le poids net
             details.PoidsNet = CalculerPoidsTotal();
             
-            // 2. Calculer le poids de purge si AMS activé
+            // 2. Calculer le poids de purge si AMS activé (avec coefficient imprimante)
+            var specsImprimanteManuel = ImprimanteSpecsManager.ObtenirSpecs(cmbPrinter.SelectedItem?.ToString() ?? "");
             if (chkAMS.Checked)
             {
-                details.PoidsPurge = details.PoidsNet * (parametres.PourcentagePurgeAMS / 100m);
+                details.PoidsPurge = details.PoidsNet * (parametres.PourcentagePurgeAMS / 100m) * specsImprimanteManuel.CoefficientDechetAMS;
             }
-            
+
             details.PoidsTotal = details.PoidsNet + details.PoidsPurge;
-            
+
             // 3. Calculer le coût de la matière en utilisant les bobines des paramètres
-            // Le coût matière net est calculé sur le poids net, puis ajusté avec la purge
             decimal coutMatiereNet = CalculerCoutMatiere(parametres);
-            // Appliquer la purge proportionnellement au coût matière
+            // Appliquer la purge proportionnellement au coût matière (avec coefficient imprimante)
             details.CoutMatiere = chkAMS.Checked
-                ? coutMatiereNet * (1 + parametres.PourcentagePurgeAMS / 100m)
+                ? coutMatiereNet * (1 + (parametres.PourcentagePurgeAMS / 100m) * specsImprimanteManuel.CoefficientDechetAMS)
                 : coutMatiereNet;
             
             // 4. Calculer le temps total

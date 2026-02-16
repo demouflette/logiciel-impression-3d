@@ -56,7 +56,7 @@ namespace logiciel_d_impression_3d
             // 
             // tabPageLogin
             // 
-            this.tabPageLogin.BackColor = System.Drawing.Color.White;
+            this.tabPageLogin.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.tabPageLogin.Controls.Add(this.lnkForgotPassword);
             this.tabPageLogin.Controls.Add(this.btnLogin);
             this.tabPageLogin.Controls.Add(this.txtLoginPassword);
@@ -79,7 +79,7 @@ namespace logiciel_d_impression_3d
             this.lnkForgotPassword.Size = new System.Drawing.Size(120, 15);
             this.lnkForgotPassword.TabIndex = 6;
             this.lnkForgotPassword.TabStop = true;
-            this.lnkForgotPassword.Text = "Mot de passe oublié ?";
+            this.lnkForgotPassword.Text = "Mot de passe oubliï¿½ ?";
             this.lnkForgotPassword.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkForgotPassword_LinkClicked);
             // 
             // btnLogin
@@ -147,7 +147,7 @@ namespace logiciel_d_impression_3d
             // 
             // tabPageRegister
             // 
-            this.tabPageRegister.BackColor = System.Drawing.Color.White;
+            this.tabPageRegister.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.tabPageRegister.Controls.Add(this.btnRegister);
             this.tabPageRegister.Controls.Add(this.txtRegisterConfirmPassword);
             this.tabPageRegister.Controls.Add(this.lblRegisterConfirmPassword);
