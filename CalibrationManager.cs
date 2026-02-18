@@ -387,7 +387,7 @@ namespace logiciel_d_impression_3d
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur chargement calibration locale : {ex.Message}");
+                LogManager.Erreur("Chargement calibration locale", ex);
             }
             return donnees;
         }
@@ -401,7 +401,7 @@ namespace logiciel_d_impression_3d
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur sauvegarde calibration : {ex.Message}");
+                LogManager.Erreur("Sauvegarde calibration", ex);
             }
         }
 
@@ -428,7 +428,7 @@ namespace logiciel_d_impression_3d
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur téléchargement calibration distante : {ex.Message}");
+                LogManager.Erreur("Téléchargement calibration distante", ex);
                 dernierTelechargement = DateTime.Now; // Éviter de retenter immédiatement
             }
             return donnees;

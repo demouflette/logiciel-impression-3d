@@ -23,6 +23,9 @@
             this.paramètresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.déconnexionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.historiqueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.templatesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sauvegarderTemplateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.statistiquesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.thèmeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.quitterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -60,9 +63,11 @@
             this.lbl3mfFile = new System.Windows.Forms.Label();
             this.txt3mfFile = new System.Windows.Forms.TextBox();
             this.btnBrowse3mf = new System.Windows.Forms.Button();
+            this.btnAnalyserLot = new System.Windows.Forms.Button();
             this.btnAnalyser3mf = new System.Windows.Forms.Button();
             this.chkUtiliserSlicer = new System.Windows.Forms.CheckBox();
             this.lblStatutSlicer = new System.Windows.Forms.Label();
+            this.progressBarSlicer = new System.Windows.Forms.ProgressBar();
             this.groupBox3mfInfo = new System.Windows.Forms.GroupBox();
             this.txt3mfInfo = new System.Windows.Forms.TextBox();
             this.groupBox3mfCalcul = new System.Windows.Forms.GroupBox();
@@ -133,6 +138,9 @@
             this.profilToolStripMenuItem,
             this.paramètresToolStripMenuItem,
             this.historiqueToolStripMenuItem,
+            this.templatesToolStripMenuItem,
+            this.sauvegarderTemplateToolStripMenuItem,
+            this.statistiquesToolStripMenuItem,
             this.thèmeToolStripMenuItem,
             this.déconnexionToolStripMenuItem,
             this.toolStripSeparator1,
@@ -161,6 +169,27 @@
             this.historiqueToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
             this.historiqueToolStripMenuItem.Text = "Historique des devis";
             this.historiqueToolStripMenuItem.Click += new System.EventHandler(this.historiqueToolStripMenuItem_Click);
+            //
+            // templatesToolStripMenuItem
+            //
+            this.templatesToolStripMenuItem.Name = "templatesToolStripMenuItem";
+            this.templatesToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.templatesToolStripMenuItem.Text = "Templates";
+            this.templatesToolStripMenuItem.Click += new System.EventHandler(this.templatesToolStripMenuItem_Click);
+            //
+            // sauvegarderTemplateToolStripMenuItem
+            //
+            this.sauvegarderTemplateToolStripMenuItem.Name = "sauvegarderTemplateToolStripMenuItem";
+            this.sauvegarderTemplateToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.sauvegarderTemplateToolStripMenuItem.Text = "Sauvegarder template";
+            this.sauvegarderTemplateToolStripMenuItem.Click += new System.EventHandler(this.sauvegarderTemplateToolStripMenuItem_Click);
+            //
+            // statistiquesToolStripMenuItem
+            //
+            this.statistiquesToolStripMenuItem.Name = "statistiquesToolStripMenuItem";
+            this.statistiquesToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.statistiquesToolStripMenuItem.Text = "Statistiques";
+            this.statistiquesToolStripMenuItem.Click += new System.EventHandler(this.statistiquesToolStripMenuItem_Click);
             //
             // thèmeToolStripMenuItem
             //
@@ -581,9 +610,11 @@
             // 
             // groupBox3mfFile
             // 
+            this.groupBox3mfFile.Controls.Add(this.progressBarSlicer);
             this.groupBox3mfFile.Controls.Add(this.lblStatutSlicer);
             this.groupBox3mfFile.Controls.Add(this.chkUtiliserSlicer);
             this.groupBox3mfFile.Controls.Add(this.btnAnalyser3mf);
+            this.groupBox3mfFile.Controls.Add(this.btnAnalyserLot);
             this.groupBox3mfFile.Controls.Add(this.btnBrowse3mf);
             this.groupBox3mfFile.Controls.Add(this.txt3mfFile);
             this.groupBox3mfFile.Controls.Add(this.lbl3mfFile);
@@ -622,6 +653,15 @@
             this.btnBrowse3mf.TabIndex = 2;
             this.btnBrowse3mf.Text = "Parcourir...";
             this.btnBrowse3mf.UseVisualStyleBackColor = true;
+            //
+            // btnAnalyserLot
+            //
+            this.btnAnalyserLot.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAnalyserLot.Location = new System.Drawing.Point(370, 70);
+            this.btnAnalyserLot.Name = "btnAnalyserLot";
+            this.btnAnalyserLot.Size = new System.Drawing.Size(160, 30);
+            this.btnAnalyserLot.TabIndex = 7;
+            this.btnAnalyserLot.Text = "Analyser un lot";
             // 
             // btnAnalyser3mf
             // 
@@ -641,7 +681,7 @@
             this.chkUtiliserSlicer.AutoSize = true;
             this.chkUtiliserSlicer.Checked = true;
             this.chkUtiliserSlicer.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkUtiliserSlicer.Location = new System.Drawing.Point(400, 75);
+            this.chkUtiliserSlicer.Location = new System.Drawing.Point(545, 75);
             this.chkUtiliserSlicer.Name = "chkUtiliserSlicer";
             this.chkUtiliserSlicer.Size = new System.Drawing.Size(280, 23);
             this.chkUtiliserSlicer.TabIndex = 4;
@@ -655,6 +695,16 @@
             this.lblStatutSlicer.Size = new System.Drawing.Size(100, 19);
             this.lblStatutSlicer.TabIndex = 5;
             this.lblStatutSlicer.Text = "";
+            //
+            // progressBarSlicer
+            //
+            this.progressBarSlicer.Location = new System.Drawing.Point(400, 100);
+            this.progressBarSlicer.Name = "progressBarSlicer";
+            this.progressBarSlicer.Size = new System.Drawing.Size(300, 18);
+            this.progressBarSlicer.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            this.progressBarSlicer.MarqueeAnimationSpeed = 30;
+            this.progressBarSlicer.TabIndex = 6;
+            this.progressBarSlicer.Visible = false;
             //
             // groupBox3mfInfo
             // 
@@ -1020,6 +1070,9 @@
         private System.Windows.Forms.ToolStripMenuItem paramètresToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem déconnexionToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem historiqueToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem templatesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sauvegarderTemplateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem statistiquesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem thèmeToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem quitterToolStripMenuItem;
@@ -1057,9 +1110,11 @@
         private System.Windows.Forms.GroupBox groupBox3mfFile;
         private System.Windows.Forms.CheckBox chkUtiliserSlicer;
         private System.Windows.Forms.Label lblStatutSlicer;
+        private System.Windows.Forms.ProgressBar progressBarSlicer;
         private System.Windows.Forms.Label lbl3mfFile;
         private System.Windows.Forms.TextBox txt3mfFile;
         private System.Windows.Forms.Button btnBrowse3mf;
+        private System.Windows.Forms.Button btnAnalyserLot;
         private System.Windows.Forms.Button btnAnalyser3mf;
         private System.Windows.Forms.GroupBox groupBox3mfInfo;
         private System.Windows.Forms.TextBox txt3mfInfo;

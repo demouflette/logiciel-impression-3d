@@ -12,6 +12,7 @@ namespace logiciel_d_impression_3d
         private TextBox txtDevis;
         private Button btnCopier;
         private Button btnExporter;
+        private Button btnExporterPDF;
         private Button btnImprimer;
         private Button btnFermer;
         private Panel panelBoutons;
@@ -28,7 +29,7 @@ namespace logiciel_d_impression_3d
         private void InitialiserComposants(string titre)
         {
             this.Text = titre;
-            this.Size = new Size(650, 550);
+            this.Size = new Size(780, 550);
             this.MinimumSize = new Size(500, 400);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.Sizable;
@@ -76,11 +77,21 @@ namespace logiciel_d_impression_3d
             };
             btnExporter.Click += BtnExporter_Click;
 
+            btnExporterPDF = new Button
+            {
+                Text = "Exporter (PDF)",
+                Size = new Size(120, 35),
+                Location = new Point(270, 10),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnExporterPDF.Click += BtnExporterPDF_Click;
+
             btnImprimer = new Button
             {
                 Text = "Imprimer",
                 Size = new Size(120, 35),
-                Location = new Point(270, 10),
+                Location = new Point(400, 10),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -90,13 +101,13 @@ namespace logiciel_d_impression_3d
             {
                 Text = "Fermer",
                 Size = new Size(120, 35),
-                Location = new Point(400, 10),
+                Location = new Point(530, 10),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnFermer.Click += (s, e) => this.Close();
 
-            panelBoutons.Controls.AddRange(new Control[] { btnCopier, btnExporter, btnImprimer, btnFermer });
+            panelBoutons.Controls.AddRange(new Control[] { btnCopier, btnExporter, btnExporterPDF, btnImprimer, btnFermer });
             this.Controls.Add(txtDevis);
             this.Controls.Add(panelBoutons);
 
@@ -109,7 +120,8 @@ namespace logiciel_d_impression_3d
             ThemeManager.StyleAllControls(this);
             ThemeManager.StyleButton(btnCopier, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
             ThemeManager.StyleButton(btnExporter, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
-            ThemeManager.StyleButton(btnImprimer, ThemeManager.AccentOrange, ThemeManager.AccentOrangeDark);
+            ThemeManager.StyleButton(btnExporterPDF, ThemeManager.AccentOrange, ThemeManager.AccentOrangeDark);
+            ThemeManager.StyleButton(btnImprimer, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
             ThemeManager.StyleButton(btnFermer, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
 
             txtDevis.BackColor = ThemeManager.BackgroundInput;
@@ -135,6 +147,52 @@ namespace logiciel_d_impression_3d
                 {
                     File.WriteAllText(sfd.FileName, contenuDevis, Encoding.UTF8);
                     MessageBox.Show($"Devis exporté vers :\n{sfd.FileName}", "Exporté",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void BtnExporterPDF_Click(object sender, EventArgs e)
+        {
+            // Vérifier si "Microsoft Print to PDF" est disponible
+            bool pdfDisponible = false;
+            foreach (string imprimante in System.Drawing.Printing.PrinterSettings.InstalledPrinters)
+            {
+                if (imprimante.Equals("Microsoft Print to PDF", StringComparison.OrdinalIgnoreCase))
+                {
+                    pdfDisponible = true;
+                    break;
+                }
+            }
+
+            if (!pdfDisponible)
+            {
+                MessageBox.Show("L'imprimante \"Microsoft Print to PDF\" n'est pas disponible.\nUtilisez le bouton Imprimer et sélectionnez une imprimante PDF.",
+                    "PDF non disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "Fichier PDF (*.pdf)|*.pdf";
+                sfd.FileName = $"Devis_{DateTime.Now:yyyy-MM-dd_HHmmss}.pdf";
+                sfd.Title = "Exporter le devis en PDF";
+
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    using (PrintDocument doc = new PrintDocument())
+                    {
+                        doc.DocumentName = "Devis impression 3D";
+                        doc.PrinterSettings.PrinterName = "Microsoft Print to PDF";
+                        doc.PrinterSettings.PrintToFile = true;
+                        doc.PrinterSettings.PrintFileName = sfd.FileName;
+                        doc.PrintPage += Doc_PrintPage;
+
+                        indexImpressionLigne = 0;
+                        doc.Print();
+                    }
+
+                    MessageBox.Show($"Devis exporté en PDF :\n{sfd.FileName}", "PDF exporté",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }

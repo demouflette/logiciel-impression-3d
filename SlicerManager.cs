@@ -68,7 +68,7 @@ namespace logiciel_d_impression_3d
                     return cheminSlicerCache;
                 }
             }
-            catch { }
+            catch (Exception ex) { LogManager.Erreur("Lecture chemin slicer depuis paramètres", ex); }
 
             // 2. Auto-détection dans les chemins connus
             foreach (string chemin in CheminsRecherche)
@@ -171,7 +171,7 @@ namespace logiciel_d_impression_3d
 
                     if (!termine)
                     {
-                        try { process.Kill(); } catch { }
+                        try { process.Kill(); } catch (Exception ex) { LogManager.Erreur("Kill process slicer", ex); }
                         return new ResultatSlicing
                         {
                             Succes = false,
@@ -201,7 +201,7 @@ namespace logiciel_d_impression_3d
                     if (Directory.Exists(dossierTemp))
                         Directory.Delete(dossierTemp, true);
                 }
-                catch { }
+                catch (Exception ex) { LogManager.Erreur("Nettoyage dossier temp slicer", ex); }
             }
         }
 
@@ -322,7 +322,7 @@ namespace logiciel_d_impression_3d
                         resultat.FilamentUtiliseMetres = longueurTotale;
                 }
             }
-            catch { }
+            catch (Exception ex) { LogManager.Erreur("Parsing slice_info.config", ex); }
         }
 
         /// <summary>
@@ -392,7 +392,7 @@ namespace logiciel_d_impression_3d
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogManager.Erreur("Parsing commentaires G-code", ex); }
 
             return Tuple.Create(tempsMinutes, purgeGrammes);
         }

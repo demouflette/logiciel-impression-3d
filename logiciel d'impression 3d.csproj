@@ -84,6 +84,9 @@
     </Compile>
     <Compile Include="DevisForm.cs" />
     <Compile Include="HistoriqueDevis.cs" />
+    <Compile Include="LogManager.cs" />
+    <Compile Include="TemplateDevis.cs" />
+    <Compile Include="StatistiquesForm.cs" />
     <Compile Include="CalibrationManager.cs" />
     <Compile Include="SlicerManager.cs" />
     <Compile Include="ThemeManager.cs" />

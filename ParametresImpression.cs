@@ -74,6 +74,129 @@ namespace logiciel_d_impression_3d
             // Événements
             dgvBobines.CellValueChanged += DgvBobines_CellValueChanged;
             dgvBobines.CellFormatting += DgvBobines_CellFormatting;
+
+            // Configurer l'onglet imprimantes personnalisées
+            ConfigurerColonnesImprimantesCustom();
+            ChargerImprimantesCustom();
+            btnAjouterImprimante.Click += BtnAjouterImprimante_Click;
+            btnSupprimerImprimante.Click += BtnSupprimerImprimante_Click;
+
+            // Configurer l'onglet entreprise
+            CreerOngletEntreprise();
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // ONGLET ENTREPRISE
+        // ═══════════════════════════════════════════════════════
+
+        private TextBox txtNomEntreprise;
+        private TextBox txtAdresseEntreprise;
+        private TextBox txtTelephoneEntreprise;
+        private TextBox txtEmailEntreprise;
+        private TextBox txtSiretEntreprise;
+        private CheckBox chkAfficherNom;
+        private CheckBox chkAfficherAdresse;
+        private CheckBox chkAfficherTelephone;
+        private CheckBox chkAfficherEmail;
+        private CheckBox chkAfficherSiret;
+
+        private void CreerOngletEntreprise()
+        {
+            var tabPageEntreprise = new TabPage
+            {
+                Text = "Entreprise",
+                BackColor = Color.FromArgb(245, 247, 250),
+                Padding = new Padding(3)
+            };
+
+            var groupBox = new GroupBox
+            {
+                Text = "Coordonnées de l'entreprise",
+                Location = new Point(20, 20),
+                Size = new Size(700, 320),
+                Font = new Font("Segoe UI", 10f)
+            };
+
+            int y = 35;
+            int lblX = 20;
+            int txtX = 180;
+            int txtW = 480;
+            int espacement = 50;
+
+            var lblNom = new Label { Text = "Nom :", Location = new Point(lblX, y + 3), AutoSize = true };
+            txtNomEntreprise = new TextBox { Location = new Point(txtX, y), Size = new Size(txtW, 25) };
+            y += espacement;
+
+            var lblAdresse = new Label { Text = "Adresse :", Location = new Point(lblX, y + 3), AutoSize = true };
+            txtAdresseEntreprise = new TextBox { Location = new Point(txtX, y), Size = new Size(txtW, 25) };
+            y += espacement;
+
+            var lblTelephone = new Label { Text = "Téléphone :", Location = new Point(lblX, y + 3), AutoSize = true };
+            txtTelephoneEntreprise = new TextBox { Location = new Point(txtX, y), Size = new Size(txtW, 25) };
+            y += espacement;
+
+            var lblEmail = new Label { Text = "Email :", Location = new Point(lblX, y + 3), AutoSize = true };
+            txtEmailEntreprise = new TextBox { Location = new Point(txtX, y), Size = new Size(txtW, 25) };
+            y += espacement;
+
+            var lblSiret = new Label { Text = "SIRET :", Location = new Point(lblX, y + 3), AutoSize = true };
+            txtSiretEntreprise = new TextBox { Location = new Point(txtX, y), Size = new Size(txtW, 25) };
+            y += espacement + 10;
+
+            // Groupe "Afficher sur le devis"
+            var groupBoxAffichage = new GroupBox
+            {
+                Text = "Afficher sur le devis",
+                Location = new Point(20, 350),
+                Size = new Size(700, 80),
+                Font = new Font("Segoe UI", 10f)
+            };
+
+            int chkX = 20;
+            int chkY = 30;
+            int chkEspacement = 135;
+
+            chkAfficherNom = new CheckBox { Text = "Nom", Location = new Point(chkX, chkY), AutoSize = true };
+            chkX += chkEspacement;
+            chkAfficherAdresse = new CheckBox { Text = "Adresse", Location = new Point(chkX, chkY), AutoSize = true };
+            chkX += chkEspacement;
+            chkAfficherTelephone = new CheckBox { Text = "Téléphone", Location = new Point(chkX, chkY), AutoSize = true };
+            chkX += chkEspacement;
+            chkAfficherEmail = new CheckBox { Text = "Email", Location = new Point(chkX, chkY), AutoSize = true };
+            chkX += chkEspacement;
+            chkAfficherSiret = new CheckBox { Text = "SIRET", Location = new Point(chkX, chkY), AutoSize = true };
+
+            groupBoxAffichage.Controls.AddRange(new Control[] {
+                chkAfficherNom, chkAfficherAdresse, chkAfficherTelephone,
+                chkAfficherEmail, chkAfficherSiret
+            });
+
+            groupBox.Controls.AddRange(new Control[] {
+                lblNom, txtNomEntreprise,
+                lblAdresse, txtAdresseEntreprise,
+                lblTelephone, txtTelephoneEntreprise,
+                lblEmail, txtEmailEntreprise,
+                lblSiret, txtSiretEntreprise
+            });
+
+            tabPageEntreprise.Controls.Add(groupBox);
+            tabPageEntreprise.Controls.Add(groupBoxAffichage);
+            tabControl1.TabPages.Add(tabPageEntreprise);
+
+            // Charger les valeurs
+            txtNomEntreprise.Text = parametres.NomEntreprise ?? "";
+            txtAdresseEntreprise.Text = parametres.AdresseEntreprise ?? "";
+            txtTelephoneEntreprise.Text = parametres.TelephoneEntreprise ?? "";
+            txtEmailEntreprise.Text = parametres.EmailEntreprise ?? "";
+            txtSiretEntreprise.Text = parametres.SiretEntreprise ?? "";
+            chkAfficherNom.Checked = parametres.AfficherNomEntreprise;
+            chkAfficherAdresse.Checked = parametres.AfficherAdresseEntreprise;
+            chkAfficherTelephone.Checked = parametres.AfficherTelephoneEntreprise;
+            chkAfficherEmail.Checked = parametres.AfficherEmailEntreprise;
+            chkAfficherSiret.Checked = parametres.AfficherSiretEntreprise;
+
+            // Appliquer le thème
+            ThemeManager.StyleAllControls(tabPageEntreprise);
         }
 
         private void ConfigurerColonnesBobines()
@@ -233,6 +356,36 @@ namespace logiciel_d_impression_3d
 
         private void btnEnregistrer_Click(object sender, EventArgs e)
         {
+            // Validation des saisies
+            if (numCoutElectricite.Value < 0)
+            {
+                MessageBox.Show("Le coût de l'électricité ne peut pas être négatif.", "Erreur de saisie", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (numTVA.Value < 0 || numTVA.Value > 100)
+            {
+                MessageBox.Show("La TVA doit être entre 0% et 100%.", "Erreur de saisie", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (numMarge.Value < 0)
+            {
+                MessageBox.Show("La marge ne peut pas être négative.", "Erreur de saisie", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Validation des bobines
+            foreach (DataRow row in dtBobines.Rows)
+            {
+                if (row.RowState == DataRowState.Deleted) continue;
+                decimal poidsBob = row["Poids bobine (g)"] != DBNull.Value ? Convert.ToDecimal(row["Poids bobine (g)"]) : 0;
+                decimal prixBob = row["Prix bobine (€)"] != DBNull.Value ? Convert.ToDecimal(row["Prix bobine (€)"]) : 0;
+                if (poidsBob <= 0 || prixBob <= 0)
+                {
+                    MessageBox.Show("Chaque bobine doit avoir un poids et un prix supérieurs à 0.", "Erreur de saisie", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
             // Sauvegarder les paramètres
             parametres.CoutElectriciteKwh = numCoutElectricite.Value;
             parametres.PourcentagePurgeAMS = numPourcentagePurge.Value;
@@ -260,6 +413,37 @@ namespace logiciel_d_impression_3d
                     });
                 }
             }
+
+            // Sauvegarder les imprimantes personnalisées
+            var imprimantesCustom = new System.Collections.Generic.List<SpecsImprimante>();
+            foreach (DataGridViewRow row in dgvImprimantesCustom.Rows)
+            {
+                if (row.IsNewRow) continue;
+                string nom = row.Cells["ColNomImp"].Value?.ToString();
+                if (string.IsNullOrWhiteSpace(nom)) continue;
+
+                imprimantesCustom.Add(new SpecsImprimante
+                {
+                    Nom = nom,
+                    PuissanceMaxWatts = row.Cells["ColPuissanceMax"].Value != null ? Convert.ToDecimal(row.Cells["ColPuissanceMax"].Value) : 250,
+                    ConsommationMoyenneWatts = row.Cells["ColConsoMoy"].Value != null ? Convert.ToDecimal(row.Cells["ColConsoMoy"].Value) : 150,
+                    CoefficientVitesse = row.Cells["ColCoeffVit"].Value != null ? Convert.ToDecimal(row.Cells["ColCoeffVit"].Value) : 1.0m,
+                    CoefficientDechetAMS = row.Cells["ColCoeffDechet"].Value != null ? Convert.ToDecimal(row.Cells["ColCoeffDechet"].Value) : 1.0m
+                });
+            }
+            ImprimanteSpecsManager.SauvegarderImprimantesCustom(imprimantesCustom);
+
+            // Sauvegarder les infos entreprise
+            parametres.NomEntreprise = txtNomEntreprise.Text.Trim();
+            parametres.AdresseEntreprise = txtAdresseEntreprise.Text.Trim();
+            parametres.TelephoneEntreprise = txtTelephoneEntreprise.Text.Trim();
+            parametres.EmailEntreprise = txtEmailEntreprise.Text.Trim();
+            parametres.SiretEntreprise = txtSiretEntreprise.Text.Trim();
+            parametres.AfficherNomEntreprise = chkAfficherNom.Checked;
+            parametres.AfficherAdresseEntreprise = chkAfficherAdresse.Checked;
+            parametres.AfficherTelephoneEntreprise = chkAfficherTelephone.Checked;
+            parametres.AfficherEmailEntreprise = chkAfficherEmail.Checked;
+            parametres.AfficherSiretEntreprise = chkAfficherSiret.Checked;
 
             SauvegarderParametres(parametres);
             InvaliderCache();
@@ -311,6 +495,40 @@ namespace logiciel_d_impression_3d
             }
         }
 
+        private void ConfigurerColonnesImprimantesCustom()
+        {
+            dgvImprimantesCustom.Columns.Clear();
+            dgvImprimantesCustom.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColNomImp", HeaderText = "Nom", FillWeight = 30 });
+            dgvImprimantesCustom.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColPuissanceMax", HeaderText = "Puissance max (W)", FillWeight = 18 });
+            dgvImprimantesCustom.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColConsoMoy", HeaderText = "Conso. moy. (W)", FillWeight = 18 });
+            dgvImprimantesCustom.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColCoeffVit", HeaderText = "Coeff. vitesse", FillWeight = 17 });
+            dgvImprimantesCustom.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColCoeffDechet", HeaderText = "Coeff. déchet AMS", FillWeight = 17 });
+        }
+
+        private void ChargerImprimantesCustom()
+        {
+            dgvImprimantesCustom.Rows.Clear();
+            var customs = ImprimanteSpecsManager.ChargerImprimantesCustom();
+            foreach (var imp in customs)
+            {
+                dgvImprimantesCustom.Rows.Add(imp.Nom, imp.PuissanceMaxWatts, imp.ConsommationMoyenneWatts,
+                    imp.CoefficientVitesse, imp.CoefficientDechetAMS);
+            }
+        }
+
+        private void BtnAjouterImprimante_Click(object sender, EventArgs e)
+        {
+            dgvImprimantesCustom.Rows.Add("Nouvelle imprimante", 250, 150, 1.0, 1.0);
+        }
+
+        private void BtnSupprimerImprimante_Click(object sender, EventArgs e)
+        {
+            if (dgvImprimantesCustom.CurrentRow != null && !dgvImprimantesCustom.CurrentRow.IsNewRow)
+            {
+                dgvImprimantesCustom.Rows.Remove(dgvImprimantesCustom.CurrentRow);
+            }
+        }
+
         private static ParametresImpression ChargerParametres()
         {
             try
@@ -347,6 +565,55 @@ namespace logiciel_d_impression_3d
                         if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
                         {
                             param.CheminSlicer = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        // Infos entreprise (6 lignes optionnelles)
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.NomEntreprise = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.AdresseEntreprise = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.TelephoneEntreprise = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.EmailEntreprise = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.SiretEntreprise = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            // Format: N,A,T,E,S (5 flags séparés par virgule)
+                            string[] flags = lines[debutBobines].Split(',');
+                            if (flags.Length >= 5)
+                            {
+                                param.AfficherNomEntreprise = flags[0] == "1";
+                                param.AfficherAdresseEntreprise = flags[1] == "1";
+                                param.AfficherTelephoneEntreprise = flags[2] == "1";
+                                param.AfficherEmailEntreprise = flags[3] == "1";
+                                param.AfficherSiretEntreprise = flags[4] == "1";
+                            }
+                            else if (flags[0] == "1")
+                            {
+                                // Rétrocompatibilité ancien format (un seul bool)
+                                param.AfficherNomEntreprise = true;
+                                param.AfficherAdresseEntreprise = true;
+                                param.AfficherTelephoneEntreprise = true;
+                                param.AfficherEmailEntreprise = true;
+                                param.AfficherSiretEntreprise = true;
+                            }
                             debutBobines++;
                         }
 
@@ -399,7 +666,13 @@ namespace logiciel_d_impression_3d
                     param.TokenGithub ?? "",
                     param.CoutMainOeuvreHeure.ToString(CultureInfo.InvariantCulture),
                     param.AmortissementMachineHeure.ToString(CultureInfo.InvariantCulture),
-                    param.CheminSlicer ?? ""
+                    param.CheminSlicer ?? "",
+                    param.NomEntreprise ?? "",
+                    param.AdresseEntreprise ?? "",
+                    param.TelephoneEntreprise ?? "",
+                    param.EmailEntreprise ?? "",
+                    param.SiretEntreprise ?? "",
+                    $"{(param.AfficherNomEntreprise ? "1" : "0")},{(param.AfficherAdresseEntreprise ? "1" : "0")},{(param.AfficherTelephoneEntreprise ? "1" : "0")},{(param.AfficherEmailEntreprise ? "1" : "0")},{(param.AfficherSiretEntreprise ? "1" : "0")}"
                 };
 
                 foreach (var bobine in param.Bobines)
@@ -457,6 +730,16 @@ namespace logiciel_d_impression_3d
         public decimal CoutMainOeuvreHeure { get; set; } = 0m;
         public decimal AmortissementMachineHeure { get; set; } = 0m;
         public string CheminSlicer { get; set; } = "";
+        public string NomEntreprise { get; set; } = "";
+        public string AdresseEntreprise { get; set; } = "";
+        public string TelephoneEntreprise { get; set; } = "";
+        public string EmailEntreprise { get; set; } = "";
+        public string SiretEntreprise { get; set; } = "";
+        public bool AfficherNomEntreprise { get; set; } = false;
+        public bool AfficherAdresseEntreprise { get; set; } = false;
+        public bool AfficherTelephoneEntreprise { get; set; } = false;
+        public bool AfficherEmailEntreprise { get; set; } = false;
+        public bool AfficherSiretEntreprise { get; set; } = false;
         public List<Bobine> Bobines { get; set; } = new List<Bobine>();
     }
 

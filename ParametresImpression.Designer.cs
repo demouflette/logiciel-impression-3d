@@ -47,6 +47,11 @@ namespace logiciel_d_impression_3d
             this.btnParcourirSlicer = new System.Windows.Forms.Button();
             this.lblStatutSlicerParam = new System.Windows.Forms.Label();
             this.lblTokenGithub = new System.Windows.Forms.Label();
+            this.tabPageImprimantes = new System.Windows.Forms.TabPage();
+            this.dgvImprimantesCustom = new System.Windows.Forms.DataGridView();
+            this.btnAjouterImprimante = new System.Windows.Forms.Button();
+            this.btnSupprimerImprimante = new System.Windows.Forms.Button();
+            this.lblInfoImprimantes = new System.Windows.Forms.Label();
             this.btnEnregistrer = new System.Windows.Forms.Button();
             this.btnAnnuler = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
@@ -69,6 +74,7 @@ namespace logiciel_d_impression_3d
             // 
             this.tabControl1.Controls.Add(this.tabPageGeneral);
             this.tabControl1.Controls.Add(this.tabPageBobines);
+            this.tabControl1.Controls.Add(this.tabPageImprimantes);
             this.tabControl1.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.tabControl1.Location = new System.Drawing.Point(12, 12);
             this.tabControl1.Name = "tabControl1";
@@ -421,6 +427,55 @@ namespace logiciel_d_impression_3d
             this.lblStatutSlicerParam.TabIndex = 3;
             this.lblStatutSlicerParam.Text = "";
             //
+            // tabPageImprimantes
+            //
+            this.tabPageImprimantes.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
+            this.tabPageImprimantes.Controls.Add(this.lblInfoImprimantes);
+            this.tabPageImprimantes.Controls.Add(this.dgvImprimantesCustom);
+            this.tabPageImprimantes.Controls.Add(this.btnAjouterImprimante);
+            this.tabPageImprimantes.Controls.Add(this.btnSupprimerImprimante);
+            this.tabPageImprimantes.Location = new System.Drawing.Point(4, 26);
+            this.tabPageImprimantes.Name = "tabPageImprimantes";
+            this.tabPageImprimantes.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageImprimantes.Size = new System.Drawing.Size(752, 650);
+            this.tabPageImprimantes.TabIndex = 2;
+            this.tabPageImprimantes.Text = "Imprimantes personnalisées";
+            //
+            // lblInfoImprimantes
+            //
+            this.lblInfoImprimantes.AutoSize = true;
+            this.lblInfoImprimantes.Location = new System.Drawing.Point(20, 15);
+            this.lblInfoImprimantes.Name = "lblInfoImprimantes";
+            this.lblInfoImprimantes.Size = new System.Drawing.Size(400, 19);
+            this.lblInfoImprimantes.Text = "Ajoutez des imprimantes non listées avec leurs caractéristiques :";
+            //
+            // dgvImprimantesCustom
+            //
+            this.dgvImprimantesCustom.Location = new System.Drawing.Point(20, 45);
+            this.dgvImprimantesCustom.Name = "dgvImprimantesCustom";
+            this.dgvImprimantesCustom.Size = new System.Drawing.Size(710, 400);
+            this.dgvImprimantesCustom.AllowUserToAddRows = false;
+            this.dgvImprimantesCustom.AllowUserToDeleteRows = false;
+            this.dgvImprimantesCustom.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dgvImprimantesCustom.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvImprimantesCustom.TabIndex = 0;
+            //
+            // btnAjouterImprimante
+            //
+            this.btnAjouterImprimante.Location = new System.Drawing.Point(20, 460);
+            this.btnAjouterImprimante.Name = "btnAjouterImprimante";
+            this.btnAjouterImprimante.Size = new System.Drawing.Size(150, 35);
+            this.btnAjouterImprimante.Text = "Ajouter";
+            this.btnAjouterImprimante.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            //
+            // btnSupprimerImprimante
+            //
+            this.btnSupprimerImprimante.Location = new System.Drawing.Point(180, 460);
+            this.btnSupprimerImprimante.Name = "btnSupprimerImprimante";
+            this.btnSupprimerImprimante.Size = new System.Drawing.Size(150, 35);
+            this.btnSupprimerImprimante.Text = "Supprimer";
+            this.btnSupprimerImprimante.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            //
             // btnEnregistrer
             //
             this.btnEnregistrer.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
@@ -515,6 +570,11 @@ namespace logiciel_d_impression_3d
         private System.Windows.Forms.NumericUpDown numAmortissement;
         private System.Windows.Forms.Label lblAmortissement;
         private System.Windows.Forms.GroupBox groupBoxSlicer;
+        private System.Windows.Forms.TabPage tabPageImprimantes;
+        private System.Windows.Forms.DataGridView dgvImprimantesCustom;
+        private System.Windows.Forms.Button btnAjouterImprimante;
+        private System.Windows.Forms.Button btnSupprimerImprimante;
+        private System.Windows.Forms.Label lblInfoImprimantes;
         private System.Windows.Forms.TextBox txtCheminSlicer;
         private System.Windows.Forms.Label lblCheminSlicer;
         private System.Windows.Forms.Button btnParcourirSlicer;

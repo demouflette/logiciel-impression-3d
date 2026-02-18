@@ -26,6 +26,7 @@ namespace logiciel_d_impression_3d
             // Connecter les événements des boutons 3MF
             btnBrowse3mf.Click += BtnBrowse3mf_Click;
             btnAnalyser3mf.Click += BtnAnalyser3mf_Click;
+            btnAnalyserLot.Click += BtnAnalyserLot_Click;
 
             // Connecter les événements de calibration
             rdo3mfAuto.CheckedChanged += Rdo3mfMode_CheckedChanged;
@@ -36,6 +37,9 @@ namespace logiciel_d_impression_3d
 
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
+
+            // Nettoyage automatique de l'historique (> 365 jours)
+            HistoriqueManager.NettoyerHistorique();
 
             // Charger le thème sauvegardé et appliquer
             ChargerThemeSauvegarde();
@@ -49,6 +53,32 @@ namespace logiciel_d_impression_3d
                     ? "Thème clair" : "Thème sombre";
                 SauvegarderTheme();
             };
+        }
+
+        private string GenererEnteteEntreprise(ParametresImpression parametres)
+        {
+            var sb = new StringBuilder();
+
+            if (parametres.AfficherNomEntreprise && !string.IsNullOrWhiteSpace(parametres.NomEntreprise))
+                sb.AppendLine($"  {parametres.NomEntreprise}");
+            if (parametres.AfficherAdresseEntreprise && !string.IsNullOrWhiteSpace(parametres.AdresseEntreprise))
+                sb.AppendLine($"  {parametres.AdresseEntreprise}");
+
+            var contact = new List<string>();
+            if (parametres.AfficherTelephoneEntreprise && !string.IsNullOrWhiteSpace(parametres.TelephoneEntreprise))
+                contact.Add($"Tél: {parametres.TelephoneEntreprise}");
+            if (parametres.AfficherEmailEntreprise && !string.IsNullOrWhiteSpace(parametres.EmailEntreprise))
+                contact.Add(parametres.EmailEntreprise);
+            if (contact.Count > 0)
+                sb.AppendLine($"  {string.Join("  |  ", contact)}");
+
+            if (parametres.AfficherSiretEntreprise && !string.IsNullOrWhiteSpace(parametres.SiretEntreprise))
+                sb.AppendLine($"  SIRET: {parametres.SiretEntreprise}");
+
+            if (sb.Length > 0)
+                sb.AppendLine();
+
+            return sb.ToString();
         }
 
         private void AppliquerTheme()
@@ -70,6 +100,7 @@ namespace logiciel_d_impression_3d
             // Boutons secondaires avec couleurs spécifiques
             ThemeManager.StyleButton(btnAnalyser3mf, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
             ThemeManager.StyleButton(btnBrowse3mf, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
+            ThemeManager.StyleButton(btnAnalyserLot, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
             ThemeManager.StyleButton(btnEnregistrerCalibration, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
             ThemeManager.StyleButton(btnPartagerCalibration, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
 
@@ -156,6 +187,99 @@ namespace logiciel_d_impression_3d
                 {
                     txt3mfFile.Text = openFileDialog.FileName;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Événement pour analyser un lot de fichiers 3MF
+        /// </summary>
+        private void BtnAnalyserLot_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Fichiers 3MF (*.3mf)|*.3mf";
+                ofd.Title = "Sélectionnez plusieurs fichiers 3MF";
+                ofd.Multiselect = true;
+                ofd.RestoreDirectory = true;
+
+                if (ofd.ShowDialog() != DialogResult.OK || ofd.FileNames.Length == 0) return;
+
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+                StringBuilder sb = new StringBuilder();
+                sb.Append(GenererEnteteEntreprise(parametres));
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine("           DEVIS GROUPÉ - LOT DE FICHIERS 3MF");
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine($"🖨️  Imprimante: {cmb3mfPrinter.SelectedItem}");
+                sb.AppendLine($"📦 Nombre de fichiers: {ofd.FileNames.Length}");
+                sb.AppendLine();
+
+                decimal totalPoidsg = 0;
+                decimal totalTempsMin = 0;
+                decimal totalPrixTTC = 0;
+                int fichierOK = 0;
+
+                foreach (string fichier in ofd.FileNames)
+                {
+                    try
+                    {
+                        var parsed = ThreeMFParser.ParseFile(fichier);
+                        if (parsed.TotalVertices <= 0) continue;
+
+                        string matiere = cmb3mfMatiere.SelectedItem?.ToString() ?? "PLA";
+                        int infill = (int)num3mfInfill.Value;
+                        decimal poids = CalibrationManager.EstimerPoids(parsed.TotalVertices, matiere, infill);
+                        string imprimante = cmb3mfPrinter.SelectedItem?.ToString() ?? "";
+                        decimal tempsMin = CalibrationManager.EstimerTemps(parsed.TotalVertices, imprimante);
+                        decimal tempsH = tempsMin / 60m;
+
+                        // Coûts
+                        decimal prixKg = ObtenirPrixMoyenBobines(parametres, matiere);
+                        decimal coutMatiere = (poids / 1000m) * prixKg;
+                        var specs = ImprimanteSpecsManager.ObtenirSpecs(imprimante);
+                        decimal coutElec = specs.ConsommationMoyenneKw * tempsH * parametres.CoutElectriciteKwh;
+                        decimal coutMO = tempsH * parametres.CoutMainOeuvreHeure;
+                        decimal coutAmort = tempsH * parametres.AmortissementMachineHeure;
+                        decimal coutProd = coutMatiere + coutElec + coutMO + coutAmort;
+                        decimal marge = coutProd * (parametres.MargeParObjet / 100m);
+                        decimal sousTotal = coutProd + marge;
+                        decimal tva = sousTotal * (parametres.TVA / 100m);
+                        decimal prixTTC = sousTotal + tva;
+
+                        totalPoidsg += poids;
+                        totalTempsMin += tempsMin;
+                        totalPrixTTC += prixTTC;
+                        fichierOK++;
+
+                        sb.AppendLine($"───────────────────────────────────────────────────");
+                        sb.AppendLine($"📄 {System.IO.Path.GetFileName(fichier)}");
+                        sb.AppendLine($"   Poids: {poids:F2} g | Temps: {tempsH:F2}h | Prix TTC: {prixTTC:F2} €");
+                    }
+                    catch (Exception ex)
+                    {
+                        sb.AppendLine($"───────────────────────────────────────────────────");
+                        sb.AppendLine($"❌ {System.IO.Path.GetFileName(fichier)} : {ex.Message}");
+                    }
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine($"   TOTAL : {fichierOK} fichier(s)");
+                sb.AppendLine($"   Poids total: {totalPoidsg:F2} g");
+                sb.AppendLine($"   Temps total: {totalTempsMin / 60:F2} heures");
+                sb.AppendLine($"   💰 PRIX TOTAL TTC: {totalPrixTTC:F2} €");
+                sb.AppendLine("═══════════════════════════════════════════════════");
+
+                string contenu = sb.ToString();
+                HistoriqueManager.Sauvegarder(new EntreeHistorique
+                {
+                    Date = DateTime.Now,
+                    Titre = $"Lot - {fichierOK} fichiers 3MF",
+                    PrixTotalTTC = totalPrixTTC,
+                    ContenuDevis = contenu
+                });
+
+                new DevisForm("Devis groupé - Lot 3MF", contenu).ShowDialog();
             }
         }
 
@@ -257,6 +381,7 @@ namespace logiciel_d_impression_3d
                     valeurSlicerUtilisees = false;
                     lblStatutSlicer.Text = "Slicing en cours...";
                     lblStatutSlicer.ForeColor = ThemeManager.PrimaryBlue;
+                    progressBarSlicer.Visible = true;
                     btnAnalyser3mf.Enabled = false;
 
                     SlicerManager.SlicerEnArrierePlan(txt3mfFile.Text, (resultat) =>
@@ -264,6 +389,7 @@ namespace logiciel_d_impression_3d
                         this.Invoke((Action)(() =>
                         {
                             btnAnalyser3mf.Enabled = true;
+                            progressBarSlicer.Visible = false;
                             if (resultat.Succes)
                             {
                                 valeurSlicerUtilisees = true;
@@ -285,13 +411,11 @@ namespace logiciel_d_impression_3d
                         }));
                     });
 
-                    MessageBox.Show($"✓ Analyse terminée! {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).\n\n" +
-                        "Le slicing précis est en cours en arrière-plan...",
-                        "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // Pas de MessageBox bloquant — la ProgressBar + le label suffisent
                 }
                 else
                 {
-                    MessageBox.Show($"✓ Analyse terminée! {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).",
+                    MessageBox.Show($"Analyse terminée : {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).",
                         "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -397,6 +521,7 @@ namespace logiciel_d_impression_3d
 
                 // Afficher le résultat
                 StringBuilder sb = new StringBuilder();
+                sb.Append(GenererEnteteEntreprise(parametres));
                 sb.AppendLine("═══════════════════════════════════════════════════");
                 sb.AppendLine("           DEVIS D'IMPRESSION 3D - BAMBU LAB");
                 sb.AppendLine("═══════════════════════════════════════════════════");
@@ -682,11 +807,34 @@ namespace logiciel_d_impression_3d
             // Vérifier qu'il y a au moins une couleur
             if (dtCouleurs.Rows.Count == 0)
             {
-                MessageBox.Show("Veuillez ajouter au moins une couleur.", "Erreur", 
+                MessageBox.Show("Veuillez ajouter au moins une couleur.", "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            
+
+            // Validation des poids dans la grille
+            for (int i = 0; i < dtCouleurs.Rows.Count; i++)
+            {
+                object valPoids = dtCouleurs.Rows[i]["Poids (g)"];
+                if (valPoids == DBNull.Value || Convert.ToDecimal(valPoids) <= 0)
+                {
+                    MessageBox.Show($"Le poids de la ligne {i + 1} doit être supérieur à 0.", "Erreur de saisie",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
+            // Validation des temps par plateau
+            foreach (var numTemps in tempsPlateauxControls)
+            {
+                if (numTemps.Value <= 0)
+                {
+                    MessageBox.Show("Le temps d'impression de chaque plateau doit être supérieur à 0.", "Erreur de saisie",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
             // Charger les paramètres
             ParametresImpression parametres = ParametresImpressionForm.ObtenirParametres();
             
@@ -699,7 +847,9 @@ namespace logiciel_d_impression_3d
             string detailsParPlateau = ObtenirDetailsParPlateau();
             string detailsTemps = ObtenirDetailsTemps();
             
-            string message = $"═══════════════════════════════════════════\n" +
+            string enteteEntreprise = GenererEnteteEntreprise(parametres);
+            string message = enteteEntreprise +
+                           $"═══════════════════════════════════════════\n" +
                            $"  DEVIS D'IMPRESSION 3D\n" +
                            $"  Calcul du prix de revient\n" +
                            $"═══════════════════════════════════════════\n\n" +
@@ -959,6 +1109,85 @@ namespace logiciel_d_impression_3d
         private void historiqueToolStripMenuItem_Click(object sender, EventArgs e)
         {
             new HistoriqueForm().ShowDialog();
+        }
+
+        private void statistiquesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new StatistiquesForm().ShowDialog();
+        }
+
+        private void templatesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var form = new TemplatesForm())
+            {
+                if (form.ShowDialog() == DialogResult.OK && form.TemplateSelectionne != null)
+                {
+                    var t = form.TemplateSelectionne;
+                    // Appliquer le template aux contrôles du calcul manuel
+                    for (int i = 0; i < cmbPrinter.Items.Count; i++)
+                    {
+                        if (cmbPrinter.Items[i].ToString() == t.Imprimante)
+                        { cmbPrinter.SelectedIndex = i; break; }
+                    }
+                    if (t.AMS)
+                    {
+                        rdoMultiCouleur.Checked = true;
+                        chkAMS.Checked = true;
+                        numNombreCouleurs.Value = t.NombreCouleurs;
+                    }
+                    else
+                    {
+                        rdoMonoCouleur.Checked = true;
+                    }
+                    numNombrePlateaux.Value = t.NombrePlateaux;
+                    numNombreObjets.Value = t.NombreObjets;
+                    MessageBox.Show($"Template \"{t.Nom}\" chargé.", "Template", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void sauvegarderTemplateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string nom = "";
+            using (var inputForm = new Form())
+            {
+                inputForm.Text = "Nom du template";
+                inputForm.Size = new Size(350, 150);
+                inputForm.StartPosition = FormStartPosition.CenterParent;
+                inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+                inputForm.MaximizeBox = false;
+                inputForm.MinimizeBox = false;
+                ThemeManager.ApplyThemeToForm(inputForm);
+
+                var lbl = new Label { Text = "Nom :", Location = new Point(15, 20), AutoSize = true };
+                var txt = new TextBox { Location = new Point(60, 17), Width = 250 };
+                ThemeManager.StyleTextBox(txt);
+                var btnOK = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(130, 60), Size = new Size(80, 30) };
+                ThemeManager.StyleButton(btnOK, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+
+                inputForm.Controls.AddRange(new Control[] { lbl, txt, btnOK });
+                inputForm.AcceptButton = btnOK;
+
+                if (inputForm.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(txt.Text))
+                    nom = txt.Text.Trim();
+            }
+
+            if (string.IsNullOrEmpty(nom)) return;
+
+            var template = new TemplateDevis
+            {
+                Nom = nom,
+                Imprimante = cmbPrinter.SelectedItem?.ToString() ?? "",
+                Matiere = dtCouleurs.Rows.Count > 0 ? dtCouleurs.Rows[0]["Type"]?.ToString() ?? "PLA" : "PLA",
+                Marque = dtCouleurs.Rows.Count > 0 ? dtCouleurs.Rows[0]["Marque"]?.ToString() ?? "Bambu Lab" : "Bambu Lab",
+                AMS = chkAMS.Checked,
+                NombreCouleurs = (int)numNombreCouleurs.Value,
+                NombrePlateaux = (int)numNombrePlateaux.Value,
+                NombreObjets = (int)numNombreObjets.Value
+            };
+
+            TemplateManager.Sauvegarder(template);
+            MessageBox.Show($"Template \"{nom}\" sauvegardé.", "Template", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void thèmeToolStripMenuItem_Click(object sender, EventArgs e)

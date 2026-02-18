@@ -12,6 +12,7 @@ namespace logiciel_d_impression_3d
     {
         private const string UrlApiSpecs = "https://github.com/demouflette/logiciel-impression-3d-updates/raw/refs/heads/main/imprimantes_specs.txt";
         private static readonly string FichierCacheLocal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "imprimantes_specs_cache.dat");
+        private static readonly string FichierCustom = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "imprimantes_custom.dat");
         private static Dictionary<string, SpecsImprimante> specsCache;
         private static DateTime derniereMiseAJour;
 
@@ -70,18 +71,19 @@ namespace logiciel_d_impression_3d
                     
                     // Sauvegarder en cache local
                     SauvegarderCacheLocal(contenu);
-                    
-                    System.Diagnostics.Debug.WriteLine("Specs chargées depuis Internet avec succès");
+                    IntegrerImprimantesCustom();
+
+                    LogManager.Info("Specs chargées depuis Internet avec succès");
                 }
             }
             catch (WebException)
             {
-                System.Diagnostics.Debug.WriteLine("Impossible de charger les specs en ligne, utilisation du cache local");
+                LogManager.Info("Impossible de charger les specs en ligne, utilisation du cache local");
                 ChargerSpecsDepuisCacheLocal();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur chargement specs: {ex.Message}");
+                LogManager.Info($"Erreur chargement specs: {ex.Message}");
                 specsCache = CreerSpecsParDefaut();
                 derniereMiseAJour = DateTime.Now;
             }
@@ -118,7 +120,7 @@ namespace logiciel_d_impression_3d
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur sauvegarde cache: {ex.Message}");
+                LogManager.Info($"Erreur sauvegarde cache: {ex.Message}");
             }
         }
 
@@ -243,11 +245,68 @@ namespace logiciel_d_impression_3d
             };
         }
 
+        // ═══════════════════════════════════════════════════════
+        // IMPRIMANTES PERSONNALISÉES
+        // ═══════════════════════════════════════════════════════
+
+        public static List<SpecsImprimante> ChargerImprimantesCustom()
+        {
+            var liste = new List<SpecsImprimante>();
+            if (!File.Exists(FichierCustom)) return liste;
+
+            try
+            {
+                string[] lignes = File.ReadAllLines(FichierCustom, Encoding.UTF8);
+                foreach (string ligne in lignes)
+                {
+                    if (string.IsNullOrWhiteSpace(ligne)) continue;
+                    string[] parts = ligne.Split('|');
+                    if (parts.Length < 3) continue;
+
+                    liste.Add(new SpecsImprimante
+                    {
+                        Nom = parts[0],
+                        PuissanceMaxWatts = ParseDecimal(parts[1], 250),
+                        ConsommationMoyenneWatts = ParseDecimal(parts[2], 150),
+                        CoefficientVitesse = parts.Length > 3 ? ParseDecimal(parts[3], 1.0m) : 1.0m,
+                        CoefficientDechetAMS = parts.Length > 4 ? ParseDecimal(parts[4], 1.0m) : 1.0m,
+                        SourceDonnees = "Personnalisée",
+                        DateMiseAJour = DateTime.Now
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.Erreur("Chargement imprimantes personnalisées", ex);
+            }
+            return liste;
+        }
+
+        public static void SauvegarderImprimantesCustom(List<SpecsImprimante> imprimantes)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                foreach (var imp in imprimantes)
+                {
+                    sb.AppendLine($"{imp.Nom}|{imp.PuissanceMaxWatts.ToString(CultureInfo.InvariantCulture)}|{imp.ConsommationMoyenneWatts.ToString(CultureInfo.InvariantCulture)}|{imp.CoefficientVitesse.ToString(CultureInfo.InvariantCulture)}|{imp.CoefficientDechetAMS.ToString(CultureInfo.InvariantCulture)}");
+                }
+                File.WriteAllText(FichierCustom, sb.ToString(), Encoding.UTF8);
+                // Invalider le cache pour prendre en compte les nouvelles imprimantes
+                specsCache = null;
+            }
+            catch (Exception ex)
+            {
+                LogManager.Erreur("Sauvegarde imprimantes personnalisées", ex);
+            }
+        }
+
         public static List<string> ObtenirListeImprimantes()
         {
             if (specsCache == null)
             {
                 ChargerSpecsDepuisCacheLocal();
+                IntegrerImprimantesCustom();
                 LancerChargementAsynchrone();
             }
             else if ((DateTime.Now - derniereMiseAJour).TotalDays > 7)
@@ -255,6 +314,16 @@ namespace logiciel_d_impression_3d
                 LancerChargementAsynchrone();
             }
             return specsCache != null ? specsCache.Keys.ToList() : CreerSpecsParDefaut().Keys.ToList();
+        }
+
+        private static void IntegrerImprimantesCustom()
+        {
+            if (specsCache == null) return;
+            var customs = ChargerImprimantesCustom();
+            foreach (var imp in customs)
+            {
+                specsCache[imp.Nom] = imp;
+            }
         }
 
         public static void RafraichirSpecsDepuisInternet()

@@ -27,11 +27,12 @@ namespace logiciel_d_impression_3d
                 return false;
             }
 
-            string hashedPassword = HashPassword(password);
+            string sel = GenererSel();
+            string hashedPassword = HashPasswordAvecSel(password, sel);
             users.Add(new User
             {
                 Username = username,
-                PasswordHash = hashedPassword,
+                PasswordHash = $"{sel}:{hashedPassword}",
                 Email = email,
                 DateCreation = DateTime.Now,
                 DerniereConnexion = DateTime.Now
@@ -42,11 +43,34 @@ namespace logiciel_d_impression_3d
 
         public bool AuthenticateUser(string username, string password)
         {
-            string hashedPassword = HashPassword(password);
-            User user = users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)
-                && u.PasswordHash == hashedPassword);
+            User user = users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+            if (user == null) return false;
 
-            if (user != null)
+            bool valide = false;
+
+            if (user.PasswordHash.Contains(":"))
+            {
+                // Nouveau format : sel:hash
+                string[] parties = user.PasswordHash.Split(new[] { ':' }, 2);
+                string sel = parties[0];
+                string hashStocke = parties[1];
+                valide = HashPasswordAvecSel(password, sel) == hashStocke;
+            }
+            else
+            {
+                // Ancien format sans sel — vérifier et migrer
+                string ancienHash = HashPasswordSansSel(password);
+                valide = user.PasswordHash == ancienHash;
+                if (valide)
+                {
+                    // Migration vers le nouveau format
+                    string sel = GenererSel();
+                    user.PasswordHash = $"{sel}:{HashPasswordAvecSel(password, sel)}";
+                    LogManager.Info($"Migration du hash de {user.Username} vers format avec sel");
+                }
+            }
+
+            if (valide)
             {
                 CurrentUser = user;
                 PrecedenteConnexion = user.DerniereConnexion;
@@ -65,23 +89,47 @@ namespace logiciel_d_impression_3d
 
             if (user != null)
             {
-                user.PasswordHash = HashPassword(newPassword);
+                string sel = GenererSel();
+                user.PasswordHash = $"{sel}:{HashPasswordAvecSel(newPassword, sel)}";
                 SaveUsers();
                 return true;
             }
             return false;
         }
 
-        private string HashPassword(string password)
+        private string GenererSel()
+        {
+            byte[] selBytes = new byte[16];
+            using (var rng = new System.Security.Cryptography.RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(selBytes);
+            }
+            StringBuilder sb = new StringBuilder();
+            foreach (byte b in selBytes)
+                sb.Append(b.ToString("x2"));
+            return sb.ToString();
+        }
+
+        private string HashPasswordAvecSel(string password, string sel)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sel + password));
+                StringBuilder builder = new StringBuilder();
+                foreach (byte b in bytes)
+                    builder.Append(b.ToString("x2"));
+                return builder.ToString();
+            }
+        }
+
+        private string HashPasswordSansSel(string password)
         {
             using (SHA256 sha256 = SHA256.Create())
             {
                 byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
                 StringBuilder builder = new StringBuilder();
                 foreach (byte b in bytes)
-                {
                     builder.Append(b.ToString("x2"));
-                }
                 return builder.ToString();
             }
         }
