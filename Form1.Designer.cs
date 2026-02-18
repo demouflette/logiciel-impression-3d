@@ -22,6 +22,8 @@
             this.profilToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.paramètresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.déconnexionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.historiqueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.thèmeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.quitterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aideToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -128,6 +130,8 @@
             this.fichierToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.profilToolStripMenuItem,
             this.paramètresToolStripMenuItem,
+            this.historiqueToolStripMenuItem,
+            this.thèmeToolStripMenuItem,
             this.déconnexionToolStripMenuItem,
             this.toolStripSeparator1,
             this.quitterToolStripMenuItem});
@@ -148,7 +152,21 @@
             this.paramètresToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
             this.paramètresToolStripMenuItem.Text = "Paramètres impression";
             this.paramètresToolStripMenuItem.Click += new System.EventHandler(this.paramètresToolStripMenuItem_Click);
-            // 
+            //
+            // historiqueToolStripMenuItem
+            //
+            this.historiqueToolStripMenuItem.Name = "historiqueToolStripMenuItem";
+            this.historiqueToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.historiqueToolStripMenuItem.Text = "Historique des devis";
+            this.historiqueToolStripMenuItem.Click += new System.EventHandler(this.historiqueToolStripMenuItem_Click);
+            //
+            // thèmeToolStripMenuItem
+            //
+            this.thèmeToolStripMenuItem.Name = "thèmeToolStripMenuItem";
+            this.thèmeToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.thèmeToolStripMenuItem.Text = "Thème sombre";
+            this.thèmeToolStripMenuItem.Click += new System.EventHandler(this.thèmeToolStripMenuItem_Click);
+            //
             // déconnexionToolStripMenuItem
             // 
             this.déconnexionToolStripMenuItem.Name = "déconnexionToolStripMenuItem";
@@ -977,6 +995,8 @@
         private System.Windows.Forms.ToolStripMenuItem profilToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem paramètresToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem déconnexionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem historiqueToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem thèmeToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem quitterToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aideToolStripMenuItem;

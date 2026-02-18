@@ -66,6 +66,8 @@ namespace logiciel_d_impression_3d
             numTVA.Value = parametres.TVA;
             numMarge.Value = parametres.MargeParObjet;
             txtTokenGithub.Text = parametres.TokenGithub ?? "";
+            numCoutMainOeuvre.Value = parametres.CoutMainOeuvreHeure;
+            numAmortissement.Value = parametres.AmortissementMachineHeure;
 
             // Événements
             dgvBobines.CellValueChanged += DgvBobines_CellValueChanged;
@@ -235,6 +237,8 @@ namespace logiciel_d_impression_3d
             parametres.TVA = numTVA.Value;
             parametres.MargeParObjet = numMarge.Value;
             parametres.TokenGithub = txtTokenGithub.Text.Trim();
+            parametres.CoutMainOeuvreHeure = numCoutMainOeuvre.Value;
+            parametres.AmortissementMachineHeure = numAmortissement.Value;
 
             // Sauvegarder les bobines
             parametres.Bobines.Clear();
@@ -282,12 +286,22 @@ namespace logiciel_d_impression_3d
                         param.TVA = ParseDecimal(lines[2], 20m);
                         param.MargeParObjet = ParseDecimal(lines[3], 50m);
 
-                        // Ligne 4 : token GitHub (optionnel, compatibilité ancien format)
+                        // Lignes suivantes : token GitHub + coûts optionnels (compatibilité ancien format)
                         int debutBobines = 4;
                         if (lines.Length > 4 && !lines[4].Contains("|"))
                         {
                             param.TokenGithub = lines[4];
                             debutBobines = 5;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.CoutMainOeuvreHeure = ParseDecimal(lines[debutBobines], 0m);
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.AmortissementMachineHeure = ParseDecimal(lines[debutBobines], 0m);
+                            debutBobines++;
                         }
 
                         // Lire les bobines
@@ -336,7 +350,9 @@ namespace logiciel_d_impression_3d
                     param.PourcentagePurgeAMS.ToString(CultureInfo.InvariantCulture),
                     param.TVA.ToString(CultureInfo.InvariantCulture),
                     param.MargeParObjet.ToString(CultureInfo.InvariantCulture),
-                    param.TokenGithub ?? ""
+                    param.TokenGithub ?? "",
+                    param.CoutMainOeuvreHeure.ToString(CultureInfo.InvariantCulture),
+                    param.AmortissementMachineHeure.ToString(CultureInfo.InvariantCulture)
                 };
 
                 foreach (var bobine in param.Bobines)
@@ -391,6 +407,8 @@ namespace logiciel_d_impression_3d
         public decimal TVA { get; set; } = 20m;
         public decimal MargeParObjet { get; set; } = 50m;
         public string TokenGithub { get; set; } = "";
+        public decimal CoutMainOeuvreHeure { get; set; } = 0m;
+        public decimal AmortissementMachineHeure { get; set; } = 0m;
         public List<Bobine> Bobines { get; set; } = new List<Bobine>();
     }
 

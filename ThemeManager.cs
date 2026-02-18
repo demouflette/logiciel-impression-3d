@@ -5,20 +5,46 @@ using System.Windows.Forms;
 
 namespace logiciel_d_impression_3d
 {
+    public enum Theme { Clair, Sombre }
+
     public static class ThemeManager
     {
         // ═══════════════════════════════════════════════════════
-        // PALETTE DE COULEURS
+        // THÈME ACTUEL
+        // ═══════════════════════════════════════════════════════
+
+        public static Theme ThemeActuel { get; private set; } = Theme.Clair;
+
+        public static event Action ThemeChanged;
+
+        public static void BasculerTheme()
+        {
+            ThemeActuel = (ThemeActuel == Theme.Clair) ? Theme.Sombre : Theme.Clair;
+            ThemeChanged?.Invoke();
+        }
+
+        public static void DefinirTheme(Theme theme)
+        {
+            if (ThemeActuel == theme) return;
+            ThemeActuel = theme;
+            ThemeChanged?.Invoke();
+        }
+
+        private static bool EstSombre => ThemeActuel == Theme.Sombre;
+
+        // ═══════════════════════════════════════════════════════
+        // PALETTE DE COULEURS (adaptatives)
         // ═══════════════════════════════════════════════════════
 
         // Fonds
-        public static readonly Color BackgroundMain = Color.FromArgb(245, 247, 250);
-        public static readonly Color BackgroundCard = Color.White;
+        public static Color BackgroundMain => EstSombre ? Color.FromArgb(30, 30, 30) : Color.FromArgb(245, 247, 250);
+        public static Color BackgroundCard => EstSombre ? Color.FromArgb(45, 45, 45) : Color.White;
+        public static Color BackgroundInput => EstSombre ? Color.FromArgb(55, 55, 55) : Color.White;
 
-        // Couleurs d'accentuation
+        // Couleurs d'accentuation (identiques dans les 2 thèmes)
         public static readonly Color PrimaryBlue = Color.FromArgb(52, 152, 219);
         public static readonly Color PrimaryBlueDark = Color.FromArgb(41, 128, 185);
-        public static readonly Color PrimaryBlueLight = Color.FromArgb(232, 240, 254);
+        public static Color PrimaryBlueLight => EstSombre ? Color.FromArgb(30, 60, 90) : Color.FromArgb(232, 240, 254);
         public static readonly Color SecondaryGreen = Color.FromArgb(46, 204, 113);
         public static readonly Color SecondaryGreenDark = Color.FromArgb(39, 174, 96);
         public static readonly Color AccentOrange = Color.FromArgb(243, 156, 18);
@@ -29,12 +55,18 @@ namespace logiciel_d_impression_3d
         public static readonly Color NeutralGrayDark = Color.FromArgb(127, 140, 141);
 
         // Textes
-        public static readonly Color TextPrimary = Color.FromArgb(44, 62, 80);
-        public static readonly Color TextSecondary = Color.FromArgb(127, 140, 141);
+        public static Color TextPrimary => EstSombre ? Color.FromArgb(220, 220, 220) : Color.FromArgb(44, 62, 80);
+        public static Color TextSecondary => EstSombre ? Color.FromArgb(160, 160, 160) : Color.FromArgb(127, 140, 141);
         public static readonly Color TextOnDark = Color.White;
 
         // Bordures
-        public static readonly Color BorderLight = Color.FromArgb(220, 225, 230);
+        public static Color BorderLight => EstSombre ? Color.FromArgb(65, 65, 65) : Color.FromArgb(220, 225, 230);
+
+        // Grille
+        public static Color GridColor => EstSombre ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+        public static Color AlternateRowColor => EstSombre ? Color.FromArgb(38, 38, 38) : Color.FromArgb(248, 249, 250);
+        public static Color TabInactiveColor => EstSombre ? Color.FromArgb(50, 50, 55) : Color.FromArgb(230, 233, 237);
+        public static Color MenuBackground => EstSombre ? Color.FromArgb(40, 40, 40) : Color.White;
 
         // ═══════════════════════════════════════════════════════
         // POLICES
@@ -108,7 +140,7 @@ namespace logiciel_d_impression_3d
             btn.MouseEnter -= Button_MouseEnter;
             btn.MouseLeave -= Button_MouseLeave;
 
-            // Stocker la couleur hover dans le Tag (ou utiliser une approche par dictionnaire)
+            // Stocker la couleur hover dans le Tag
             btn.Tag = new ButtonColors { Normal = bgColor, Hover = hoverColor };
             btn.MouseEnter += Button_MouseEnter;
             btn.MouseLeave += Button_MouseLeave;
@@ -139,7 +171,7 @@ namespace logiciel_d_impression_3d
         public static void StyleTextBox(TextBox txt)
         {
             txt.BorderStyle = BorderStyle.FixedSingle;
-            txt.BackColor = Color.White;
+            txt.BackColor = BackgroundInput;
             txt.ForeColor = TextPrimary;
             txt.Font = FontBody;
         }
@@ -147,7 +179,7 @@ namespace logiciel_d_impression_3d
         public static void StyleComboBox(ComboBox cmb)
         {
             cmb.FlatStyle = FlatStyle.Flat;
-            cmb.BackColor = Color.White;
+            cmb.BackColor = BackgroundInput;
             cmb.ForeColor = TextPrimary;
             cmb.Font = FontBody;
         }
@@ -155,7 +187,7 @@ namespace logiciel_d_impression_3d
         public static void StyleNumericUpDown(NumericUpDown num)
         {
             num.BorderStyle = BorderStyle.FixedSingle;
-            num.BackColor = Color.White;
+            num.BackColor = BackgroundInput;
             num.ForeColor = TextPrimary;
             num.Font = FontBody;
         }
@@ -190,7 +222,7 @@ namespace logiciel_d_impression_3d
         {
             dgv.BorderStyle = BorderStyle.None;
             dgv.BackgroundColor = BackgroundCard;
-            dgv.GridColor = Color.FromArgb(230, 230, 230);
+            dgv.GridColor = GridColor;
             dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
 
             dgv.EnableHeadersVisualStyles = false;
@@ -202,13 +234,14 @@ namespace logiciel_d_impression_3d
             dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             dgv.ColumnHeadersHeight = 36;
 
+            dgv.DefaultCellStyle.BackColor = BackgroundCard;
             dgv.DefaultCellStyle.Font = FontBody;
             dgv.DefaultCellStyle.ForeColor = TextPrimary;
             dgv.DefaultCellStyle.SelectionBackColor = PrimaryBlueLight;
             dgv.DefaultCellStyle.SelectionForeColor = TextPrimary;
             dgv.DefaultCellStyle.Padding = new Padding(4, 2, 4, 2);
 
-            dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 250);
+            dgv.AlternatingRowsDefaultCellStyle.BackColor = AlternateRowColor;
             dgv.RowTemplate.Height = 30;
 
             dgv.RowHeadersVisible = false;
@@ -218,7 +251,21 @@ namespace logiciel_d_impression_3d
         {
             tab.DrawMode = TabDrawMode.OwnerDrawFixed;
             tab.SizeMode = TabSizeMode.Fixed;
-            tab.ItemSize = new Size(200, 36);
+
+            // Calculer la largeur nécessaire pour l'onglet le plus long
+            int largeurMax = 200;
+            using (Graphics g = tab.CreateGraphics())
+            {
+                foreach (TabPage page in tab.TabPages)
+                {
+                    int largeur = (int)g.MeasureString(page.Text, FontButton).Width + 20;
+                    if (largeur > largeurMax) largeurMax = largeur;
+                }
+            }
+            tab.ItemSize = new Size(largeurMax, 36);
+
+            // Supprimer ancien handler pour éviter doublons
+            tab.DrawItem -= TabControl_DrawItem;
             tab.DrawItem += TabControl_DrawItem;
 
             foreach (TabPage page in tab.TabPages)
@@ -236,7 +283,7 @@ namespace logiciel_d_impression_3d
             Rectangle bounds = tab.GetTabRect(e.Index);
 
             // Fond
-            Color bgColor = isSelected ? PrimaryBlue : Color.FromArgb(230, 233, 237);
+            Color bgColor = isSelected ? PrimaryBlue : TabInactiveColor;
             using (SolidBrush brush = new SolidBrush(bgColor))
             {
                 e.Graphics.FillRectangle(brush, bounds);
@@ -250,10 +297,21 @@ namespace logiciel_d_impression_3d
 
         public static void StyleMenuStrip(MenuStrip menu)
         {
-            menu.BackColor = Color.White;
+            menu.BackColor = MenuBackground;
             menu.ForeColor = TextPrimary;
             menu.Font = FontBody;
             menu.Renderer = new FlatMenuRenderer();
+        }
+
+        public static void StyleGroupBox(GroupBox grp)
+        {
+            grp.ForeColor = TextPrimary;
+            grp.BackColor = BackgroundMain;
+        }
+
+        public static void StylePanel(Panel pnl)
+        {
+            pnl.BackColor = BackgroundMain;
         }
 
         // ═══════════════════════════════════════════════════════
@@ -267,7 +325,7 @@ namespace logiciel_d_impression_3d
             protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
             {
                 Rectangle rect = new Rectangle(Point.Empty, e.Item.Size);
-                Color color = e.Item.Selected ? PrimaryBlueLight : Color.White;
+                Color color = e.Item.Selected ? PrimaryBlueLight : MenuBackground;
 
                 using (SolidBrush brush = new SolidBrush(color))
                 {
@@ -288,16 +346,16 @@ namespace logiciel_d_impression_3d
             public override Color MenuItemSelectedGradientBegin => PrimaryBlueLight;
             public override Color MenuItemSelectedGradientEnd => PrimaryBlueLight;
             public override Color MenuItemBorder => Color.Transparent;
-            public override Color MenuStripGradientBegin => Color.White;
-            public override Color MenuStripGradientEnd => Color.White;
+            public override Color MenuStripGradientBegin => MenuBackground;
+            public override Color MenuStripGradientEnd => MenuBackground;
             public override Color MenuItemPressedGradientBegin => PrimaryBlue;
             public override Color MenuItemPressedGradientEnd => PrimaryBlue;
-            public override Color ToolStripDropDownBackground => Color.White;
-            public override Color ImageMarginGradientBegin => Color.White;
-            public override Color ImageMarginGradientMiddle => Color.White;
-            public override Color ImageMarginGradientEnd => Color.White;
+            public override Color ToolStripDropDownBackground => MenuBackground;
+            public override Color ImageMarginGradientBegin => MenuBackground;
+            public override Color ImageMarginGradientMiddle => MenuBackground;
+            public override Color ImageMarginGradientEnd => MenuBackground;
             public override Color SeparatorDark => BorderLight;
-            public override Color SeparatorLight => Color.White;
+            public override Color SeparatorLight => MenuBackground;
         }
 
         // ═══════════════════════════════════════════════════════
@@ -339,6 +397,14 @@ namespace logiciel_d_impression_3d
                     StyleLinkLabel(lnk);
                 else if (ctrl is TabControl tab)
                     StyleTabControl(tab);
+                else if (ctrl is GroupBox grp)
+                    StyleGroupBox(grp);
+                else if (ctrl is Panel pnl && !(ctrl is TabPage))
+                    StylePanel(pnl);
+
+                // Appliquer la couleur de fond et texte aux Labels
+                if (ctrl is Label lbl && !(ctrl is LinkLabel))
+                    lbl.ForeColor = TextPrimary;
 
                 // Récursion dans les conteneurs
                 if (ctrl.HasChildren)

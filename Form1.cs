@@ -36,8 +36,18 @@ namespace logiciel_d_impression_3d
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
 
-            // Appliquer le thème flat design
+            // Charger le thème sauvegardé et appliquer
+            ChargerThemeSauvegarde();
             AppliquerTheme();
+
+            // S'abonner aux changements de thème
+            ThemeManager.ThemeChanged += () =>
+            {
+                AppliquerTheme();
+                thèmeToolStripMenuItem.Text = ThemeManager.ThemeActuel == Theme.Sombre
+                    ? "Thème clair" : "Thème sombre";
+                SauvegarderTheme();
+            };
         }
 
         private void AppliquerTheme()
@@ -311,8 +321,12 @@ namespace logiciel_d_impression_3d
                 decimal consommationKwh = puissanceKw * tempsHeures;
                 decimal coutElectricite = consommationKwh * parametres.CoutElectriciteKwh;
 
+                // Main-d'oeuvre et amortissement
+                decimal coutMainOeuvre = tempsHeures * parametres.CoutMainOeuvreHeure;
+                decimal coutAmortissement = tempsHeures * parametres.AmortissementMachineHeure;
+
                 // Coût de production HT
-                decimal coutProductionHT = coutMatiere + coutElectricite;
+                decimal coutProductionHT = coutMatiere + coutElectricite + coutMainOeuvre + coutAmortissement;
 
                 // Appliquer la marge (en pourcentage)
                 decimal marge = coutProductionHT * (parametres.MargeParObjet / 100m);
@@ -351,6 +365,10 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
                 sb.AppendLine($"⚡ Coût électricité: {coutElectricite:F2} €");
                 sb.AppendLine($"    ({consommationKwh:F3} kWh × {parametres.CoutElectriciteKwh:F2} €/kWh)");
+                if (coutMainOeuvre > 0)
+                    sb.AppendLine($"👷 Main-d'oeuvre: {coutMainOeuvre:F2} € ({tempsHeures:F2}h × {parametres.CoutMainOeuvreHeure:F2} €/h)");
+                if (coutAmortissement > 0)
+                    sb.AppendLine($"🏭 Amortissement: {coutAmortissement:F2} € ({tempsHeures:F2}h × {parametres.AmortissementMachineHeure:F2} €/h)");
                 sb.AppendLine($"🔧 Coût production HT: {coutProductionHT:F2} €");
                 sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%): {marge:F2} €");
                 sb.AppendLine();
@@ -361,7 +379,17 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine($"   💰 PRIX TOTAL TTC: {prixTotalTTC:F2} €");
                 sb.AppendLine("═══════════════════════════════════════════════════");
 
-                new DevisForm("Devis d'impression 3D - 3MF", sb.ToString()).ShowDialog();
+                // Sauvegarder dans l'historique
+                string contenu3mf = sb.ToString();
+                HistoriqueManager.Sauvegarder(new EntreeHistorique
+                {
+                    Date = DateTime.Now,
+                    Titre = $"3MF - {fichier3mfAnalyse.FileName}",
+                    PrixTotalTTC = prixTotalTTC,
+                    ContenuDevis = contenu3mf
+                });
+
+                new DevisForm("Devis d'impression 3D - 3MF", contenu3mf).ShowDialog();
             }
             catch (Exception ex)
             {
@@ -637,6 +665,8 @@ namespace logiciel_d_impression_3d
                            $"    • Consommation estimée : {details.ConsommationKwh:F2} kWh\n" +
                            $"    • Tarif : {parametres.CoutElectriciteKwh:C4}/kWh\n" +
                            $"    • Coût électricité : {details.CoutElectricite:C2}\n\n" +
+                           (details.CoutMainOeuvre > 0 ? $"  Main-d'oeuvre :\n    • {details.TempsTotal / 60:F2}h × {parametres.CoutMainOeuvreHeure:C2}/h = {details.CoutMainOeuvre:C2}\n\n" : "") +
+                           (details.CoutAmortissement > 0 ? $"  Amortissement machine :\n    • {details.TempsTotal / 60:F2}h × {parametres.AmortissementMachineHeure:C2}/h = {details.CoutAmortissement:C2}\n\n" : "") +
                            $"  ─────────────────────────────────────────\n" +
                            $"  Coût de production HT : {details.CoutProductionHT:C2}\n" +
                            $"  Marge ({parametres.MargeParObjet}% × {nbObjets} objets) : +{details.Marge:C2}\n" +
@@ -652,6 +682,15 @@ namespace logiciel_d_impression_3d
                            $"  • Prix de vente/objet : {details.PrixParObjet:C2}\n" +
                            $"  • Bénéfice/objet (HT) : {(details.SousTotalHT - details.CoutProductionHT) / nbObjets:C2}\n" +
                            $"  • Marge brute : {((details.SousTotalHT - details.CoutProductionHT) / details.SousTotalHT * 100):F1}%";
+
+            // Sauvegarder dans l'historique
+            HistoriqueManager.Sauvegarder(new EntreeHistorique
+            {
+                Date = DateTime.Now,
+                Titre = "Calcul manuel",
+                PrixTotalTTC = details.PrixTotalTTC,
+                ContenuDevis = message
+            });
 
             new DevisForm("Devis - Prix de revient", message).ShowDialog();
         }
@@ -687,8 +726,13 @@ namespace logiciel_d_impression_3d
             details.ConsommationKwh = (details.TempsTotal / 60m) * puissanceMoyenneKw;
             details.CoutElectricite = details.ConsommationKwh * parametres.CoutElectriciteKwh;
             
-            // 6. Coût de production HT
-            details.CoutProductionHT = details.CoutMatiere + details.CoutElectricite;
+            // 6. Main-d'oeuvre et amortissement machine
+            decimal tempsHeures = details.TempsTotal / 60m;
+            details.CoutMainOeuvre = tempsHeures * parametres.CoutMainOeuvreHeure;
+            details.CoutAmortissement = tempsHeures * parametres.AmortissementMachineHeure;
+
+            // 7. Coût de production HT
+            details.CoutProductionHT = details.CoutMatiere + details.CoutElectricite + details.CoutMainOeuvre + details.CoutAmortissement;
             
             // 7. Marge
             int nbObjets = (int)numNombreObjets.Value;
@@ -844,6 +888,38 @@ namespace logiciel_d_impression_3d
         {
             ParametresImpressionForm parametresForm = new ParametresImpressionForm();
             parametresForm.ShowDialog();
+        }
+
+        private void historiqueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new HistoriqueForm().ShowDialog();
+        }
+
+        private void thèmeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ThemeManager.BasculerTheme();
+        }
+
+        private void ChargerThemeSauvegarde()
+        {
+            string fichierTheme = System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "theme.dat");
+            if (System.IO.File.Exists(fichierTheme))
+            {
+                string contenu = System.IO.File.ReadAllText(fichierTheme).Trim();
+                if (contenu == "Sombre")
+                {
+                    ThemeManager.DefinirTheme(Theme.Sombre);
+                    thèmeToolStripMenuItem.Text = "Thème clair";
+                }
+            }
+        }
+
+        private void SauvegarderTheme()
+        {
+            string fichierTheme = System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "theme.dat");
+            System.IO.File.WriteAllText(fichierTheme, ThemeManager.ThemeActuel.ToString());
         }
 
         private void profilToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1011,6 +1087,8 @@ namespace logiciel_d_impression_3d
         public decimal TempsTotal { get; set; }
         public decimal ConsommationKwh { get; set; }
         public decimal CoutElectricite { get; set; }
+        public decimal CoutMainOeuvre { get; set; }
+        public decimal CoutAmortissement { get; set; }
         public decimal CoutProductionHT { get; set; }
         public decimal Marge { get; set; }
         public decimal SousTotalHT { get; set; }

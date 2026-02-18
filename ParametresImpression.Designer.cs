@@ -34,6 +34,11 @@ namespace logiciel_d_impression_3d
             this.btnSupprimerBobine = new System.Windows.Forms.Button();
             this.btnAjouterBobine = new System.Windows.Forms.Button();
             this.dgvBobines = new System.Windows.Forms.DataGridView();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.numAmortissement = new System.Windows.Forms.NumericUpDown();
+            this.lblAmortissement = new System.Windows.Forms.Label();
+            this.numCoutMainOeuvre = new System.Windows.Forms.NumericUpDown();
+            this.lblCoutMainOeuvre = new System.Windows.Forms.Label();
             this.groupBoxGithub = new System.Windows.Forms.GroupBox();
             this.txtTokenGithub = new System.Windows.Forms.TextBox();
             this.lblTokenGithub = new System.Windows.Forms.Label();
@@ -48,6 +53,9 @@ namespace logiciel_d_impression_3d
             ((System.ComponentModel.ISupportInitialize)(this.numPourcentagePurge)).BeginInit();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numCoutElectricite)).BeginInit();
+            this.groupBox4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numCoutMainOeuvre)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numAmortissement)).BeginInit();
             this.tabPageBobines.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvBobines)).BeginInit();
             this.SuspendLayout();
@@ -60,20 +68,21 @@ namespace logiciel_d_impression_3d
             this.tabControl1.Location = new System.Drawing.Point(12, 12);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(760, 480);
+            this.tabControl1.Size = new System.Drawing.Size(760, 590);
             this.tabControl1.TabIndex = 0;
             // 
             // tabPageGeneral
             // 
             this.tabPageGeneral.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
             this.tabPageGeneral.Controls.Add(this.groupBoxGithub);
+            this.tabPageGeneral.Controls.Add(this.groupBox4);
             this.tabPageGeneral.Controls.Add(this.groupBox3);
             this.tabPageGeneral.Controls.Add(this.groupBox2);
             this.tabPageGeneral.Controls.Add(this.groupBox1);
             this.tabPageGeneral.Location = new System.Drawing.Point(4, 26);
             this.tabPageGeneral.Name = "tabPageGeneral";
             this.tabPageGeneral.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageGeneral.Size = new System.Drawing.Size(752, 450);
+            this.tabPageGeneral.Size = new System.Drawing.Size(752, 560);
             this.tabPageGeneral.TabIndex = 0;
             this.tabPageGeneral.Text = "Paramètres généraux";
             // 
@@ -234,7 +243,7 @@ namespace logiciel_d_impression_3d
             this.tabPageBobines.Location = new System.Drawing.Point(4, 26);
             this.tabPageBobines.Name = "tabPageBobines";
             this.tabPageBobines.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageBobines.Size = new System.Drawing.Size(752, 450);
+            this.tabPageBobines.Size = new System.Drawing.Size(752, 560);
             this.tabPageBobines.TabIndex = 1;
             this.tabPageBobines.Text = "Gestion des bobines";
             // 
@@ -274,11 +283,68 @@ namespace logiciel_d_impression_3d
             this.dgvBobines.Size = new System.Drawing.Size(710, 365);
             this.dgvBobines.TabIndex = 0;
             //
+            // groupBox4
+            //
+            this.groupBox4.Controls.Add(this.numAmortissement);
+            this.groupBox4.Controls.Add(this.lblAmortissement);
+            this.groupBox4.Controls.Add(this.numCoutMainOeuvre);
+            this.groupBox4.Controls.Add(this.lblCoutMainOeuvre);
+            this.groupBox4.Location = new System.Drawing.Point(20, 360);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(710, 100);
+            this.groupBox4.TabIndex = 4;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "Main-d\u0027\u0153uvre et amortissement";
+            //
+            // numCoutMainOeuvre
+            //
+            this.numCoutMainOeuvre.DecimalPlaces = 2;
+            this.numCoutMainOeuvre.Location = new System.Drawing.Point(300, 30);
+            this.numCoutMainOeuvre.Maximum = new decimal(new int[] {
+            500,
+            0,
+            0,
+            0});
+            this.numCoutMainOeuvre.Name = "numCoutMainOeuvre";
+            this.numCoutMainOeuvre.Size = new System.Drawing.Size(150, 25);
+            this.numCoutMainOeuvre.TabIndex = 1;
+            //
+            // lblCoutMainOeuvre
+            //
+            this.lblCoutMainOeuvre.AutoSize = true;
+            this.lblCoutMainOeuvre.Location = new System.Drawing.Point(20, 32);
+            this.lblCoutMainOeuvre.Name = "lblCoutMainOeuvre";
+            this.lblCoutMainOeuvre.Size = new System.Drawing.Size(200, 19);
+            this.lblCoutMainOeuvre.TabIndex = 0;
+            this.lblCoutMainOeuvre.Text = "Co\u00fbt main-d\u0027\u0153uvre (\u20ac/heure) :";
+            //
+            // numAmortissement
+            //
+            this.numAmortissement.DecimalPlaces = 2;
+            this.numAmortissement.Location = new System.Drawing.Point(300, 65);
+            this.numAmortissement.Maximum = new decimal(new int[] {
+            500,
+            0,
+            0,
+            0});
+            this.numAmortissement.Name = "numAmortissement";
+            this.numAmortissement.Size = new System.Drawing.Size(150, 25);
+            this.numAmortissement.TabIndex = 3;
+            //
+            // lblAmortissement
+            //
+            this.lblAmortissement.AutoSize = true;
+            this.lblAmortissement.Location = new System.Drawing.Point(20, 67);
+            this.lblAmortissement.Name = "lblAmortissement";
+            this.lblAmortissement.Size = new System.Drawing.Size(250, 19);
+            this.lblAmortissement.TabIndex = 2;
+            this.lblAmortissement.Text = "Amortissement machine (\u20ac/heure) :";
+            //
             // groupBoxGithub
             //
             this.groupBoxGithub.Controls.Add(this.txtTokenGithub);
             this.groupBoxGithub.Controls.Add(this.lblTokenGithub);
-            this.groupBoxGithub.Location = new System.Drawing.Point(20, 360);
+            this.groupBoxGithub.Location = new System.Drawing.Point(20, 470);
             this.groupBoxGithub.Name = "groupBoxGithub";
             this.groupBoxGithub.Size = new System.Drawing.Size(710, 80);
             this.groupBoxGithub.TabIndex = 3;
@@ -308,7 +374,7 @@ namespace logiciel_d_impression_3d
             this.btnEnregistrer.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnEnregistrer.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnEnregistrer.ForeColor = System.Drawing.Color.White;
-            this.btnEnregistrer.Location = new System.Drawing.Point(530, 510);
+            this.btnEnregistrer.Location = new System.Drawing.Point(530, 620);
             this.btnEnregistrer.Name = "btnEnregistrer";
             this.btnEnregistrer.Size = new System.Drawing.Size(120, 40);
             this.btnEnregistrer.TabIndex = 1;
@@ -322,7 +388,7 @@ namespace logiciel_d_impression_3d
             this.btnAnnuler.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAnnuler.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnAnnuler.ForeColor = System.Drawing.Color.White;
-            this.btnAnnuler.Location = new System.Drawing.Point(660, 510);
+            this.btnAnnuler.Location = new System.Drawing.Point(660, 620);
             this.btnAnnuler.Name = "btnAnnuler";
             this.btnAnnuler.Size = new System.Drawing.Size(120, 40);
             this.btnAnnuler.TabIndex = 2;
@@ -334,7 +400,7 @@ namespace logiciel_d_impression_3d
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(784, 561);
+            this.ClientSize = new System.Drawing.Size(784, 671);
             this.Controls.Add(this.btnAnnuler);
             this.Controls.Add(this.btnEnregistrer);
             this.Controls.Add(this.tabControl1);
@@ -356,6 +422,10 @@ namespace logiciel_d_impression_3d
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numCoutElectricite)).EndInit();
+            this.groupBox4.ResumeLayout(false);
+            this.groupBox4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numCoutMainOeuvre)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numAmortissement)).EndInit();
             this.tabPageBobines.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgvBobines)).EndInit();
             this.ResumeLayout(false);
@@ -384,6 +454,11 @@ namespace logiciel_d_impression_3d
         private System.Windows.Forms.GroupBox groupBoxGithub;
         private System.Windows.Forms.TextBox txtTokenGithub;
         private System.Windows.Forms.Label lblTokenGithub;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.NumericUpDown numCoutMainOeuvre;
+        private System.Windows.Forms.Label lblCoutMainOeuvre;
+        private System.Windows.Forms.NumericUpDown numAmortissement;
+        private System.Windows.Forms.Label lblAmortissement;
         private System.Windows.Forms.Button btnEnregistrer;
         private System.Windows.Forms.Button btnAnnuler;
     }

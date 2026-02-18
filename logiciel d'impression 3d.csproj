@@ -83,6 +83,7 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="DevisForm.cs" />
+    <Compile Include="HistoriqueDevis.cs" />
     <Compile Include="CalibrationManager.cs" />
     <Compile Include="ThemeManager.cs" />
     <Compile Include="RoundedPanel.cs" />

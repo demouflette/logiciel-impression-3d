@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
@@ -11,9 +12,11 @@ namespace logiciel_d_impression_3d
         private TextBox txtDevis;
         private Button btnCopier;
         private Button btnExporter;
+        private Button btnImprimer;
         private Button btnFermer;
         private Panel panelBoutons;
         private string contenuDevis;
+        private int indexImpressionLigne;
 
         public DevisForm(string titre, string devis)
         {
@@ -73,17 +76,27 @@ namespace logiciel_d_impression_3d
             };
             btnExporter.Click += BtnExporter_Click;
 
-            btnFermer = new Button
+            btnImprimer = new Button
             {
-                Text = "Fermer",
+                Text = "Imprimer",
                 Size = new Size(120, 35),
                 Location = new Point(270, 10),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
+            btnImprimer.Click += BtnImprimer_Click;
+
+            btnFermer = new Button
+            {
+                Text = "Fermer",
+                Size = new Size(120, 35),
+                Location = new Point(400, 10),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
             btnFermer.Click += (s, e) => this.Close();
 
-            panelBoutons.Controls.AddRange(new Control[] { btnCopier, btnExporter, btnFermer });
+            panelBoutons.Controls.AddRange(new Control[] { btnCopier, btnExporter, btnImprimer, btnFermer });
             this.Controls.Add(txtDevis);
             this.Controls.Add(panelBoutons);
 
@@ -96,9 +109,10 @@ namespace logiciel_d_impression_3d
             ThemeManager.StyleAllControls(this);
             ThemeManager.StyleButton(btnCopier, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
             ThemeManager.StyleButton(btnExporter, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
+            ThemeManager.StyleButton(btnImprimer, ThemeManager.AccentOrange, ThemeManager.AccentOrangeDark);
             ThemeManager.StyleButton(btnFermer, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
 
-            txtDevis.BackColor = Color.White;
+            txtDevis.BackColor = ThemeManager.BackgroundInput;
             txtDevis.ForeColor = ThemeManager.TextPrimary;
         }
 
@@ -124,6 +138,58 @@ namespace logiciel_d_impression_3d
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
+        }
+
+        private void BtnImprimer_Click(object sender, EventArgs e)
+        {
+            using (PrintDocument doc = new PrintDocument())
+            {
+                doc.DocumentName = "Devis impression 3D";
+                doc.PrintPage += Doc_PrintPage;
+
+                using (PrintDialog dlg = new PrintDialog())
+                {
+                    dlg.Document = doc;
+                    dlg.UseEXDialog = true;
+
+                    if (dlg.ShowDialog() == DialogResult.OK)
+                    {
+                        indexImpressionLigne = 0;
+                        doc.Print();
+                    }
+                }
+            }
+        }
+
+        private void Doc_PrintPage(object sender, PrintPageEventArgs e)
+        {
+            string[] lignes = contenuDevis.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            Font police = new Font("Consolas", 10f);
+            float hauteurLigne = police.GetHeight(e.Graphics);
+            float margeGauche = e.MarginBounds.Left;
+            float margeHaut = e.MarginBounds.Top;
+            float largeurDisponible = e.MarginBounds.Width;
+            float hauteurDisponible = e.MarginBounds.Height;
+            float positionY = margeHaut;
+
+            while (indexImpressionLigne < lignes.Length)
+            {
+                if (positionY + hauteurLigne > margeHaut + hauteurDisponible)
+                {
+                    // Page suivante nécessaire
+                    e.HasMorePages = true;
+                    police.Dispose();
+                    return;
+                }
+
+                e.Graphics.DrawString(lignes[indexImpressionLigne], police, Brushes.Black,
+                    new RectangleF(margeGauche, positionY, largeurDisponible, hauteurLigne));
+                positionY += hauteurLigne;
+                indexImpressionLigne++;
+            }
+
+            e.HasMorePages = false;
+            police.Dispose();
         }
     }
 }
