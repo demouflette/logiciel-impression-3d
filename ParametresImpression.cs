@@ -13,7 +13,7 @@ namespace logiciel_d_impression_3d
     {
         private ParametresImpression parametres;
         private DataTable dtBobines;
-        private const string FichierParametres = "parametres_impression.dat";
+        private static readonly string FichierParametres = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parametres_impression.dat");
 
         public ParametresImpressionForm()
         {
@@ -36,17 +36,17 @@ namespace logiciel_d_impression_3d
 
         private void InitialiserFormulaire()
         {
-            // Charger les param�tres existants ou cr�er nouveaux
+            // Charger les paramètres existants ou créer nouveaux
             parametres = ChargerParametres();
 
             // Initialiser le DataTable pour les bobines
             dtBobines = new DataTable();
             dtBobines.Columns.Add("Couleur", typeof(string));
-            dtBobines.Columns.Add("Mati�re", typeof(string));
+            dtBobines.Columns.Add("Matière", typeof(string));
             dtBobines.Columns.Add("Marque", typeof(string));
             dtBobines.Columns.Add("Poids bobine (g)", typeof(decimal));
-            dtBobines.Columns.Add("Prix bobine (�)", typeof(decimal));
-            dtBobines.Columns.Add("Prix/kg (�)", typeof(decimal));
+            dtBobines.Columns.Add("Prix bobine (€)", typeof(decimal));
+            dtBobines.Columns.Add("Prix/kg (€)", typeof(decimal));
 
             // Charger les bobines dans le DataTable
             if (parametres.Bobines != null)
@@ -60,14 +60,14 @@ namespace logiciel_d_impression_3d
             dgvBobines.DataSource = dtBobines;
             ConfigurerColonnesBobines();
 
-            // Charger les valeurs dans les contr�les
+            // Charger les valeurs dans les contrôles
             numCoutElectricite.Value = parametres.CoutElectriciteKwh;
             numPourcentagePurge.Value = parametres.PourcentagePurgeAMS;
             numTVA.Value = parametres.TVA;
             numMarge.Value = parametres.MargeParObjet;
             txtTokenGithub.Text = parametres.TokenGithub ?? "";
 
-            // �v�nements
+            // Événements
             dgvBobines.CellValueChanged += DgvBobines_CellValueChanged;
             dgvBobines.CellFormatting += DgvBobines_CellFormatting;
         }
@@ -92,12 +92,12 @@ namespace logiciel_d_impression_3d
             });
             dgvBobines.Columns.Add(colCouleur);
 
-            // Colonne Mati�re
+            // Colonne Matière
             DataGridViewComboBoxColumn colMatiere = new DataGridViewComboBoxColumn
             {
-                Name = "Mati�re",
-                HeaderText = "Mati�re",
-                DataPropertyName = "Mati�re",
+                Name = "Matière",
+                HeaderText = "Matière",
+                DataPropertyName = "Matière",
                 Width = 100
             };
             colMatiere.Items.AddRange(new string[] { "PLA", "PETG", "ABS", "TPU", "ASA", "Nylon" });
@@ -128,18 +128,18 @@ namespace logiciel_d_impression_3d
             DataGridViewTextBoxColumn colPrix = new DataGridViewTextBoxColumn
             {
                 Name = "Prix",
-                HeaderText = "Prix bobine (�)",
-                DataPropertyName = "Prix bobine (�)",
+                HeaderText = "Prix bobine (€)",
+                DataPropertyName = "Prix bobine (€)",
                 Width = 120
             };
             dgvBobines.Columns.Add(colPrix);
 
-            // Colonne Prix/kg (calcul� automatiquement)
+            // Colonne Prix/kg (calculé automatiquement)
             DataGridViewTextBoxColumn colPrixKg = new DataGridViewTextBoxColumn
             {
                 Name = "PrixKg",
-                HeaderText = "Prix/kg (�)",
-                DataPropertyName = "Prix/kg (�)",
+                HeaderText = "Prix/kg (€)",
+                DataPropertyName = "Prix/kg (€)",
                 Width = 100,
                 ReadOnly = true
             };
@@ -174,15 +174,7 @@ namespace logiciel_d_impression_3d
             if (e.ColumnIndex >= 0 && dgvBobines.Columns[e.ColumnIndex].Name == "Couleur" && e.Value != null)
             {
                 string nomCouleur = e.Value.ToString();
-                var dictCouleurs = new Dictionary<string, Color>
-                {
-                    { "Rouge", Color.Red }, { "Bleu", Color.Blue }, { "Vert", Color.Green },
-                    { "Jaune", Color.Yellow }, { "Orange", Color.Orange }, { "Violet", Color.Purple },
-                    { "Rose", Color.Pink }, { "Noir", Color.Black }, { "Blanc", Color.White },
-                    { "Gris", Color.Gray }, { "Marron", Color.Brown }, { "Cyan", Color.Cyan },
-                    { "Magenta", Color.Magenta }, { "Beige", Color.Beige }, { "Turquoise", Color.Turquoise },
-                    { "Or", Color.Gold }, { "Argent", Color.Silver }, { "Bronze", Color.FromArgb(205, 127, 50) }
-                };
+                var dictCouleurs = ThemeManager.CouleursDictionnaire;
 
                 if (dictCouleurs.ContainsKey(nomCouleur))
                 {
@@ -200,12 +192,12 @@ namespace logiciel_d_impression_3d
             
             DataRow row = dtBobines.NewRow();
             row["Couleur"] = bobine.Couleur ?? "Rouge";
-            row["Mati�re"] = bobine.Matiere ?? "PLA";
+            row["Matière"] = bobine.Matiere ?? "PLA";
             row["Marque"] = bobine.Marque ?? "Generic";
             row["Poids bobine (g)"] = bobine.PoidsBobine > 0 ? bobine.PoidsBobine : 1000;
-            row["Prix bobine (�)"] = bobine.PrixBobine > 0 ? bobine.PrixBobine : 20;
+            row["Prix bobine (€)"] = bobine.PrixBobine > 0 ? bobine.PrixBobine : 20;
             decimal prixKg = bobine.PoidsBobine > 0 ? (bobine.PrixBobine / bobine.PoidsBobine) * 1000 : 20;
-            row["Prix/kg (�)"] = Math.Round(prixKg, 2);
+            row["Prix/kg (€)"] = Math.Round(prixKg, 2);
             dtBobines.Rows.Add(row);
         }
 
@@ -213,11 +205,11 @@ namespace logiciel_d_impression_3d
         {
             DataRow row = dtBobines.NewRow();
             row["Couleur"] = "Rouge";
-            row["Mati�re"] = "PLA";
+            row["Matière"] = "PLA";
             row["Marque"] = "Bambu Lab";
             row["Poids bobine (g)"] = 1000m;
-            row["Prix bobine (�)"] = 20.00m;
-            row["Prix/kg (�)"] = 20.00m;
+            row["Prix bobine (€)"] = 20.00m;
+            row["Prix/kg (€)"] = 20.00m;
             dtBobines.Rows.Add(row);
         }
 
@@ -237,7 +229,7 @@ namespace logiciel_d_impression_3d
 
         private void btnEnregistrer_Click(object sender, EventArgs e)
         {
-            // Sauvegarder les param�tres
+            // Sauvegarder les paramètres
             parametres.CoutElectriciteKwh = numCoutElectricite.Value;
             parametres.PourcentagePurgeAMS = numPourcentagePurge.Value;
             parametres.TVA = numTVA.Value;
@@ -253,16 +245,17 @@ namespace logiciel_d_impression_3d
                     parametres.Bobines.Add(new Bobine
                     {
                         Couleur = row["Couleur"]?.ToString() ?? "Rouge",
-                        Matiere = row["Mati�re"]?.ToString() ?? "PLA",
+                        Matiere = row["Matière"]?.ToString() ?? "PLA",
                         Marque = row["Marque"]?.ToString() ?? "Generic",
                         PoidsBobine = row["Poids bobine (g)"] != DBNull.Value ? Convert.ToDecimal(row["Poids bobine (g)"]) : 1000,
-                        PrixBobine = row["Prix bobine (�)"] != DBNull.Value ? Convert.ToDecimal(row["Prix bobine (�)"]) : 20
+                        PrixBobine = row["Prix bobine (€)"] != DBNull.Value ? Convert.ToDecimal(row["Prix bobine (€)"]) : 20
                     });
                 }
             }
 
             SauvegarderParametres(parametres);
-            MessageBox.Show("Param�tres enregistr�s avec succ�s !", "Succ�s", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            InvaliderCache();
+            MessageBox.Show("Paramètres enregistrés avec succès !", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
@@ -376,9 +369,18 @@ namespace logiciel_d_impression_3d
             };
         }
 
+        private static ParametresImpression parametresCache;
+
         public static ParametresImpression ObtenirParametres()
         {
-            return ChargerParametres();
+            if (parametresCache == null)
+                parametresCache = ChargerParametres();
+            return parametresCache;
+        }
+
+        public static void InvaliderCache()
+        {
+            parametresCache = null;
         }
     }
 

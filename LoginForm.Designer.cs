@@ -79,7 +79,7 @@ namespace logiciel_d_impression_3d
             this.lnkForgotPassword.Size = new System.Drawing.Size(120, 15);
             this.lnkForgotPassword.TabIndex = 6;
             this.lnkForgotPassword.TabStop = true;
-            this.lnkForgotPassword.Text = "Mot de passe oubli� ?";
+            this.lnkForgotPassword.Text = "Mot de passe oublié ?";
             this.lnkForgotPassword.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkForgotPassword_LinkClicked);
             // 
             // btnLogin

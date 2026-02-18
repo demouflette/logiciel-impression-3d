@@ -11,16 +11,21 @@ namespace logiciel_d_impression_3d
     public class ImprimanteSpecsManager
     {
         private const string UrlApiSpecs = "https://github.com/demouflette/logiciel-impression-3d-updates/raw/refs/heads/main/imprimantes_specs.txt";
-        private const string FichierCacheLocal = "imprimantes_specs_cache.dat";
+        private static readonly string FichierCacheLocal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "imprimantes_specs_cache.dat");
         private static Dictionary<string, SpecsImprimante> specsCache;
         private static DateTime derniereMiseAJour;
 
         public static SpecsImprimante ObtenirSpecs(string nomImprimante)
         {
-            // Charger depuis le cache si disponible et r�cent (moins de 7 jours)
-            if (specsCache == null || (DateTime.Now - derniereMiseAJour).TotalDays > 7)
+            // Charger depuis le cache local d'abord (instantané), puis rafraîchir en arrière-plan
+            if (specsCache == null)
             {
-                ChargerSpecsDepuisInternet();
+                ChargerSpecsDepuisCacheLocal();
+                LancerChargementAsynchrone();
+            }
+            else if ((DateTime.Now - derniereMiseAJour).TotalDays > 7)
+            {
+                LancerChargementAsynchrone();
             }
 
             if (specsCache != null && specsCache.ContainsKey(nomImprimante))
@@ -28,8 +33,28 @@ namespace logiciel_d_impression_3d
                 return specsCache[nomImprimante];
             }
 
-            // Retourner des specs par d�faut si non trouv�
+            // Retourner des specs par défaut si non trouvé
             return ObtenirSpecsParDefaut(nomImprimante);
+        }
+
+        private static bool chargementEnCours = false;
+
+        private static void LancerChargementAsynchrone()
+        {
+            if (chargementEnCours) return;
+            chargementEnCours = true;
+
+            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    ChargerSpecsDepuisInternet();
+                }
+                finally
+                {
+                    chargementEnCours = false;
+                }
+            });
         }
 
         private static void ChargerSpecsDepuisInternet()
@@ -46,7 +71,7 @@ namespace logiciel_d_impression_3d
                     // Sauvegarder en cache local
                     SauvegarderCacheLocal(contenu);
                     
-                    System.Diagnostics.Debug.WriteLine("Specs charg�es depuis Internet avec succ�s");
+                    System.Diagnostics.Debug.WriteLine("Specs chargées depuis Internet avec succès");
                 }
             }
             catch (WebException)
@@ -213,16 +238,21 @@ namespace logiciel_d_impression_3d
                 Nom = nomImprimante, 
                 PuissanceMaxWatts = 250,
                 ConsommationMoyenneWatts = 150,
-                SourceDonnees = "Valeur estim�e par d�faut",
+                SourceDonnees = "Valeur estimée par défaut",
                 DateMiseAJour = DateTime.Now
             };
         }
 
         public static List<string> ObtenirListeImprimantes()
         {
-            if (specsCache == null || (DateTime.Now - derniereMiseAJour).TotalDays > 7)
+            if (specsCache == null)
             {
-                ChargerSpecsDepuisInternet();
+                ChargerSpecsDepuisCacheLocal();
+                LancerChargementAsynchrone();
+            }
+            else if ((DateTime.Now - derniereMiseAJour).TotalDays > 7)
+            {
+                LancerChargementAsynchrone();
             }
             return specsCache != null ? specsCache.Keys.ToList() : CreerSpecsParDefaut().Keys.ToList();
         }

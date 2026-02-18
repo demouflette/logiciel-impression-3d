@@ -46,14 +46,14 @@ namespace logiciel_d_impression_3d
 
             if (newPassword.Length < 6)
             {
-                MessageBox.Show("Le mot de passe doit contenir au moins 6 caract�res.", "Erreur", 
+                MessageBox.Show("Le mot de passe doit contenir au moins 6 caractères.", "Erreur", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (userManager.ResetPassword(username, email, newPassword))
             {
-                MessageBox.Show("Votre mot de passe a �t� r�initialis� avec succ�s !", "Succ�s", 
+                MessageBox.Show("Votre mot de passe a été réinitialisé avec succès !", "Succès", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();

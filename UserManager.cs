@@ -9,9 +9,10 @@ namespace logiciel_d_impression_3d
 {
     public class UserManager
     {
-        private const string UsersFilePath = "users.dat";
+        private static readonly string UsersFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "users.dat");
         private readonly List<User> users;
         public User CurrentUser { get; private set; }
+        public DateTime PrecedenteConnexion { get; private set; }
 
         public UserManager()
         {
@@ -47,8 +48,9 @@ namespace logiciel_d_impression_3d
 
             if (user != null)
             {
-                user.DerniereConnexion = DateTime.Now;
                 CurrentUser = user;
+                PrecedenteConnexion = user.DerniereConnexion;
+                user.DerniereConnexion = DateTime.Now;
                 SaveUsers();
                 return true;
             }

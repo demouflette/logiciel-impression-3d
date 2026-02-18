@@ -74,7 +74,7 @@ namespace logiciel_d_impression_3d
         }
 
         /// <summary>
-        /// Parse un fichier 3MF et retourne les informations d�tect�es
+        /// Parse un fichier 3MF et retourne les informations détectées
         /// </summary>
         public static ThreeMFFile ParseFile(string filePath)
         {
@@ -82,7 +82,7 @@ namespace logiciel_d_impression_3d
                 throw new FileNotFoundException($"Le fichier {filePath} n'existe pas.");
 
             if (!filePath.EndsWith(".3mf", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Le fichier doit �tre un fichier 3MF (.3mf).");
+                throw new InvalidOperationException("Le fichier doit être un fichier 3MF (.3mf).");
 
             var result = new ThreeMFFile
             {
@@ -115,15 +115,15 @@ namespace logiciel_d_impression_3d
                         }
                     }
 
-                    // Chercher le fichier de relations pour les m�tadonn�es
+                    // Chercher le fichier de relations pour les métadonnées
                     var rels = archive.Entries.FirstOrDefault(e => 
                         e.FullName.Contains("_rels") && e.Name.EndsWith(".rels"));
 
-                    // Chercher les m�tadonn�es
+                    // Chercher les métadonnées
                     var contentTypes = archive.Entries.FirstOrDefault(e => 
                         e.Name.Equals("[Content_Types].xml", StringComparison.OrdinalIgnoreCase));
                     
-                    // Extraire les m�tadonn�es d'impression Bambu Lab
+                    // Extraire les métadonnées d'impression Bambu Lab
                     ExtractBambuMetadata(archive, result);
                 }
             }
@@ -146,7 +146,7 @@ namespace logiciel_d_impression_3d
             if (root == null)
                 return;
 
-            // R�cup�rer l'unit�
+            // Récupérer l'unité
             var unitAttr = root.Attribute("unit");
             if (unitAttr != null)
                 result.Unit = unitAttr.Value;
@@ -168,7 +168,7 @@ namespace logiciel_d_impression_3d
                 }
             }
 
-            // Parser la sc�ne (objets visibles) pour compter les objets imprimables
+            // Parser la scène (objets visibles) pour compter les objets imprimables
             var build = root.Element(ns3mf + "build");
             if (build != null)
             {
@@ -176,7 +176,7 @@ namespace logiciel_d_impression_3d
                 // Si on a plus d'items dans build que d'objets, utiliser ce compte
                 if (itemCount > result.Objects.Count)
                 {
-                    // Compl�ter avec des objets factices si n�cessaire
+                    // Compléter avec des objets factices si nécessaire
                     for (int i = result.Objects.Count; i < itemCount; i++)
                     {
                         result.Objects.Add(new Object3D { Id = i + 1, Name = $"Objet {i + 1}" });
@@ -189,29 +189,29 @@ namespace logiciel_d_impression_3d
         {
             var object3d = new Object3D();
 
-            // R�cup�rer l'ID
+            // Récupérer l'ID
             var idAttr = objElement.Attribute("id");
             if (idAttr != null && int.TryParse(idAttr.Value, out int id))
                 object3d.Id = id;
 
-            // R�cup�rer le nom
+            // Récupérer le nom
             var nameAttr = objElement.Attribute("name");
             if (nameAttr != null)
                 object3d.Name = nameAttr.Value;
             else
                 object3d.Name = $"Objet {object3d.Id}";
 
-            // V�rifier si cet objet a des composants (Bambu Lab)
+            // Vérifier si cet objet a des composants (Bambu Lab)
             var components = objElement.Element(ns + "components");
             if (components != null)
             {
-                // Cet objet r�f�rence d'autres fichiers .model
+                // Cet objet référence d'autres fichiers .model
                 foreach (var component in components.Elements(ns + "component"))
                 {
                     var pathAttr = component.Attribute(nsProduction + "path");
                     if (pathAttr != null)
                     {
-                        // Charger le fichier .model r�f�renc�
+                        // Charger le fichier .model référencé
                         string componentPath = pathAttr.Value.TrimStart('/');
                         var componentEntry = archive.Entries.FirstOrDefault(e => 
                             e.FullName.Replace("\\", "/") == componentPath);
@@ -308,7 +308,7 @@ namespace logiciel_d_impression_3d
                 // Calculer les dimensions et le volume
                 CalculateDimensions(object3d);
 
-                // Parser les triangles pour r�cup�rer les couleurs
+                // Parser les triangles pour récupérer les couleurs
                 var triangles = mesh.Element(ns + "triangles");
                 if (triangles != null)
                 {
@@ -325,123 +325,123 @@ namespace logiciel_d_impression_3d
         }
 
         /// <summary>
-        /// G�n�re un rapport texte des informations du fichier 3MF
+        /// Génère un rapport texte des informations du fichier 3MF
         /// </summary>
         public static string GenerateReport(ThreeMFFile file)
         {
             var report = new System.Text.StringBuilder();
 
-            report.AppendLine("??????????????????????????????????????????????????????????????");
-            report.AppendLine("?        RAPPORT D'ANALYSE FICHIER 3MF                       ?");
-            report.AppendLine("??????????????????????????????????????????????????????????????");
+            report.AppendLine("══════════════════════════════════════════════════════════════");
+            report.AppendLine("       RAPPORT D'ANALYSE FICHIER 3MF                         ");
+            report.AppendLine("══════════════════════════════════════════════════════════════");
             report.AppendLine();
 
-            report.AppendLine($"?? Fichier: {file.FileName}");
-            report.AppendLine($"?? Unit�: {file.Unit}");
+            report.AppendLine($"  Fichier: {file.FileName}");
+            report.AppendLine($"  Unité: {file.Unit}");
             report.AppendLine();
 
-            report.AppendLine("?????????????????????????????????????????????????????????????");
-            report.AppendLine($"?? Nombre d'objets d�tect�s: {file.Objects.Count}");
-            report.AppendLine("?????????????????????????????????????????????????????????????");
+            report.AppendLine("──────────────────────────────────────────────────────────────");
+            report.AppendLine($"  Nombre d'objets détectés: {file.Objects.Count}");
+            report.AppendLine("──────────────────────────────────────────────────────────────");
             report.AppendLine();
 
             if (file.Objects.Count == 0)
             {
-                report.AppendLine("??  Aucun objet trouv� dans le fichier 3MF");
+                report.AppendLine("  Aucun objet trouvé dans le fichier 3MF");
                 return report.ToString();
             }
 
             for (int i = 0; i < file.Objects.Count; i++)
             {
                 var obj = file.Objects[i];
-                report.AppendLine($"?? Objet {i + 1}: {obj.Name}");
-                report.AppendLine($"   ?? ID: {obj.Id}");
-                report.AppendLine($"   ?? Dimensions:");
-                report.AppendLine($"   ?  ?? Largeur (X):  {obj.SizeX:F2} {file.Unit}");
-                report.AppendLine($"   ?  ?? Profondeur (Y): {obj.SizeY:F2} {file.Unit}");
-                report.AppendLine($"   ?  ?? Hauteur (Z):  {obj.SizeZ:F2} {file.Unit}");
-                report.AppendLine($"   ?? Volume estim�: {obj.Volume:F2} {file.Unit}�");
-                report.AppendLine($"   ?? Nombre de vertices: {obj.Vertices.Count}");
-                
+                report.AppendLine($"  Objet {i + 1}: {obj.Name}");
+                report.AppendLine($"    ID: {obj.Id}");
+                report.AppendLine($"    Dimensions:");
+                report.AppendLine($"      Largeur (X):  {obj.SizeX:F2} {file.Unit}");
+                report.AppendLine($"      Profondeur (Y): {obj.SizeY:F2} {file.Unit}");
+                report.AppendLine($"      Hauteur (Z):  {obj.SizeZ:F2} {file.Unit}");
+                report.AppendLine($"    Volume estimé: {obj.Volume:F2} {file.Unit}\u00B3");
+                report.AppendLine($"    Nombre de vertices: {obj.Vertices.Count}");
+
                 if (obj.Colors.Count > 0)
                 {
-                    report.AppendLine($"   ?? Mat�riaux/Couleurs ({obj.Colors.Count}):");
+                    report.AppendLine($"    Matériaux/Couleurs ({obj.Colors.Count}):");
                     foreach (var color in obj.Colors)
                     {
-                        report.AppendLine($"   ?  ?? {color}");
+                        report.AppendLine($"      - {color}");
                     }
                 }
                 else
                 {
-                    report.AppendLine($"   ?? Mat�riau: Non sp�cifi�");
+                    report.AppendLine($"    Matériau: Non spécifié");
                 }
 
                 report.AppendLine();
             }
 
-            report.AppendLine("?????????????????????????????????????????????????????????????");
-            report.AppendLine($"?? R�SUM� GLOBAL:");
-            report.AppendLine($"   ?? Volume total estim�: {file.TotalVolume:F2} {file.Unit}�");
-            report.AppendLine($"   ?? Poids estim� (PLA � 1.24g/cm�): {(file.TotalVolume / 1000m) * 1.24m:F2} g");
+            report.AppendLine("──────────────────────────────────────────────────────────────");
+            report.AppendLine($"  RÉSUMÉ GLOBAL:");
+            report.AppendLine($"    Volume total estimé: {file.TotalVolume:F2} {file.Unit}\u00B3");
+            report.AppendLine($"    Poids estimé (PLA à 1.24g/cm\u00B3): {(file.TotalVolume / 1000m) * 1.24m:F2} g");
             
-            // Afficher les m�tadonn�es d'impression si disponibles
+            // Afficher les métadonnées d'impression si disponibles
             if (file.PrintInfo != null && (file.PrintInfo.PlateCount > 0 || file.PrintInfo.Objects.Count > 0))
             {
                 report.AppendLine();
-                report.AppendLine("?????????????????????????????????????????????????????????????");
-                report.AppendLine("?? PARAM�TRES D'IMPRESSION D�TECT�S:");
-                
+                report.AppendLine("──────────────────────────────────────────────────────────────");
+                report.AppendLine("  PARAMÈTRES D'IMPRESSION DÉTECTÉS:");
+
                 if (!string.IsNullOrEmpty(file.PrintInfo.BedType))
-                    report.AppendLine($"   ?? Type de plateau: {file.PrintInfo.BedType}");
-                    
+                    report.AppendLine($"    Type de plateau: {file.PrintInfo.BedType}");
+
                 if (file.PrintInfo.NozzleDiameter > 0)
-                    report.AppendLine($"   ?? Diam�tre buse: {file.PrintInfo.NozzleDiameter} mm");
-                    
+                    report.AppendLine($"    Diamètre buse: {file.PrintInfo.NozzleDiameter} mm");
+
                 if (file.PrintInfo.LayerHeight > 0)
-                    report.AppendLine($"   ?? Hauteur de couche: {file.PrintInfo.LayerHeight:F3} mm");
-                    
+                    report.AppendLine($"    Hauteur de couche: {file.PrintInfo.LayerHeight:F3} mm");
+
                 if (file.PrintInfo.PlateCount > 0)
-                    report.AppendLine($"   ?? Nombre de plateaux: {file.PrintInfo.PlateCount}");
-                    
+                    report.AppendLine($"    Nombre de plateaux: {file.PrintInfo.PlateCount}");
+
                 if (file.PrintInfo.FilamentColors.Count > 0)
                 {
-                    report.AppendLine($"   ?? Couleurs de filament: {string.Join(", ", file.PrintInfo.FilamentColors)}");
+                    report.AppendLine($"    Couleurs de filament: {string.Join(", ", file.PrintInfo.FilamentColors)}");
                 }
-                
+
                 if (file.PrintInfo.Objects.Count > 0)
                 {
-                    report.AppendLine($"   ?? Objets sur le plateau: {file.PrintInfo.Objects.Count}");
+                    report.AppendLine($"    Objets sur le plateau: {file.PrintInfo.Objects.Count}");
                     foreach (var obj in file.PrintInfo.Objects)
                     {
-                        report.AppendLine($"      � {obj.Name} (aire: {obj.Area:F2} mm�)");
+                        report.AppendLine($"      - {obj.Name} (aire: {obj.Area:F2} mm\u00B2)");
                     }
                 }
-                
+
                 // Stats de slicing si disponibles
                 if (file.PrintInfo.PrintTime > 0)
                 {
                     int hours = (int)(file.PrintInfo.PrintTime / 3600);
                     int minutes = (int)((file.PrintInfo.PrintTime % 3600) / 60);
-                    report.AppendLine($"   ?? Temps d'impression: {hours}h {minutes}min");
+                    report.AppendLine($"    Temps d'impression: {hours}h {minutes}min");
                 }
-                
+
                 if (file.PrintInfo.FilamentUsed > 0)
-                    report.AppendLine($"   ?? Filament utilis�: {file.PrintInfo.FilamentUsed / 1000:F2} m");
-                    
+                    report.AppendLine($"    Filament utilisé: {file.PrintInfo.FilamentUsed / 1000:F2} m");
+
                 if (file.PrintInfo.FilamentWeight > 0)
-                    report.AppendLine($"   ?? Poids filament: {file.PrintInfo.FilamentWeight:F2} g");
-                    
+                    report.AppendLine($"    Poids filament: {file.PrintInfo.FilamentWeight:F2} g");
+
                 if (file.PrintInfo.LayerCount > 0)
-                    report.AppendLine($"   ?? Nombre de couches: {file.PrintInfo.LayerCount}");
+                    report.AppendLine($"    Nombre de couches: {file.PrintInfo.LayerCount}");
             }
-            
-            report.AppendLine("?????????????????????????????????????????????????????????????");
+
+            report.AppendLine("══════════════════════════════════════════════════════════════");
 
             return report.ToString();
         }
         
         /// <summary>
-        /// Extrait les m�tadonn�es d'impression depuis les fichiers JSON Bambu Lab
+        /// Extrait les métadonnées d'impression depuis les fichiers JSON Bambu Lab
         /// </summary>
         private static void ExtractBambuMetadata(ZipArchive archive, ThreeMFFile result)
         {
@@ -506,7 +506,7 @@ namespace logiciel_d_impression_3d
         {
             try
             {
-                // Parser simple sans d�pendance JSON
+                // Parser simple sans dépendance JSON
                 if (json.Contains("\"bed_type\""))
                 {
                     int bedTypeIndex = json.IndexOf("\"bed_type\":");

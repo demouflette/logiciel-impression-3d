@@ -50,7 +50,7 @@ namespace logiciel_d_impression_3d
                 return;
             }
 
-            // V�rifier le mot de passe actuel
+            // Vérifier le mot de passe actuel
             if (!userManager.AuthenticateUser(currentUser.Username, currentPassword))
             {
                 MessageBox.Show("Le mot de passe actuel est incorrect.", "Erreur", 
@@ -67,14 +67,14 @@ namespace logiciel_d_impression_3d
 
             if (newPassword.Length < 6)
             {
-                MessageBox.Show("Le nouveau mot de passe doit contenir au moins 6 caract�res.", "Erreur", 
+                MessageBox.Show("Le nouveau mot de passe doit contenir au moins 6 caractères.", "Erreur", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (userManager.ResetPassword(currentUser.Username, currentUser.Email, newPassword))
             {
-                MessageBox.Show("Mot de passe modifi� avec succ�s !", "Succ�s", 
+                MessageBox.Show("Mot de passe modifié avec succès !", "Succès", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 txtCurrentPassword.Clear();
                 txtNewPassword.Clear();

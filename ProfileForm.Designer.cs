@@ -107,7 +107,7 @@
             this.lblDateCreation.Name = "lblDateCreation";
             this.lblDateCreation.Size = new System.Drawing.Size(131, 15);
             this.lblDateCreation.TabIndex = 4;
-            this.lblDateCreation.Text = "Date de création ��:";
+            this.lblDateCreation.Text = "Date de création :";
             // 
             // lblEmailValue
             // 

@@ -36,11 +36,6 @@ namespace logiciel_d_impression_3d
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
 
-            // Initialiser les imprimantes depuis ImprimanteSpecsManager
-            var listeImprimantes = ImprimanteSpecsManager.ObtenirListeImprimantes();
-            cmb3mfPrinter.Items.AddRange(listeImprimantes.ToArray());
-            cmb3mfPrinter.SelectedIndex = 0;
-
             // Appliquer le thème flat design
             AppliquerTheme();
         }
@@ -87,9 +82,12 @@ namespace logiciel_d_impression_3d
             // Initialiser le dictionnaire des couleurs
             InitialiserCouleursDictionnaire();
             
-            // Initialiser les imprimantes depuis ImprimanteSpecsManager
-            cmbPrinter.Items.AddRange(ImprimanteSpecsManager.ObtenirListeImprimantes().ToArray());
+            // Initialiser les imprimantes depuis ImprimanteSpecsManager (un seul appel pour les 2 combos)
+            var listeImprimantes = ImprimanteSpecsManager.ObtenirListeImprimantes().ToArray();
+            cmbPrinter.Items.AddRange(listeImprimantes);
             cmbPrinter.SelectedIndex = 0;
+            cmb3mfPrinter.Items.AddRange(listeImprimantes);
+            cmb3mfPrinter.SelectedIndex = 0;
 
             // Initialiser les marques de filament
             string[] marques = new string[] { "Bambu Lab", "Creality", "eSUN", "Polymaker", "Prusament", "Generic" };
@@ -363,8 +361,7 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine($"   💰 PRIX TOTAL TTC: {prixTotalTTC:F2} €");
                 sb.AppendLine("═══════════════════════════════════════════════════");
 
-                MessageBox.Show(sb.ToString(), "Devis calculé",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                new DevisForm("Devis d'impression 3D - 3MF", sb.ToString()).ShowDialog();
             }
             catch (Exception ex)
             {
@@ -375,27 +372,7 @@ namespace logiciel_d_impression_3d
 
         private void InitialiserCouleursDictionnaire()
         {
-            couleursDictionnaire = new Dictionary<string, Color>
-            {
-                { "Rouge", Color.Red },
-                { "Bleu", Color.Blue },
-                { "Vert", Color.Green },
-                { "Jaune", Color.Yellow },
-                { "Orange", Color.Orange },
-                { "Violet", Color.Purple },
-                { "Rose", Color.Pink },
-                { "Noir", Color.Black },
-                { "Blanc", Color.White },
-                { "Gris", Color.Gray },
-                { "Marron", Color.Brown },
-                { "Cyan", Color.Cyan },
-                { "Magenta", Color.Magenta },
-                { "Beige", Color.Beige },
-                { "Turquoise", Color.Turquoise },
-                { "Or", Color.Gold },
-                { "Argent", Color.Silver },
-                { "Bronze", Color.FromArgb(205, 127, 50) }
-            };
+            couleursDictionnaire = ThemeManager.CouleursDictionnaire;
         }
 
         private void DgvCouleurs_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -676,8 +653,7 @@ namespace logiciel_d_impression_3d
                            $"  • Bénéfice/objet (HT) : {(details.SousTotalHT - details.CoutProductionHT) / nbObjets:C2}\n" +
                            $"  • Marge brute : {((details.SousTotalHT - details.CoutProductionHT) / details.SousTotalHT * 100):F1}%";
 
-            MessageBox.Show(message, "Devis - Prix de revient", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            new DevisForm("Devis - Prix de revient", message).ShowDialog();
         }
 
         private DetailsCouts CalculerCoutsDetailles(ParametresImpression parametres)
@@ -707,8 +683,7 @@ namespace logiciel_d_impression_3d
             details.TempsTotal = CalculerTempsTotal();
             
             // 5. Calculer la consommation électrique selon l'imprimante sélectionnée
-            var specsImprimante = ImprimanteSpecsManager.ObtenirSpecs(cmbPrinter.SelectedItem?.ToString() ?? "");
-            decimal puissanceMoyenneKw = specsImprimante.ConsommationMoyenneKw;
+            decimal puissanceMoyenneKw = specsImprimanteManuel.ConsommationMoyenneKw;
             details.ConsommationKwh = (details.TempsTotal / 60m) * puissanceMoyenneKw;
             details.CoutElectricite = details.ConsommationKwh * parametres.CoutElectriciteKwh;
             
@@ -828,12 +803,6 @@ namespace logiciel_d_impression_3d
                 details += $"  Plateau {i + 1} : {tempsPlateauxControls[i].Value} min\n";
             }
             return details;
-        }
-
-        private decimal CalculerCout()
-        {
-            ParametresImpression parametres = ParametresImpressionForm.ObtenirParametres();
-            return CalculerCoutsDetailles(parametres).PrixTotalTTC;
         }
 
         private decimal ObtenirPrixMoyenBobines(ParametresImpression parametres, string type)

@@ -78,7 +78,7 @@ namespace logiciel_d_impression_3d
 
     public class CalibrationManager
     {
-        private const string FichierLocal = "calibration_donnees.dat";
+        private static readonly string FichierLocal = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "calibration_donnees.dat");
         private const string UrlCalibration = "https://github.com/demouflette/logiciel-impression-3d-updates/raw/refs/heads/main/calibration_donnees.txt";
         private const string GithubOwner = "demouflette";
         private const string GithubRepo = "logiciel-impression-3d-updates";

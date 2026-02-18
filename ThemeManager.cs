@@ -49,6 +49,21 @@ namespace logiciel_d_impression_3d
         public static readonly Font FontButtonLarge = new Font("Segoe UI", 12F, FontStyle.Bold);
 
         // ═══════════════════════════════════════════════════════
+        // DICTIONNAIRE COULEURS FILAMENT
+        // ═══════════════════════════════════════════════════════
+
+        public static readonly System.Collections.Generic.Dictionary<string, Color> CouleursDictionnaire =
+            new System.Collections.Generic.Dictionary<string, Color>
+        {
+            { "Rouge", Color.Red }, { "Bleu", Color.Blue }, { "Vert", Color.Green },
+            { "Jaune", Color.Yellow }, { "Orange", Color.Orange }, { "Violet", Color.Purple },
+            { "Rose", Color.Pink }, { "Noir", Color.Black }, { "Blanc", Color.White },
+            { "Gris", Color.Gray }, { "Marron", Color.Brown }, { "Cyan", Color.Cyan },
+            { "Magenta", Color.Magenta }, { "Beige", Color.Beige }, { "Turquoise", Color.Turquoise },
+            { "Or", Color.Gold }, { "Argent", Color.Silver }, { "Bronze", Color.FromArgb(205, 127, 50) }
+        };
+
+        // ═══════════════════════════════════════════════════════
         // CONSTANTES
         // ═══════════════════════════════════════════════════════
 

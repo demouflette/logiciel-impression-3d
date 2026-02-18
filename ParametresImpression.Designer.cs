@@ -75,7 +75,7 @@ namespace logiciel_d_impression_3d
             this.tabPageGeneral.Padding = new System.Windows.Forms.Padding(3);
             this.tabPageGeneral.Size = new System.Drawing.Size(752, 450);
             this.tabPageGeneral.TabIndex = 0;
-            this.tabPageGeneral.Text = "Param�tres g�n�raux";
+            this.tabPageGeneral.Text = "Paramètres généraux";
             // 
             // groupBox3
             // 
@@ -180,7 +180,7 @@ namespace logiciel_d_impression_3d
             this.lblPourcentagePurge.Name = "lblPourcentagePurge";
             this.lblPourcentagePurge.Size = new System.Drawing.Size(239, 19);
             this.lblPourcentagePurge.TabIndex = 0;
-            this.lblPourcentagePurge.Text = "Pourcentage de perte d� � la purge (%):";
+            this.lblPourcentagePurge.Text = "Pourcentage de perte dû à la purge (%):";
             // 
             // groupBox1
             // 
@@ -191,7 +191,7 @@ namespace logiciel_d_impression_3d
             this.groupBox1.Size = new System.Drawing.Size(710, 90);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "�lectricit�";
+            this.groupBox1.Text = "Électricité";
             // 
             // numCoutElectricite
             // 
@@ -223,7 +223,7 @@ namespace logiciel_d_impression_3d
             this.lblCoutElectricite.Name = "lblCoutElectricite";
             this.lblCoutElectricite.Size = new System.Drawing.Size(177, 19);
             this.lblCoutElectricite.TabIndex = 0;
-            this.lblCoutElectricite.Text = "Co�t de l\'�lectricit� (�/kWh):";
+            this.lblCoutElectricite.Text = "Coût de l\'électricité (€/kWh):";
             // 
             // tabPageBobines
             // 
@@ -343,7 +343,7 @@ namespace logiciel_d_impression_3d
             this.MinimizeBox = false;
             this.Name = "ParametresImpressionForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Param�tres d\'impression";
+            this.Text = "Paramètres d\'impression";
             this.tabControl1.ResumeLayout(false);
             this.tabPageGeneral.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
