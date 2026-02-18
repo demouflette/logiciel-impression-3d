@@ -85,6 +85,7 @@
     <Compile Include="DevisForm.cs" />
     <Compile Include="HistoriqueDevis.cs" />
     <Compile Include="CalibrationManager.cs" />
+    <Compile Include="SlicerManager.cs" />
     <Compile Include="ThemeManager.cs" />
     <Compile Include="RoundedPanel.cs" />
     <Compile Include="ImprimanteSpecsManager.cs" />

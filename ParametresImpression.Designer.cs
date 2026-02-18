@@ -41,6 +41,11 @@ namespace logiciel_d_impression_3d
             this.lblCoutMainOeuvre = new System.Windows.Forms.Label();
             this.groupBoxGithub = new System.Windows.Forms.GroupBox();
             this.txtTokenGithub = new System.Windows.Forms.TextBox();
+            this.groupBoxSlicer = new System.Windows.Forms.GroupBox();
+            this.txtCheminSlicer = new System.Windows.Forms.TextBox();
+            this.lblCheminSlicer = new System.Windows.Forms.Label();
+            this.btnParcourirSlicer = new System.Windows.Forms.Button();
+            this.lblStatutSlicerParam = new System.Windows.Forms.Label();
             this.lblTokenGithub = new System.Windows.Forms.Label();
             this.btnEnregistrer = new System.Windows.Forms.Button();
             this.btnAnnuler = new System.Windows.Forms.Button();
@@ -68,12 +73,13 @@ namespace logiciel_d_impression_3d
             this.tabControl1.Location = new System.Drawing.Point(12, 12);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(760, 590);
+            this.tabControl1.Size = new System.Drawing.Size(760, 680);
             this.tabControl1.TabIndex = 0;
             // 
             // tabPageGeneral
             // 
             this.tabPageGeneral.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
+            this.tabPageGeneral.Controls.Add(this.groupBoxSlicer);
             this.tabPageGeneral.Controls.Add(this.groupBoxGithub);
             this.tabPageGeneral.Controls.Add(this.groupBox4);
             this.tabPageGeneral.Controls.Add(this.groupBox3);
@@ -368,13 +374,60 @@ namespace logiciel_d_impression_3d
             this.lblTokenGithub.TabIndex = 0;
             this.lblTokenGithub.Text = "Token GitHub (pour partager les donn\u00e9es):";
             //
+            // groupBoxSlicer
+            //
+            this.groupBoxSlicer.Controls.Add(this.lblStatutSlicerParam);
+            this.groupBoxSlicer.Controls.Add(this.btnParcourirSlicer);
+            this.groupBoxSlicer.Controls.Add(this.txtCheminSlicer);
+            this.groupBoxSlicer.Controls.Add(this.lblCheminSlicer);
+            this.groupBoxSlicer.Location = new System.Drawing.Point(20, 560);
+            this.groupBoxSlicer.Name = "groupBoxSlicer";
+            this.groupBoxSlicer.Size = new System.Drawing.Size(710, 80);
+            this.groupBoxSlicer.TabIndex = 5;
+            this.groupBoxSlicer.TabStop = false;
+            this.groupBoxSlicer.Text = "Slicer Bambu Studio";
+            //
+            // lblCheminSlicer
+            //
+            this.lblCheminSlicer.AutoSize = true;
+            this.lblCheminSlicer.Location = new System.Drawing.Point(15, 35);
+            this.lblCheminSlicer.Name = "lblCheminSlicer";
+            this.lblCheminSlicer.Size = new System.Drawing.Size(130, 15);
+            this.lblCheminSlicer.TabIndex = 0;
+            this.lblCheminSlicer.Text = "Chemin de l\'ex\u00e9cutable :";
+            //
+            // txtCheminSlicer
+            //
+            this.txtCheminSlicer.Location = new System.Drawing.Point(170, 32);
+            this.txtCheminSlicer.Name = "txtCheminSlicer";
+            this.txtCheminSlicer.Size = new System.Drawing.Size(350, 25);
+            this.txtCheminSlicer.TabIndex = 1;
+            //
+            // btnParcourirSlicer
+            //
+            this.btnParcourirSlicer.Location = new System.Drawing.Point(530, 30);
+            this.btnParcourirSlicer.Name = "btnParcourirSlicer";
+            this.btnParcourirSlicer.Size = new System.Drawing.Size(80, 28);
+            this.btnParcourirSlicer.TabIndex = 2;
+            this.btnParcourirSlicer.Text = "Parcourir...";
+            this.btnParcourirSlicer.Click += new System.EventHandler(this.btnParcourirSlicer_Click);
+            //
+            // lblStatutSlicerParam
+            //
+            this.lblStatutSlicerParam.AutoSize = true;
+            this.lblStatutSlicerParam.Location = new System.Drawing.Point(170, 60);
+            this.lblStatutSlicerParam.Name = "lblStatutSlicerParam";
+            this.lblStatutSlicerParam.Size = new System.Drawing.Size(100, 15);
+            this.lblStatutSlicerParam.TabIndex = 3;
+            this.lblStatutSlicerParam.Text = "";
+            //
             // btnEnregistrer
-            // 
+            //
             this.btnEnregistrer.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
             this.btnEnregistrer.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnEnregistrer.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnEnregistrer.ForeColor = System.Drawing.Color.White;
-            this.btnEnregistrer.Location = new System.Drawing.Point(530, 620);
+            this.btnEnregistrer.Location = new System.Drawing.Point(530, 710);
             this.btnEnregistrer.Name = "btnEnregistrer";
             this.btnEnregistrer.Size = new System.Drawing.Size(120, 40);
             this.btnEnregistrer.TabIndex = 1;
@@ -388,7 +441,7 @@ namespace logiciel_d_impression_3d
             this.btnAnnuler.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAnnuler.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnAnnuler.ForeColor = System.Drawing.Color.White;
-            this.btnAnnuler.Location = new System.Drawing.Point(660, 620);
+            this.btnAnnuler.Location = new System.Drawing.Point(660, 710);
             this.btnAnnuler.Name = "btnAnnuler";
             this.btnAnnuler.Size = new System.Drawing.Size(120, 40);
             this.btnAnnuler.TabIndex = 2;
@@ -400,7 +453,7 @@ namespace logiciel_d_impression_3d
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(784, 671);
+            this.ClientSize = new System.Drawing.Size(784, 760);
             this.Controls.Add(this.btnAnnuler);
             this.Controls.Add(this.btnEnregistrer);
             this.Controls.Add(this.tabControl1);
@@ -424,6 +477,8 @@ namespace logiciel_d_impression_3d
             ((System.ComponentModel.ISupportInitialize)(this.numCoutElectricite)).EndInit();
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
+            this.groupBoxSlicer.ResumeLayout(false);
+            this.groupBoxSlicer.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numCoutMainOeuvre)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numAmortissement)).EndInit();
             this.tabPageBobines.ResumeLayout(false);
@@ -459,6 +514,11 @@ namespace logiciel_d_impression_3d
         private System.Windows.Forms.Label lblCoutMainOeuvre;
         private System.Windows.Forms.NumericUpDown numAmortissement;
         private System.Windows.Forms.Label lblAmortissement;
+        private System.Windows.Forms.GroupBox groupBoxSlicer;
+        private System.Windows.Forms.TextBox txtCheminSlicer;
+        private System.Windows.Forms.Label lblCheminSlicer;
+        private System.Windows.Forms.Button btnParcourirSlicer;
+        private System.Windows.Forms.Label lblStatutSlicerParam;
         private System.Windows.Forms.Button btnEnregistrer;
         private System.Windows.Forms.Button btnAnnuler;
     }

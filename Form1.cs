@@ -15,6 +15,7 @@ namespace logiciel_d_impression_3d
         private List<NumericUpDown> tempsPlateauxControls;
         private Dictionary<string, Color> couleursDictionnaire;
         private ThreeMFParser.ThreeMFFile fichier3mfAnalyse;
+        private bool valeurSlicerUtilisees = false;
 
         public Form1(UserManager manager)
         {
@@ -89,6 +90,20 @@ namespace logiciel_d_impression_3d
             // Afficher le nom de l'utilisateur connecté
             lblWelcomeUser.Text = $"Bienvenue, {userManager.CurrentUser.Username}";
             
+            // Détecter le slicer Bambu Studio
+            if (SlicerManager.EstInstalle())
+            {
+                chkUtiliserSlicer.Visible = true;
+                chkUtiliserSlicer.Checked = true;
+                lblStatutSlicer.Text = "";
+            }
+            else
+            {
+                chkUtiliserSlicer.Visible = false;
+                chkUtiliserSlicer.Checked = false;
+                lblStatutSlicer.Text = "";
+            }
+
             // Initialiser le dictionnaire des couleurs
             InitialiserCouleursDictionnaire();
             
@@ -236,8 +251,49 @@ namespace logiciel_d_impression_3d
                     }
                 }
                 
-                MessageBox.Show($"✓ Analyse terminée! {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).",
-                    "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Lancer le slicing précis en arrière-plan si activé
+                if (chkUtiliserSlicer.Checked && SlicerManager.EstInstalle())
+                {
+                    valeurSlicerUtilisees = false;
+                    lblStatutSlicer.Text = "Slicing en cours...";
+                    lblStatutSlicer.ForeColor = ThemeManager.PrimaryBlue;
+                    btnAnalyser3mf.Enabled = false;
+
+                    SlicerManager.SlicerEnArrierePlan(txt3mfFile.Text, (resultat) =>
+                    {
+                        this.Invoke((Action)(() =>
+                        {
+                            btnAnalyser3mf.Enabled = true;
+                            if (resultat.Succes)
+                            {
+                                valeurSlicerUtilisees = true;
+                                lblStatutSlicer.Text = "Valeurs précises (Bambu Studio) - supports inclus";
+                                lblStatutSlicer.ForeColor = ThemeManager.SecondaryGreen;
+
+                                if (resultat.PoidsFilamentGrammes > 0)
+                                    num3mfPoidsFilament.Value = Math.Round(resultat.PoidsFilamentGrammes, 2);
+
+                                if (resultat.TempsMinutes > 0)
+                                    num3mfTempsImpression.Value = Math.Round(resultat.TempsMinutes / 60m, 2);
+                            }
+                            else
+                            {
+                                valeurSlicerUtilisees = false;
+                                lblStatutSlicer.Text = $"Slicer : {resultat.MessageErreur}";
+                                lblStatutSlicer.ForeColor = ThemeManager.DangerRed;
+                            }
+                        }));
+                    });
+
+                    MessageBox.Show($"✓ Analyse terminée! {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).\n\n" +
+                        "Le slicing précis est en cours en arrière-plan...",
+                        "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"✓ Analyse terminée! {fichier3mfAnalyse.Objects.Count} objet(s) détecté(s).",
+                        "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
             catch (InvalidOperationException ex)
             {
@@ -301,8 +357,9 @@ namespace logiciel_d_impression_3d
                 int nombreCouleurs = chk3mfAMS.Checked ? (int)num3mfNombreCouleurs.Value : 1;
 
                 // Calcul du poids de purge si AMS
+                // Si le slicer est utilisé, le poids inclut déjà supports + purge
                 decimal poidsPurge = 0;
-                if (chk3mfAMS.Checked && nombreCouleurs > 1)
+                if (!valeurSlicerUtilisees && chk3mfAMS.Checked && nombreCouleurs > 1)
                 {
                     var specsImprimante = ImprimanteSpecsManager.ObtenirSpecs(cmb3mfPrinter.SelectedItem?.ToString() ?? "");
                     poidsPurge = poidsFilament * (parametres.PourcentagePurgeAMS / 100m) * specsImprimante.CoefficientDechetAMS;
@@ -347,16 +404,25 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine($"📄 Fichier: {fichier3mfAnalyse.FileName}");
                 sb.AppendLine($"🖨️  Imprimante: {cmb3mfPrinter.SelectedItem}");
                 sb.AppendLine($"📦 Nombre d'objets: {fichier3mfAnalyse.Objects.Count}");
+                if (valeurSlicerUtilisees)
+                    sb.AppendLine($"✅ Source: Bambu Studio (valeurs précises, supports inclus)");
                 sb.AppendLine();
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine("  DÉTAILS DE L'IMPRESSION");
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"⏱️  Temps d'impression: {tempsHeures:F2} heures");
                 sb.AppendLine($"🎨 Mode: {(chk3mfAMS.Checked ? $"Multi-couleur ({nombreCouleurs} couleurs)" : "Mono-couleur")}");
-                sb.AppendLine($"📊 Poids filament net: {poidsFilament:F2} g");
-                if (poidsPurge > 0)
-                    sb.AppendLine($"🔄 Poids purge AMS ({parametres.PourcentagePurgeAMS}%): {poidsPurge:F2} g");
-                sb.AppendLine($"📦 Poids total: {poidsTotal:F2} g");
+                if (valeurSlicerUtilisees)
+                {
+                    sb.AppendLine($"📊 Poids filament total: {poidsFilament:F2} g (supports + purge inclus)");
+                }
+                else
+                {
+                    sb.AppendLine($"📊 Poids filament net: {poidsFilament:F2} g");
+                    if (poidsPurge > 0)
+                        sb.AppendLine($"🔄 Poids purge AMS ({parametres.PourcentagePurgeAMS}%): {poidsPurge:F2} g");
+                    sb.AppendLine($"📦 Poids total: {poidsTotal:F2} g");
+                }
                 sb.AppendLine();
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine("  DÉTAILS DES COÛTS");

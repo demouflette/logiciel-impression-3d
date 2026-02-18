@@ -61,6 +61,8 @@
             this.txt3mfFile = new System.Windows.Forms.TextBox();
             this.btnBrowse3mf = new System.Windows.Forms.Button();
             this.btnAnalyser3mf = new System.Windows.Forms.Button();
+            this.chkUtiliserSlicer = new System.Windows.Forms.CheckBox();
+            this.lblStatutSlicer = new System.Windows.Forms.Label();
             this.groupBox3mfInfo = new System.Windows.Forms.GroupBox();
             this.txt3mfInfo = new System.Windows.Forms.TextBox();
             this.groupBox3mfCalcul = new System.Windows.Forms.GroupBox();
@@ -579,6 +581,8 @@
             // 
             // groupBox3mfFile
             // 
+            this.groupBox3mfFile.Controls.Add(this.lblStatutSlicer);
+            this.groupBox3mfFile.Controls.Add(this.chkUtiliserSlicer);
             this.groupBox3mfFile.Controls.Add(this.btnAnalyser3mf);
             this.groupBox3mfFile.Controls.Add(this.btnBrowse3mf);
             this.groupBox3mfFile.Controls.Add(this.txt3mfFile);
@@ -631,7 +635,27 @@
             this.btnAnalyser3mf.TabIndex = 3;
             this.btnAnalyser3mf.Text = "Analyser le fichier 3MF";
             this.btnAnalyser3mf.UseVisualStyleBackColor = false;
-            // 
+            //
+            // chkUtiliserSlicer
+            //
+            this.chkUtiliserSlicer.AutoSize = true;
+            this.chkUtiliserSlicer.Checked = true;
+            this.chkUtiliserSlicer.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkUtiliserSlicer.Location = new System.Drawing.Point(400, 75);
+            this.chkUtiliserSlicer.Name = "chkUtiliserSlicer";
+            this.chkUtiliserSlicer.Size = new System.Drawing.Size(280, 23);
+            this.chkUtiliserSlicer.TabIndex = 4;
+            this.chkUtiliserSlicer.Text = "Utiliser Bambu Studio (calcul pr\u00e9cis)";
+            //
+            // lblStatutSlicer
+            //
+            this.lblStatutSlicer.AutoSize = true;
+            this.lblStatutSlicer.Location = new System.Drawing.Point(690, 76);
+            this.lblStatutSlicer.Name = "lblStatutSlicer";
+            this.lblStatutSlicer.Size = new System.Drawing.Size(100, 19);
+            this.lblStatutSlicer.TabIndex = 5;
+            this.lblStatutSlicer.Text = "";
+            //
             // groupBox3mfInfo
             // 
             this.groupBox3mfInfo.Controls.Add(this.txt3mfInfo);
@@ -1031,6 +1055,8 @@
         private System.Windows.Forms.Panel panelTemps;
         private System.Windows.Forms.Button btnCalculerDevis;
         private System.Windows.Forms.GroupBox groupBox3mfFile;
+        private System.Windows.Forms.CheckBox chkUtiliserSlicer;
+        private System.Windows.Forms.Label lblStatutSlicer;
         private System.Windows.Forms.Label lbl3mfFile;
         private System.Windows.Forms.TextBox txt3mfFile;
         private System.Windows.Forms.Button btnBrowse3mf;

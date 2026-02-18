@@ -68,6 +68,8 @@ namespace logiciel_d_impression_3d
             txtTokenGithub.Text = parametres.TokenGithub ?? "";
             numCoutMainOeuvre.Value = parametres.CoutMainOeuvreHeure;
             numAmortissement.Value = parametres.AmortissementMachineHeure;
+            txtCheminSlicer.Text = parametres.CheminSlicer ?? "";
+            MettreAJourStatutSlicer();
 
             // Événements
             dgvBobines.CellValueChanged += DgvBobines_CellValueChanged;
@@ -239,6 +241,8 @@ namespace logiciel_d_impression_3d
             parametres.TokenGithub = txtTokenGithub.Text.Trim();
             parametres.CoutMainOeuvreHeure = numCoutMainOeuvre.Value;
             parametres.AmortissementMachineHeure = numAmortissement.Value;
+            parametres.CheminSlicer = txtCheminSlicer.Text.Trim();
+            SlicerManager.InvaliderCache();
 
             // Sauvegarder les bobines
             parametres.Bobines.Clear();
@@ -268,6 +272,43 @@ namespace logiciel_d_impression_3d
         {
             this.DialogResult = DialogResult.Cancel;
             this.Close();
+        }
+
+        private void btnParcourirSlicer_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Title = "Sélectionner l'exécutable Bambu Studio";
+                ofd.Filter = "Exécutable (*.exe)|*.exe";
+                ofd.InitialDirectory = @"C:\Program Files";
+
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    txtCheminSlicer.Text = ofd.FileName;
+                    MettreAJourStatutSlicer();
+                }
+            }
+        }
+
+        private void MettreAJourStatutSlicer()
+        {
+            string chemin = txtCheminSlicer.Text.Trim();
+            if (!string.IsNullOrEmpty(chemin) && System.IO.File.Exists(chemin))
+            {
+                lblStatutSlicerParam.Text = "Slicer détecté";
+                lblStatutSlicerParam.ForeColor = System.Drawing.Color.FromArgb(46, 204, 113);
+            }
+            else if (SlicerManager.EstInstalle())
+            {
+                txtCheminSlicer.Text = SlicerManager.ObtenirCheminSlicer();
+                lblStatutSlicerParam.Text = "Auto-détecté";
+                lblStatutSlicerParam.ForeColor = System.Drawing.Color.FromArgb(46, 204, 113);
+            }
+            else
+            {
+                lblStatutSlicerParam.Text = "Non trouvé - installez Bambu Studio";
+                lblStatutSlicerParam.ForeColor = System.Drawing.Color.FromArgb(231, 76, 60);
+            }
         }
 
         private static ParametresImpression ChargerParametres()
@@ -301,6 +342,11 @@ namespace logiciel_d_impression_3d
                         if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
                         {
                             param.AmortissementMachineHeure = ParseDecimal(lines[debutBobines], 0m);
+                            debutBobines++;
+                        }
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.CheminSlicer = lines[debutBobines];
                             debutBobines++;
                         }
 
@@ -352,7 +398,8 @@ namespace logiciel_d_impression_3d
                     param.MargeParObjet.ToString(CultureInfo.InvariantCulture),
                     param.TokenGithub ?? "",
                     param.CoutMainOeuvreHeure.ToString(CultureInfo.InvariantCulture),
-                    param.AmortissementMachineHeure.ToString(CultureInfo.InvariantCulture)
+                    param.AmortissementMachineHeure.ToString(CultureInfo.InvariantCulture),
+                    param.CheminSlicer ?? ""
                 };
 
                 foreach (var bobine in param.Bobines)
@@ -409,6 +456,7 @@ namespace logiciel_d_impression_3d
         public string TokenGithub { get; set; } = "";
         public decimal CoutMainOeuvreHeure { get; set; } = 0m;
         public decimal AmortissementMachineHeure { get; set; } = 0m;
+        public string CheminSlicer { get; set; } = "";
         public List<Bobine> Bobines { get; set; } = new List<Bobine>();
     }
 
