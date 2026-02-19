@@ -118,22 +118,81 @@ namespace logiciel_d_impression_3d
             }
         }
 
+        // Clé de registre pour la date de début d'essai (anti-rollback)
+        private const string RegistreCleEssai = @"SOFTWARE\LogicielImpression3D";
+        private const string RegistreValeurEssai = "EssaiDebut";
+
         private static DateTime ChargerOuInitierEssai()
         {
+            DateTime? dateFichier = null;
+            DateTime? dateRegistre = null;
+
+            // Lire depuis le fichier essai.dat
             if (File.Exists(FichierEssai))
             {
                 try
                 {
                     string contenu = File.ReadAllText(FichierEssai).Trim();
-                    return DateTime.Parse(contenu);
+                    if (DateTime.TryParse(contenu, null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out DateTime d))
+                        dateFichier = d;
                 }
                 catch { }
             }
 
-            // Première exécution
-            DateTime maintenant = DateTime.UtcNow;
-            File.WriteAllText(FichierEssai, maintenant.ToString("O"));
-            return maintenant;
+            // Lire depuis le registre Windows (HKCU)
+            try
+            {
+                using (var cle = Registry.CurrentUser.OpenSubKey(RegistreCleEssai, false))
+                {
+                    if (cle != null)
+                    {
+                        string val = cle.GetValue(RegistreValeurEssai) as string;
+                        if (!string.IsNullOrEmpty(val) &&
+                            DateTime.TryParse(val, null,
+                                System.Globalization.DateTimeStyles.RoundtripKind, out DateTime d))
+                            dateRegistre = d;
+                    }
+                }
+            }
+            catch { }
+
+            DateTime debutEssai;
+
+            if (dateFichier == null && dateRegistre == null)
+            {
+                // Première exécution sur cette machine
+                debutEssai = DateTime.UtcNow;
+            }
+            else if (dateFichier == null)
+            {
+                // Fichier supprimé — registre fait foi, date la plus ancienne gagne
+                debutEssai = dateRegistre.Value;
+            }
+            else if (dateRegistre == null)
+            {
+                // Registre absent (première fois sur ce profil) — fichier fait foi
+                debutEssai = dateFichier.Value;
+            }
+            else
+            {
+                // Les deux existent : on prend la date la plus ANCIENNE
+                // (si quelqu'un restaure un vieux fichier, le registre garde la vraie date)
+                debutEssai = dateFichier.Value < dateRegistre.Value
+                    ? dateFichier.Value
+                    : dateRegistre.Value;
+            }
+
+            // Persister dans les deux emplacements (mise à jour silencieuse si manquant)
+            try { File.WriteAllText(FichierEssai, debutEssai.ToString("O")); } catch { }
+            try
+            {
+                using (var cle = Registry.CurrentUser.CreateSubKey(RegistreCleEssai))
+                    cle?.SetValue(RegistreValeurEssai, debutEssai.ToString("O"));
+            }
+            catch { }
+
+            return debutEssai;
         }
 
         // ── État de la licence ────────────────────────────────────────────
