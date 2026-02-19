@@ -60,7 +60,16 @@ namespace logiciel_d_impression_3d
 
                     if (result == DialogResult.Yes)
                     {
-                        TelechargerMiseAJour(urlTelechargement, $"logiciel_impression_3d_v{versionDistante}.exe");
+                        if (string.IsNullOrEmpty(urlTelechargement))
+                        {
+                            // Pas d'asset direct : ouvrir la page GitHub
+                            try { Process.Start(urlPageRelease); }
+                            catch { }
+                        }
+                        else
+                        {
+                            TelechargerMiseAJour(urlTelechargement, $"logiciel_impression_3d_v{versionDistante}.exe");
+                        }
                     }
                 }
                 else if (afficherSiAJour)

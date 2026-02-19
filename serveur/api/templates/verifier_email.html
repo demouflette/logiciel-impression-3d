@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification email — Logiciel d'impression 3D</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .carte {
+            background: #fff;
+            border-radius: 20px;
+            padding: 48px 40px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .icone {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        h1 {
+            color: #1a1a2e;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+        p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 12px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<div class="carte">
+    {% if succes %}
+    <span class="icone">✅</span>
+    <h1>Email vérifié !</h1>
+    <p>{{ message }}</p>
+    <p>Vous pouvez fermer cette page et vous connecter au logiciel.</p>
+    {% else %}
+    <span class="icone">❌</span>
+    <h1>Vérification échouée</h1>
+    <p>{{ message }}</p>
+    <p>Ouvrez le logiciel d'impression 3D et utilisez le code envoyé par email,
+       ou demandez un renvoi de code depuis la fenêtre d'inscription.</p>
+    {% endif %}
+</div>
+</body>
+</html>

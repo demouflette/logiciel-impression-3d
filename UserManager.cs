@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -29,16 +30,116 @@ namespace logiciel_d_impression_3d
 
             string sel = GenererSel();
             string hashedPassword = HashPasswordAvecSel(password, sel);
-            users.Add(new User
+            var nouvelUtilisateur = new User
             {
                 Username = username,
                 PasswordHash = $"{sel}:{hashedPassword}",
                 Email = email,
                 DateCreation = DateTime.Now,
-                DerniereConnexion = DateTime.Now
-            });
+                DerniereConnexion = DateTime.Now,
+                Verifie = false,
+                Role = "user"
+            };
+            users.Add(nouvelUtilisateur);
             SaveUsers();
+
+            // Synchroniser avec le serveur (non bloquant sur erreur)
+            SynchroniserInscription(username, email);
+
             return true;
+        }
+
+        /// <summary>
+        /// Envoie l'inscription au serveur pour déclencher l'email de vérification.
+        /// Silencieux en cas d'échec réseau.
+        /// </summary>
+        public void SynchroniserInscription(string username, string email)
+        {
+            try
+            {
+                string corps = $"{{\"nom_utilisateur\":\"{username}\",\"email\":\"{email}\"}}";
+                var req = (HttpWebRequest)WebRequest.Create(LicenceManager.UrlServeur + "/api/utilisateurs/inscrire");
+                req.Method = "POST";
+                req.ContentType = "application/json";
+                req.Timeout = 5000;
+                req.UserAgent = "LogicielImpression3D-Client/1.0";
+                byte[] data = Encoding.UTF8.GetBytes(corps);
+                req.ContentLength = data.Length;
+                using (var stream = req.GetRequestStream())
+                    stream.Write(data, 0, data.Length);
+                using (var resp = (HttpWebResponse)req.GetResponse())
+                    LogManager.Info($"Inscription synchronisée avec le serveur pour {username}");
+            }
+            catch (Exception ex)
+            {
+                LogManager.Avertissement($"Synchronisation inscription impossible : {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Vérifie le code reçu par email auprès du serveur.
+        /// Retourne true si vérifié, false sinon.
+        /// </summary>
+        public bool VerifierCodeEmail(string email, string code, out string erreur)
+        {
+            erreur = "";
+            try
+            {
+                string corps = $"{{\"email\":\"{email}\",\"code\":\"{code}\"}}";
+                var req = (HttpWebRequest)WebRequest.Create(LicenceManager.UrlServeur + "/api/utilisateurs/verifier-code");
+                req.Method = "POST";
+                req.ContentType = "application/json";
+                req.Timeout = 8000;
+                req.UserAgent = "LogicielImpression3D-Client/1.0";
+                byte[] data = Encoding.UTF8.GetBytes(corps);
+                req.ContentLength = data.Length;
+                using (var stream = req.GetRequestStream())
+                    stream.Write(data, 0, data.Length);
+                using ((HttpWebResponse)req.GetResponse()) { }
+
+                // Marquer localement comme vérifié
+                User user = users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+                if (user != null) { user.Verifie = true; SaveUsers(); }
+                return true;
+            }
+            catch (WebException ex) when (ex.Response is HttpWebResponse resp)
+            {
+                switch ((int)resp.StatusCode)
+                {
+                    case 400: erreur = "Code incorrect ou expiré."; break;
+                    case 404: erreur = "Utilisateur introuvable sur le serveur."; break;
+                    default:  erreur = "Erreur serveur."; break;
+                }
+                return false;
+            }
+            catch
+            {
+                erreur = "Impossible de joindre le serveur. Réessayez plus tard.";
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Demande le renvoi d'un nouveau code de vérification.
+        /// </summary>
+        public bool RenvoyerCodeVerification(string username, string email)
+        {
+            try
+            {
+                string corps = $"{{\"nom_utilisateur\":\"{username}\",\"email\":\"{email}\"}}";
+                var req = (HttpWebRequest)WebRequest.Create(LicenceManager.UrlServeur + "/api/utilisateurs/renvoyer-code");
+                req.Method = "POST";
+                req.ContentType = "application/json";
+                req.Timeout = 8000;
+                req.UserAgent = "LogicielImpression3D-Client/1.0";
+                byte[] data = Encoding.UTF8.GetBytes(corps);
+                req.ContentLength = data.Length;
+                using (var stream = req.GetRequestStream())
+                    stream.Write(data, 0, data.Length);
+                using ((HttpWebResponse)req.GetResponse()) { }
+                return true;
+            }
+            catch { return false; }
         }
 
         public bool AuthenticateUser(string username, string password)

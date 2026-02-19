@@ -50,6 +50,22 @@ namespace logiciel_d_impression_3d
 
             if (userManager.AuthenticateUser(username, password))
             {
+                // Rappel de vérification email si non vérifié
+                if (!userManager.CurrentUser.Verifie)
+                {
+                    DialogResult rappel = MessageBox.Show(
+                        $"Votre adresse email ({userManager.CurrentUser.Email}) n'est pas encore vérifiée.\n\n" +
+                        "Voulez-vous la vérifier maintenant ?",
+                        "Email non vérifié", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                    if (rappel == DialogResult.Yes)
+                    {
+                        var verifForm = new VerificationEmailForm(userManager,
+                            userManager.CurrentUser.Username, userManager.CurrentUser.Email);
+                        verifForm.ShowDialog();
+                    }
+                }
+
                 MessageBox.Show($"Bienvenue {userManager.CurrentUser.Username} !\n" +
                     $"Dernière connexion : {userManager.PrecedenteConnexion:dd/MM/yyyy HH:mm}",
                     "Connexion réussie", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -101,18 +117,33 @@ namespace logiciel_d_impression_3d
 
             if (userManager.RegisterUser(username, password, email))
             {
-                MessageBox.Show("Inscription réussie ! Vous pouvez maintenant vous connecter.", "Succès", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Passer à l'onglet de connexion et pré-remplir
                 tabControl1.SelectedIndex = 0;
                 txtLoginUsername.Text = username;
                 txtRegisterUsername.Clear();
                 txtRegisterEmail.Clear();
                 txtRegisterPassword.Clear();
                 txtRegisterConfirmPassword.Clear();
+
+                // Déclencher la vérification email
+                var verifForm = new VerificationEmailForm(userManager, username, email);
+                if (verifForm.ShowDialog() == DialogResult.OK)
+                {
+                    MessageBox.Show(
+                        $"Inscription réussie et email vérifié !\nBienvenue {username}.",
+                        "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Inscription réussie ! Vérifiez votre email quand vous le souhaitez.\n" +
+                        "Un rappel vous sera affiché à la prochaine connexion.",
+                        "Inscription réussie", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
             else
             {
-                MessageBox.Show("Ce nom d'utilisateur existe déjà.", "Erreur", 
+                MessageBox.Show("Ce nom d'utilisateur existe déjà.", "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

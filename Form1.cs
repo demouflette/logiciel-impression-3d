@@ -35,6 +35,9 @@ namespace logiciel_d_impression_3d
             btnPartagerCalibration.Click += BtnPartagerCalibration_Click;
             cmb3mfMatiere.SelectedIndex = 0; // PLA par défaut
 
+            // Ajouter le menu Administration (visible uniquement pour les admins)
+            AjouterMenuAdministration();
+
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
 
@@ -1221,6 +1224,38 @@ namespace logiciel_d_impression_3d
         {
             ProfileForm profileForm = new ProfileForm(userManager);
             profileForm.ShowDialog();
+        }
+
+        private void AjouterMenuAdministration()
+        {
+            if (userManager.CurrentUser == null || !userManager.CurrentUser.EstAdmin) return;
+
+            var menuAdmin = new ToolStripMenuItem("Administration");
+            menuAdmin.Font = new System.Drawing.Font(menuAdmin.Font, System.Drawing.FontStyle.Bold);
+            menuAdmin.ForeColor = ThemeManager.PrimaryBlue;
+            menuAdmin.Click += (s, e) => OuvrirAdministration();
+
+            // Insérer avant "Déconnexion" dans le menu Fichier
+            var menuFichier = fichierToolStripMenuItem;
+            int indexDeconnexion = -1;
+            for (int i = 0; i < menuFichier.DropDownItems.Count; i++)
+            {
+                if (menuFichier.DropDownItems[i].Name == "déconnexionToolStripMenuItem")
+                {
+                    indexDeconnexion = i;
+                    break;
+                }
+            }
+            if (indexDeconnexion >= 0)
+                menuFichier.DropDownItems.Insert(indexDeconnexion, menuAdmin);
+            else
+                menuFichier.DropDownItems.Add(menuAdmin);
+        }
+
+        private void OuvrirAdministration()
+        {
+            AdminForm adminForm = new AdminForm(userManager);
+            adminForm.ShowDialog();
         }
 
         private void déconnexionToolStripMenuItem_Click(object sender, EventArgs e)

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votre licence — Logiciel d'impression 3D</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 520px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.95rem;
+        }
+
+        /* ── Carte scratch ─────────────────────────────────────── */
+        .carte {
+            background: linear-gradient(145deg, #2d2d44, #1e1e30);
+            border-radius: 20px;
+            padding: 36px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .carte-label {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        /* Zone scratch */
+        .scratch-zone {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 28px;
+            cursor: crosshair;
+        }
+
+        /* Fond révélé (la clé) */
+        .cle-fond {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 28px 20px;
+            text-align: center;
+            border-radius: 12px;
+        }
+
+        .cle-texte {
+            font-family: 'Courier New', monospace;
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            letter-spacing: 0.08em;
+            user-select: all;
+            word-break: break-all;
+        }
+
+        .cle-hint {
+            font-size: 0.78rem;
+            color: #6c757d;
+            margin-top: 8px;
+        }
+
+        /* Canvas de grattage */
+        #scratchCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border-radius: 12px;
+            touch-action: none;
+        }
+
+        /* Indicateur de progression */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border-radius: 2px;
+            transition: width 0.1s ease;
+        }
+
+        .progress-label {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.82rem;
+            margin-bottom: 8px;
+        }
+
+        /* Message success */
+        .success-msg {
+            display: none;
+            text-align: center;
+            color: #4facfe;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Infos licence */
+        .infos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .info-label {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Bouton copier */
+        #btnCopier {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            border: none;
+            border-radius: 10px;
+            color: #0f3460;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            display: none;
+        }
+
+        #btnCopier:hover { opacity: 0.9; transform: translateY(-1px); }
+        #btnCopier:active { transform: translateY(0); }
+
+        /* Déjà révélé */
+        .deja-revele-badge {
+            text-align: center;
+            color: rgba(255,200,0,0.8);
+            font-size: 0.82rem;
+            margin-bottom: 12px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: rgba(255,255,255,0.25);
+            font-size: 0.78rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🖨️ Logiciel d'impression 3D</h1>
+        <p>Votre clé de licence vous attend sous la zone grise</p>
+    </div>
+
+    <div class="carte">
+        <div class="carte-label">Grattez pour révéler votre clé</div>
+
+        {% if deja_revele %}
+        <div class="deja-revele-badge">⚠️ Cette carte a déjà été révélée</div>
+        {% endif %}
+
+        <!-- Zone grattable -->
+        <div class="scratch-zone" id="scratchZone">
+            <div class="cle-fond">
+                <div class="cle-texte" id="cleTexte">{{ cle }}</div>
+                <div class="cle-hint">Cliquez sur la clé pour la copier</div>
+            </div>
+            {% if not deja_revele %}
+            <canvas id="scratchCanvas"></canvas>
+            {% endif %}
+        </div>
+
+        {% if not deja_revele %}
+        <div class="progress-label" id="progressLabel">Grattez la zone grise ✦</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        {% endif %}
+
+        <div class="success-msg" id="successMsg">✓ Clé révélée ! Copiez-la et entrez-la dans le logiciel.</div>
+
+        <!-- Infos licence -->
+        <div class="infos">
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ email }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Type</div>
+                <div class="info-value">{% if type == 'monthly' %}Mensuel{% else %}À vie{% endif %}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Expiration</div>
+                <div class="info-value">{{ date_expiration }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Machine</div>
+                <div class="info-value">1 PC autorisé</div>
+            </div>
+        </div>
+
+        <button id="btnCopier" onclick="copierCle()">📋 Copier la clé</button>
+        {% if deja_revele %}
+        <button id="btnCopier" style="display:block;" onclick="copierCle()">📋 Copier la clé</button>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        Logiciel d'impression 3D &mdash; conservez cette page ou notez votre clé
+    </div>
+</div>
+
+<script>
+    const CLE = {{ cle | tojson }};
+    const TOKEN = {{ token | tojson }};
+    const DEJA_REVELE = {{ 'true' if deja_revele else 'false' }};
+    let revele = DEJA_REVELE;
+
+    // ── Copier ────────────────────────────────────────────────
+    function copierCle() {
+        navigator.clipboard.writeText(CLE).then(() => {
+            const btn = document.getElementById('btnCopier');
+            btn.textContent = '✓ Clé copiée !';
+            setTimeout(() => { btn.textContent = '📋 Copier la clé'; }, 2000);
+        });
+    }
+
+    document.getElementById('cleTexte').addEventListener('click', () => {
+        if (revele) copierCle();
+    });
+
+    if (DEJA_REVELE) {
+        document.getElementById('successMsg').style.display = 'block';
+        return;
+    }
+
+    // ── Scratch card ──────────────────────────────────────────
+    const canvas = document.getElementById('scratchCanvas');
+    const zone   = document.getElementById('scratchZone');
+    const ctx    = canvas.getContext('2d');
+    let grattage = false;
+    let pourcentage = 0;
+    let signale = false;
+
+    function redimensionner() {
+        canvas.width  = zone.offsetWidth;
+        canvas.height = zone.offsetHeight;
+        dessinerFond();
+    }
+
+    function dessinerFond() {
+        // Fond "grattable" argent/gris avec texture
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0,   '#8a8a9a');
+        grad.addColorStop(0.5, '#a0a0b0');
+        grad.addColorStop(1,   '#7a7a8a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Texte indicateur
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = `bold ${Math.max(14, canvas.width * 0.035)}px Segoe UI, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✦ GRATTEZ ICI ✦', canvas.width / 2, canvas.height / 2);
+    }
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const src  = e.touches ? e.touches[0] : e;
+        return {
+            x: (src.clientX - rect.left) * (canvas.width / rect.width),
+            y: (src.clientY - rect.top)  * (canvas.height / rect.height)
+        };
+    }
+
+    function gratter(e) {
+        if (!grattage) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 28, 0, Math.PI * 2);
+        ctx.fill();
+        calculerProgression();
+    }
+
+    function calculerProgression() {
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let transparent = 0;
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 128) transparent++;
+        }
+        const total = canvas.width * canvas.height;
+        pourcentage = Math.round((transparent / total) * 100);
+        document.getElementById('progressFill').style.width = pourcentage + '%';
+
+        if (pourcentage >= 60 && !signale) {
+            signale = true;
+            revelerCle();
+        }
+    }
+
+    function revelerCle() {
+        revele = true;
+        canvas.style.transition = 'opacity 0.6s ease';
+        canvas.style.opacity = '0';
+        setTimeout(() => { canvas.style.display = 'none'; }, 600);
+
+        document.getElementById('progressLabel').style.display = 'none';
+        document.getElementById('progressFill').parentElement.style.display = 'none';
+        document.getElementById('successMsg').style.display = 'block';
+        document.getElementById('btnCopier').style.display = 'block';
+
+        // Notifier le serveur
+        fetch(`/scratch/${TOKEN}/reveler`, { method: 'POST' }).catch(() => {});
+    }
+
+    // Événements souris
+    canvas.addEventListener('mousedown', (e) => { grattage = true; gratter(e); });
+    canvas.addEventListener('mousemove', gratter);
+    canvas.addEventListener('mouseup',   () => grattage = false);
+    canvas.addEventListener('mouseleave',() => grattage = false);
+
+    // Événements tactile
+    canvas.addEventListener('touchstart', (e) => { grattage = true; gratter(e); }, { passive: false });
+    canvas.addEventListener('touchmove',  gratter, { passive: false });
+    canvas.addEventListener('touchend',   () => grattage = false);
+
+    window.addEventListener('resize', redimensionner);
+    redimensionner();
+</script>
+</body>
+</html>

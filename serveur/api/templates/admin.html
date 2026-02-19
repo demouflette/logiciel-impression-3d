@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration — Logiciel d'impression 3D</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; color: #333; }
+
+        /* ── Header ─────────────────────────────────────── */
+        header {
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            color: #fff;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 { font-size: 1.2rem; }
+        header span { color: rgba(255,255,255,0.5); font-size: 0.82rem; }
+
+        /* ── Layout ─────────────────────────────────────── */
+        main { max-width: 1300px; margin: 0 auto; padding: 28px 20px; }
+
+        /* ── Stats ──────────────────────────────────────── */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid #3498db;
+        }
+        .stat-card.vert { border-left-color: #2ecc71; }
+        .stat-card.orange { border-left-color: #e67e22; }
+        .stat-card.rouge { border-left-color: #e74c3c; }
+        .stat-card .val { font-size: 2rem; font-weight: 700; color: #1a1a2e; }
+        .stat-card .lbl { font-size: 0.8rem; color: #888; margin-top: 4px; }
+
+        /* ── Sections ───────────────────────────────────── */
+        .section {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 28px;
+            overflow: hidden;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .section-header h2 { font-size: 1rem; color: #1a1a2e; }
+        .section-header .count {
+            background: #eef2ff;
+            color: #3498db;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        /* ── Tableau ────────────────────────────────────── */
+        .scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8f9fa;
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        td {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f8f8f8;
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafbff; }
+
+        /* ── Badges ─────────────────────────────────────── */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+        .badge-active  { background: #e8f5e9; color: #2e7d32; }
+        .badge-expired { background: #fff3e0; color: #e65100; }
+        .badge-revoked { background: #fce4ec; color: #c62828; }
+        .badge-verifie { background: #e3f2fd; color: #1565c0; }
+        .badge-non     { background: #fafafa; color: #aaa; border: 1px solid #e0e0e0; }
+        .badge-admin   { background: #f3e5f5; color: #7b1fa2; }
+        .badge-user    { background: #e8eaf6; color: #3949ab; }
+        .badge-monthly { background: #e3f2fd; color: #0277bd; }
+        .badge-lifetime{ background: #e8f5e9; color: #2e7d32; }
+
+        /* ── Boutons action ─────────────────────────────── */
+        .btn-action {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: opacity 0.15s;
+        }
+        .btn-action:hover { opacity: 0.8; }
+        .btn-revoke { background: #fce4ec; color: #c62828; }
+        .btn-verify { background: #e3f2fd; color: #1565c0; }
+
+        /* ── Recherche ──────────────────────────────────── */
+        .search-bar {
+            padding: 14px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .search-bar input {
+            width: 280px;
+            padding: 8px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .search-bar input:focus { border-color: #3498db; }
+
+        /* ── Mono ───────────────────────────────────────── */
+        .mono { font-family: 'Courier New', monospace; font-size: 0.82rem; letter-spacing: 0.05em; }
+
+        /* ── Toast ──────────────────────────────────────── */
+        #toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: #2ecc71; color: #fff;
+            padding: 12px 20px; border-radius: 10px;
+            font-size: 0.9rem; font-weight: 600;
+            display: none; animation: fadeIn 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🖨️ Administration — Logiciel d'impression 3D</h1>
+    <span>Dashboard de gestion</span>
+</header>
+
+<main>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat-card vert">
+            <div class="val">{{ stats.total_utilisateurs }}</div>
+            <div class="lbl">Utilisateurs inscrits</div>
+        </div>
+        <div class="stat-card">
+            <div class="val">{{ stats.utilisateurs_verifies }}</div>
+            <div class="lbl">Emails vérifiés</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="val">{{ stats.total_licences }}</div>
+            <div class="lbl">Licences générées</div>
+        </div>
+        <div class="stat-card rouge">
+            <div class="val">{{ stats.licences_actives }}</div>
+            <div class="lbl">Licences actives</div>
+        </div>
+    </div>
+
+    <!-- Utilisateurs -->
+    <div class="section">
+        <div class="section-header">
+            <h2>👤 Utilisateurs</h2>
+            <span class="count">{{ utilisateurs | length }}</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchUsers" placeholder="Rechercher un utilisateur..." oninput="filtrerTableau('tbodyUsers', this.value)">
+        </div>
+        <div class="scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom d'utilisateur</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Inscrit le</th>
+                        <th>Email vérifié</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyUsers">
+                    {% for u in utilisateurs %}
+                    <tr>
+                        <td><strong>{{ u.nom_utilisateur }}</strong></td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            <span class="badge badge-{{ u.role }}">{{ u.role }}</span>
+                        </td>
+                        <td>{{ u.date_inscription[:10] if u.date_inscription else '—' }}</td>
+                        <td>
+                            {% if u.verifie %}
+                            <span class="badge badge-verifie">✓ Vérifié</span>
+                            {% else %}
+                            <span class="badge badge-non">En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not u.verifie %}
+                            <button class="btn-action btn-verify"
+                                    onclick="forcerVerification('{{ u.email }}', this)">
+                                ✓ Forcer vérif.
+                            </button>
+                            {% else %}
+                            <span style="color:#ccc;font-size:0.78rem;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" style="text-align:center;color:#aaa;padding:32px;">Aucun utilisateur</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Licences -->
+    <div class="section">
+        <div class="section-header">
+            <h2>🔑 Licences</h2>
+            <span class="count">{{ licences | length }}</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchLicences" placeholder="Rechercher une licence..." oninput="filtrerTableau('tbodyLicences', this.value)">
+        </div>
+        <div class="scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Clé</th>
+                        <th>Email</th>
+                        <th>Type</th>
+                        <th>Créée le</th>
+                        <th>Expiration</th>
+                        <th>Machine</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyLicences">
+                    {% for l in licences %}
+                    <tr>
+                        <td class="mono">{{ l.cle }}</td>
+                        <td>{{ l.email }}</td>
+                        <td>
+                            <span class="badge badge-{{ l.type }}">
+                                {% if l.type == 'monthly' %}Mensuel{% else %}À vie{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ l.date_creation[:10] if l.date_creation else '—' }}</td>
+                        <td>{{ l.date_expiration[:10] if l.date_expiration else '—' }}</td>
+                        <td style="color:#aaa;font-size:0.75rem;">
+                            {{ l.machine_id[:12] ~ '…' if l.machine_id else 'Non activée' }}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ l.statut }}">{{ l.statut }}</span>
+                        </td>
+                        <td>
+                            {% if l.statut == 'active' %}
+                            <button class="btn-action btn-revoke"
+                                    onclick="revoquerLicence('{{ l.cle }}', this)">
+                                🚫 Révoquer
+                            </button>
+                            {% else %}
+                            <span style="color:#ccc;font-size:0.78rem;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="text-align:center;color:#aaa;padding:32px;">Aucune licence</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+    const ADMIN_KEY = {{ admin_key | tojson }};
+
+    function toast(msg, err = false) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.background = err ? '#e74c3c' : '#2ecc71';
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 3000);
+    }
+
+    function filtrerTableau(tbodyId, q) {
+        const rows = document.getElementById(tbodyId).querySelectorAll('tr');
+        const term = q.toLowerCase();
+        rows.forEach(row => {
+            row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+        });
+    }
+
+    function revoquerLicence(cle, btn) {
+        if (!confirm(`Révoquer la licence ${cle} ?`)) return;
+        fetch('/api/admin/revoquer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+            body: JSON.stringify({ cle })
+        }).then(r => r.json()).then(d => {
+            toast('✓ Licence révoquée');
+            btn.closest('tr').querySelector('.badge').className = 'badge badge-revoked';
+            btn.closest('tr').querySelector('.badge').textContent = 'revoked';
+            btn.remove();
+        }).catch(() => toast('Erreur lors de la révocation', true));
+    }
+
+    function forcerVerification(email, btn) {
+        if (!confirm(`Forcer la vérification de ${email} ?`)) return;
+        fetch('/api/admin/verifier-utilisateur', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+            body: JSON.stringify({ email, nom_utilisateur: '' })
+        }).then(r => r.json()).then(d => {
+            toast('✓ Utilisateur vérifié');
+            const td = btn.closest('tr').querySelectorAll('td')[4];
+            td.innerHTML = '<span class="badge badge-verifie">✓ Vérifié</span>';
+            btn.remove();
+        }).catch(() => toast('Erreur lors de la vérification', true));
+    }
+</script>
+</body>
+</html>

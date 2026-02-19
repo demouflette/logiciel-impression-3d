@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  licences-api:
+    build: ./api
+    container_name: licences_impression_3d
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/data                    # Persistance de licences.db
+      - ./api/templates:/app/templates  # Templates HTML
+    environment:
+      # ⚠️ CHANGEZ ces valeurs avant de déployer en production !
+      - ADMIN_KEY=CHANGEZ-MOI-EN-PRODUCTION
+      - DB_PATH=/data/licences.db
+      - SERVEUR_URL=https://licence.mondomaine.fr
+      # ── Configuration SMTP (Gmail recommandé) ──
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=votre@gmail.com
+      - SMTP_PASS=mot-de-passe-application-gmail
+      - EMAIL_FROM=Logiciel Impression 3D
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/sante')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
