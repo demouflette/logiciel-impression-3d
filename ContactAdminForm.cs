@@ -41,6 +41,12 @@ namespace logiciel_d_impression_3d
             ThemeManager.StyleButton(btnAnnuler, ThemeManager.BackgroundCard, ThemeManager.BorderLight);
         }
 
+        public void PreRemplir(string sujet, string message)
+        {
+            txtSujet.Text   = sujet;
+            txtMessage.Text = message;
+        }
+
         private void btnEnvoyer_Click(object sender, EventArgs e)
         {
             string email   = txtEmail.Text.Trim();

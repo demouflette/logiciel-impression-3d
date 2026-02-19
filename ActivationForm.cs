@@ -159,11 +159,9 @@ namespace logiciel_d_impression_3d
         // ── Lien achat ────────────────────────────────────────────────────
         private void lnkAcheter_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            try
-            {
-                System.Diagnostics.Process.Start("https://licence.mondomaine.fr");
-            }
-            catch { }
+            var contact = new ContactAdminForm();
+            contact.PreRemplir("Demande de clé de licence", "Bonjour,\n\nJe souhaite obtenir une clé de licence pour le Logiciel d'impression 3D.\n\nMerci.");
+            contact.ShowDialog(this);
         }
     }
 }

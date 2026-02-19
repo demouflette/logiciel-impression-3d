@@ -15,6 +15,7 @@ namespace logiciel_d_impression_3d
         {
             this.lblTitre = new System.Windows.Forms.Label();
             this.lblSousTitre = new System.Windows.Forms.Label();
+            this.lblObtenirCle = new System.Windows.Forms.Label();
             this.txtCle = new System.Windows.Forms.TextBox();
             this.btnActiver = new System.Windows.Forms.Button();
             this.btnEssai = new System.Windows.Forms.Button();
@@ -72,10 +73,16 @@ namespace logiciel_d_impression_3d
             this.lblInfo.Size = new System.Drawing.Size(405, 20);
             this.lblInfo.Font = new System.Drawing.Font("Segoe UI", 8.5F);
 
+            // ── lblObtenirCle ─────────────────────────────────────────────
+            this.lblObtenirCle.Text = "Pas encore de clé ? Contactez l'administration pour en obtenir une.";
+            this.lblObtenirCle.Location = new System.Drawing.Point(20, 205);
+            this.lblObtenirCle.Size = new System.Drawing.Size(410, 18);
+            this.lblObtenirCle.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+
             // ── lnkAcheter ───────────────────────────────────────────────
-            this.lnkAcheter.Text = "Acheter une licence →";
-            this.lnkAcheter.Location = new System.Drawing.Point(20, 210);
-            this.lnkAcheter.Size = new System.Drawing.Size(200, 20);
+            this.lnkAcheter.Text = "Contacter l'administration →";
+            this.lnkAcheter.Location = new System.Drawing.Point(20, 225);
+            this.lnkAcheter.Size = new System.Drawing.Size(240, 20);
             this.lnkAcheter.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lnkAcheter.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkAcheter_LinkClicked);
 
@@ -95,6 +102,7 @@ namespace logiciel_d_impression_3d
                 this.txtCle,
                 this.btnActiver,
                 this.lblInfo,
+                this.lblObtenirCle,
                 this.lnkAcheter,
                 this.btnEssai
             });
@@ -110,5 +118,6 @@ namespace logiciel_d_impression_3d
         private System.Windows.Forms.Button btnEssai;
         private System.Windows.Forms.LinkLabel lnkAcheter;
         private System.Windows.Forms.Label lblInfo;
+        private System.Windows.Forms.Label lblObtenirCle;
     }
 }

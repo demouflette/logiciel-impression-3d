@@ -41,6 +41,9 @@ namespace logiciel_d_impression_3d
             // Ajouter le menu Contact administration (visible pour tous)
             AjouterMenuContactAdmin();
 
+            // Ajouter le menu Activer une licence
+            AjouterMenuActiverLicence();
+
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
 
@@ -1429,6 +1432,40 @@ namespace logiciel_d_impression_3d
             {
                 lblCalibrationInfo.Text = "0 donnée(s) de calibration disponible(s)";
             }
+        }
+
+        private void AjouterMenuActiverLicence()
+        {
+            var menuActiver = new ToolStripMenuItem("Activer une licence");
+            menuActiver.Click += (s, e) =>
+            {
+                EtatLicence etat = LicenceManager.ObtenirEtat();
+                var form = new ActivationForm(etat);
+                if (form.ShowDialog(this) == DialogResult.OK)
+                {
+                    MessageBox.Show(
+                        "Licence activée avec succès !\n\n" +
+                        "Redémarrez l'application pour appliquer les changements.",
+                        "Activation réussie",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            };
+
+            // Insérer avant le séparateur dans le menu Aide
+            int indexSep = -1;
+            for (int i = 0; i < aideToolStripMenuItem.DropDownItems.Count; i++)
+            {
+                if (aideToolStripMenuItem.DropDownItems[i] is ToolStripSeparator)
+                {
+                    indexSep = i;
+                    break;
+                }
+            }
+            if (indexSep >= 0)
+                aideToolStripMenuItem.DropDownItems.Insert(indexSep, menuActiver);
+            else
+                aideToolStripMenuItem.DropDownItems.Add(menuActiver);
         }
 
         private void AjouterMenuContactAdmin()
