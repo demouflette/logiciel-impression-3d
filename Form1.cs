@@ -173,6 +173,46 @@ namespace logiciel_d_impression_3d
             // Désactiver AMS et multi-couleur au démarrage
             chkAMS.Enabled = false;
             rdoMultiCouleur.Enabled = false;
+
+            // Verrouiller les fonctionnalités premium si pas d'abonnement actif
+            AppliquerVerrouillageAbonnement();
+        }
+
+        private void AppliquerVerrouillageAbonnement()
+        {
+            if (LicenceManager.EstPremiumActif()) return;
+
+            // Griser tous les contrôles de l'onglet 3MF
+            tabPage3mf.Enabled = false;
+
+            // Bloquer la navigation vers l'onglet verrouillé
+            tabControlMain.Selecting += (s, e) =>
+            {
+                if (e.TabPage == tabPage3mf)
+                    e.Cancel = true;
+            };
+
+            // Ajouter un panneau d'information par-dessus le contenu grisé
+            var panel = new System.Windows.Forms.Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = System.Drawing.Color.FromArgb(235, 237, 240)
+            };
+            var lbl = new System.Windows.Forms.Label
+            {
+                Text = "Fonctionnalité réservée aux abonnés\r\n\r\n" +
+                       "L'analyse de fichiers 3MF (Bambu Lab) nécessite un abonnement actif.\r\n\r\n" +
+                       "Activez votre licence depuis le menu Aide > Activer une licence.",
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+                ForeColor = ThemeManager.TextSecondary,
+                Font = ThemeManager.FontBody,
+                BackColor = System.Drawing.Color.Transparent
+            };
+            panel.Controls.Add(lbl);
+            tabPage3mf.Controls.Add(panel);
+            panel.BringToFront();
         }
 
         /// <summary>

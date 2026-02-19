@@ -83,6 +83,30 @@ namespace logiciel_d_impression_3d
 
             // Configurer l'onglet entreprise
             CreerOngletEntreprise();
+
+            // Verrouiller les paramètres premium si pas d'abonnement actif
+            AppliquerVerrouillageParametres();
+        }
+
+        private void AppliquerVerrouillageParametres()
+        {
+            if (LicenceManager.EstPremiumActif()) return;
+
+            // Griser les 3 GroupBoxes contenant les 4 paramètres premium
+            groupBox1.Enabled = false;  // Coût électricité
+            groupBox2.Enabled = false;  // Purge AMS
+            groupBox3.Enabled = false;  // TVA + Marge
+
+            // Afficher un message informatif sous les groupes verrouillés
+            var lblVerrou = new Label
+            {
+                Text = "Ces paramètres nécessitent un abonnement actif. Les valeurs par défaut sont appliquées.",
+                ForeColor = ThemeManager.AccentOrange,
+                AutoSize = true,
+                Font = new System.Drawing.Font(ThemeManager.FontSmall.FontFamily, 9f, System.Drawing.FontStyle.Italic),
+                Location = new System.Drawing.Point(20, groupBox3.Bottom + 8)
+            };
+            tabPageGeneral.Controls.Add(lblVerrou);
         }
 
         // ═══════════════════════════════════════════════════════
@@ -386,6 +410,15 @@ namespace logiciel_d_impression_3d
                 }
             }
 
+            // Garde-fou : si pas d'abonnement actif, forcer les valeurs par défaut
+            if (!LicenceManager.EstPremiumActif())
+            {
+                numCoutElectricite.Value = 0.15m;
+                numPourcentagePurge.Value = 10m;
+                numTVA.Value = 20m;
+                numMarge.Value = 50m;
+            }
+
             // Sauvegarder les paramètres
             parametres.CoutElectriciteKwh = numCoutElectricite.Value;
             parametres.PourcentagePurgeAMS = numPourcentagePurge.Value;
@@ -687,6 +720,31 @@ namespace logiciel_d_impression_3d
                 MessageBox.Show($"Erreur lors de la sauvegarde :\n{ex.Message}",
                     "Erreur de sauvegarde", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// Si l'abonnement est expiré, réinitialise les 4 paramètres premium aux valeurs
+        /// par défaut dans le fichier .dat. Appelé au démarrage de l'application.
+        /// </summary>
+        public static void ReinitialiserParametresPremium()
+        {
+            if (LicenceManager.EstPremiumActif()) return;
+            if (!File.Exists(FichierParametres)) return;
+            try
+            {
+                string[] lignes = File.ReadAllLines(FichierParametres, Encoding.UTF8);
+                if (lignes.Length < 4) return;
+                string[] defauts = { "0.15", "10", "20", "50" };
+                bool modifie = false;
+                for (int i = 0; i < 4; i++)
+                    if (lignes[i] != defauts[i]) { lignes[i] = defauts[i]; modifie = true; }
+                if (modifie)
+                {
+                    File.WriteAllLines(FichierParametres, lignes, Encoding.UTF8);
+                    parametresCache = null;
+                }
+            }
+            catch { }
         }
 
         private static ParametresImpression CreerParametresParDefaut()

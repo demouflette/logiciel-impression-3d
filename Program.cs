@@ -35,6 +35,9 @@ namespace logiciel_d_impression_3d
             // ── Vérification de la licence ────────────────────────────────
             EtatLicence etatLicence = LicenceManager.ObtenirEtat();
 
+            // Réinitialiser les paramètres premium aux valeurs par défaut si abonnement expiré
+            ParametresImpressionForm.ReinitialiserParametresPremium();
+
             if (etatLicence == EtatLicence.Essai)
             {
                 int joursRestants = LicenceManager.JoursRestantsEssai();

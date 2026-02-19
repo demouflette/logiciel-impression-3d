@@ -178,6 +178,16 @@ namespace logiciel_d_impression_3d
             return EtatLicence.Valide;
         }
 
+        /// <summary>
+        /// Retourne true si l'utilisateur a accès aux fonctionnalités premium
+        /// (abonnement actif OU période d'essai en cours).
+        /// </summary>
+        public static bool EstPremiumActif()
+        {
+            EtatLicence etat = ObtenirEtat();
+            return etat == EtatLicence.Valide || etat == EtatLicence.Essai;
+        }
+
         public static int JoursRestantsEssai()
         {
             _debutEssai = ChargerOuInitierEssai();
