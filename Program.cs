@@ -145,8 +145,25 @@ namespace logiciel_d_impression_3d
                 if (string.IsNullOrEmpty(dossierInstall))
                     return false; // Impossible de trouver le dossier → on continue normalement
 
-                string nomExe = Path.GetFileName(exeActuel);
-                string cibleExe = Path.Combine(dossierInstall, nomExe);
+                // Trouver le nom de l'exe DÉJÀ installé dans le dossier d'installation
+                // (ex: "logiciel d'impression 3d.exe"), pas le nom de l'exe temporaire
+                // (ex: "logiciel_impression_3d_v1.5.6.exe")
+                string nomExeInstalle = null;
+                foreach (string f in Directory.GetFiles(dossierInstall, "*.exe"))
+                {
+                    string fname = Path.GetFileName(f);
+                    // Ignorer le désinstalleur et les exes temporaires de mise à jour (contiennent "_v")
+                    if (!fname.StartsWith("unins", StringComparison.OrdinalIgnoreCase)
+                        && !fname.Contains("_v"))
+                    {
+                        nomExeInstalle = fname;
+                        break;
+                    }
+                }
+                if (string.IsNullOrEmpty(nomExeInstalle))
+                    nomExeInstalle = Path.GetFileName(exeActuel); // fallback
+
+                string cibleExe = Path.Combine(dossierInstall, nomExeInstalle);
                 string cheminBat = Path.Combine(Path.GetTempPath(), "relocate_impression3d.bat");
 
                 string contenuBat =
@@ -154,6 +171,7 @@ namespace logiciel_d_impression_3d
                     "timeout /t 2 /nobreak >nul\r\n" +
                     $"copy /y \"{exeActuel}\" \"{cibleExe}\"\r\n" +
                     $"start \"\" \"{cibleExe}\"\r\n" +
+                    $"del \"{exeActuel}\"\r\n" +
                     "del \"%~f0\"\r\n";
 
                 File.WriteAllText(cheminBat, contenuBat, System.Text.Encoding.Default);
