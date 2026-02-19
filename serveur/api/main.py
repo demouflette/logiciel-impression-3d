@@ -104,6 +104,7 @@ def page_achat(request: Request):
         "request":      request,
         "paypal_url":   paypal_url,
         "paypal_email": PAYPAL_EMAIL,
+        "paypal_mode":  PAYPAL_MODE,
         "prix_mensuel": PAYPAL_PRIX_MENSUEL,
         "notify_url":   f"{SERVEUR_URL}/api/paypal/ipn",
         "return_url":   f"{SERVEUR_URL}/paiement-succes",
@@ -121,6 +122,50 @@ def paiement_succes(request: Request):
 def paiement_annule(request: Request):
     """Page affichée si le paiement est annulé."""
     return templates.TemplateResponse("paiement_succes.html", {"request": request, "succes": False})
+
+
+@app.post("/api/paypal/test-paiement")
+def paypal_test_paiement(email: str, x_admin_key: str = Header(None)):
+    """
+    Simule un paiement PayPal (sandbox uniquement, accès admin).
+    Génère une clé et envoie l'email — sans passer par PayPal.
+    """
+    verifier_admin(x_admin_key)
+    if PAYPAL_MODE != "sandbox":
+        raise HTTPException(status_code=403, detail="Endpoint de test désactivé en production")
+
+    import uuid
+    txn_id_test = "TEST-" + uuid.uuid4().hex[:16].upper()
+    type_licence = "monthly"
+    duree_jours  = 30
+    mc_gross     = PAYPAL_PRIX_MENSUEL
+    mc_currency  = "EUR"
+
+    if paiement_existe(txn_id_test):
+        raise HTTPException(status_code=409, detail="Transaction test déjà existante")
+
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    cle = "-".join(
+        "".join(secrets.choice(alphabet) for _ in range(4))
+        for _ in range(4)
+    )
+    scratch_token   = secrets.token_urlsafe(32)
+    date_expiration = (datetime.utcnow() + timedelta(days=duree_jours)).isoformat()
+
+    inserer_licence(cle, email, type_licence, date_expiration, scratch_token)
+    enregistrer_paiement(txn_id_test, email, mc_gross, mc_currency, type_licence, cle)
+
+    lien_scratch = f"/scratch/{scratch_token}"
+    envoye = email_licence(email, cle, lien_scratch, type_licence, date_expiration)
+
+    return {
+        "txn_id":          txn_id_test,
+        "cle":             cle,
+        "email":           email,
+        "date_expiration": date_expiration,
+        "scratch_url":     f"{SERVEUR_URL}{lien_scratch}",
+        "email_envoye":    envoye
+    }
 
 
 @app.post("/api/paypal/ipn")
