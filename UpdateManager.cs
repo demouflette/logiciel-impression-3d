@@ -277,18 +277,19 @@ namespace logiciel_d_impression_3d
                     client.DownloadFileCompleted += (s, e) =>
                     {
                         progressForm.Close();
-                        
+
                         if (e.Error == null)
                         {
-                            MessageBox.Show("Téléchargement terminé ! L'application va redémarrer.", 
+                            MessageBox.Show(
+                                "Téléchargement terminé ! L'application va se mettre à jour et redémarrer.",
                                 "Mise à jour", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            
-                            Process.Start(cheminTemp);
+
+                            LancerMiseAJourSurPlace(cheminTemp);
                             Application.Exit();
                         }
                         else
                         {
-                            MessageBox.Show($"Erreur lors du téléchargement : {e.Error.Message}", 
+                            MessageBox.Show($"Erreur lors du téléchargement : {e.Error.Message}",
                                 "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     };
@@ -302,6 +303,44 @@ namespace logiciel_d_impression_3d
                 MessageBox.Show($"Erreur lors du téléchargement : {ex.Message}", 
                     "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// Remplace l'exe installé par le nouvel exe téléchargé via un script bat temporaire,
+        /// puis relance l'application depuis son dossier d'origine.
+        /// </summary>
+        private static void LancerMiseAJourSurPlace(string cheminNouvelExe)
+        {
+            // Chemin de l'exe actuellement en cours d'exécution (dossier d'installation)
+            string exeActuel = Application.ExecutablePath;
+            string dossierInstall = Path.GetDirectoryName(exeActuel);
+            string nomExe = Path.GetFileName(exeActuel);
+            string cibleExe = Path.Combine(dossierInstall, nomExe);
+
+            // Script bat dans %TEMP% :
+            //  1. Attend 2s que le processus courant se ferme
+            //  2. Copie le nouvel exe à la place de l'ancien
+            //  3. Relance depuis le dossier d'installation
+            //  4. Se supprime et supprime le fichier temp
+            string cheminBat = Path.Combine(Path.GetTempPath(), "update_impression3d.bat");
+
+            string contenuBat =
+                "@echo off\r\n" +
+                "timeout /t 2 /nobreak >nul\r\n" +
+                $"copy /y \"{cheminNouvelExe}\" \"{cibleExe}\"\r\n" +
+                $"start \"\" \"{cibleExe}\"\r\n" +
+                $"del \"{cheminNouvelExe}\"\r\n" +
+                "del \"%~f0\"\r\n";
+
+            File.WriteAllText(cheminBat, contenuBat, System.Text.Encoding.Default);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = cheminBat,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                CreateNoWindow = true
+            };
+            Process.Start(psi);
         }
 
         // Classe pour stocker les informations de release
