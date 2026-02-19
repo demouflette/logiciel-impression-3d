@@ -100,6 +100,12 @@
     <Compile Include="ActivationForm.Designer.cs">
       <DependentUpon>ActivationForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="ContactAdminForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ContactAdminForm.Designer.cs">
+      <DependentUpon>ContactAdminForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="VerificationEmailForm.cs">
       <SubType>Form</SubType>
     </Compile>

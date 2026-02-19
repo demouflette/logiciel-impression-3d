@@ -38,6 +38,9 @@ namespace logiciel_d_impression_3d
             // Ajouter le menu Administration (visible uniquement pour les admins)
             AjouterMenuAdministration();
 
+            // Ajouter le menu Contact administration (visible pour tous)
+            AjouterMenuContactAdmin();
+
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
 
@@ -1426,6 +1429,31 @@ namespace logiciel_d_impression_3d
             {
                 lblCalibrationInfo.Text = "0 donnée(s) de calibration disponible(s)";
             }
+        }
+
+        private void AjouterMenuContactAdmin()
+        {
+            var menuContact = new ToolStripMenuItem("Contacter l'administration");
+            menuContact.Click += (s, e) =>
+            {
+                var form = new ContactAdminForm();
+                form.ShowDialog(this);
+            };
+
+            // Insérer avant le séparateur qui précède "À propos" dans le menu Aide
+            int indexAPropos = -1;
+            for (int i = 0; i < aideToolStripMenuItem.DropDownItems.Count; i++)
+            {
+                if (aideToolStripMenuItem.DropDownItems[i] is ToolStripSeparator)
+                {
+                    indexAPropos = i;
+                    break;
+                }
+            }
+            if (indexAPropos >= 0)
+                aideToolStripMenuItem.DropDownItems.Insert(indexAPropos, menuContact);
+            else
+                aideToolStripMenuItem.DropDownItems.Add(menuContact);
         }
 
         private void àProposToolStripMenuItem_Click(object sender, EventArgs e)

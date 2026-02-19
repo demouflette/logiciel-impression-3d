@@ -21,6 +21,7 @@ services:
       - SMTP_USER=votre@gmail.com
       - SMTP_PASS=mot-de-passe-application-gmail
       - EMAIL_FROM=Logiciel Impression 3D
+      - ADMIN_EMAIL=admin@mondomaine.fr
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/sante')"]
       interval: 30s

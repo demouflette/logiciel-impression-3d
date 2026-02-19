@@ -31,7 +31,7 @@ from database import (
     lister_utilisateurs,
     definir_role,
 )
-from email_service import email_verification_compte
+from email_service import email_verification_compte, email_contact_admin
 
 # ── Configuration ────────────────────────────────────────────────────────────
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "changez-moi-en-production")
@@ -77,7 +77,34 @@ class RequeteVerificationCode(BaseModel):
     code: str
 
 
+class RequeteContact(BaseModel):
+    email_expediteur: str
+    sujet: str
+    message: str
+
+
 # ── Endpoints publics ────────────────────────────────────────────────────────
+@app.post("/api/contact")
+def contact_admin(req: RequeteContact):
+    """Transmet un message utilisateur à l'administrateur par email."""
+    email = req.email_expediteur.strip()
+    sujet = req.sujet.strip()
+    message = req.message.strip()
+
+    if not email or not sujet or not message:
+        raise HTTPException(status_code=400, detail="Tous les champs sont requis")
+
+    if len(message) > 5000:
+        raise HTTPException(status_code=400, detail="Message trop long (max 5000 caractères)")
+
+    envoye = email_contact_admin(email, sujet, message)
+    if not envoye:
+        # SMTP absent ou ADMIN_EMAIL non configuré — on accepte quand même
+        print(f"Contact non envoyé par email (SMTP/ADMIN_EMAIL) — de {email} : {sujet}")
+
+    return {"message": "Message transmis à l'administration", "email_envoye": envoye}
+
+
 @app.post("/api/activer")
 def activer(req: RequeteActivation):
     """Première activation d'une clé sur un PC."""
