@@ -8,9 +8,13 @@ namespace logiciel_d_impression_3d
 {
     static class Program
     {
-        // Clé de registre Inno Setup (AppId du script .iss)
-        private const string RegistreInstall =
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B7F2E8A9-3C1D-4F6B-9A2E-7D5C8B4F1A3E}_is1";
+        // Clés de registre Inno Setup possibles selon la version du .iss
+        // (le AppId génère parfois }}_is1 au lieu de }_is1 selon l'échappement)
+        private static readonly string[] ClesRegistreInstall = new[]
+        {
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B7F2E8A9-3C1D-4F6B-9A2E-7D5C8B4F1A3E}}_is1",
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B7F2E8A9-3C1D-4F6B-9A2E-7D5C8B4F1A3E}_is1",
+        };
 
         [STAThread]
         static void Main()
@@ -90,44 +94,52 @@ namespace logiciel_d_impression_3d
                 // Chercher le dossier d'installation via le registre Inno Setup
                 string dossierInstall = null;
 
-                // Essai en 32-bit puis 64-bit
-                foreach (var hive in new[] { RegistryHive.LocalMachine, RegistryHive.CurrentUser })
+                // Essai HKCU en priorité (installation utilisateur), puis HKLM
+                foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
                 {
                     foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
                     {
-                        try
+                        foreach (var cle in ClesRegistreInstall)
                         {
-                            using (var baseKey = RegistryKey.OpenBaseKey(hive, view))
-                            using (var key = baseKey.OpenSubKey(RegistreInstall))
+                            try
                             {
-                                if (key != null)
+                                using (var baseKey = RegistryKey.OpenBaseKey(hive, view))
+                                using (var key = baseKey.OpenSubKey(cle))
                                 {
-                                    string loc = key.GetValue("InstallLocation") as string;
-                                    if (!string.IsNullOrEmpty(loc) && Directory.Exists(loc))
+                                    if (key != null)
                                     {
-                                        dossierInstall = loc.TrimEnd(Path.DirectorySeparatorChar);
-                                        break;
+                                        string loc = key.GetValue("InstallLocation") as string;
+                                        if (!string.IsNullOrEmpty(loc) && Directory.Exists(loc))
+                                        {
+                                            dossierInstall = loc.TrimEnd(Path.DirectorySeparatorChar);
+                                            break;
+                                        }
                                     }
                                 }
                             }
+                            catch { }
                         }
-                        catch { }
+                        if (dossierInstall != null) break;
                     }
                     if (dossierInstall != null) break;
                 }
 
                 if (string.IsNullOrEmpty(dossierInstall))
                 {
-                    // Registre introuvable : fallback sur le dossier par défaut
-                    string fallback = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                        "Logiciel d'Impression 3D");
-                    if (!Directory.Exists(fallback))
-                        fallback = Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                            "Logiciel d'Impression 3D");
-                    if (Directory.Exists(fallback))
-                        dossierInstall = fallback;
+                    // Fallback : chemins d'installation courants
+                    string[] fallbacks = new[]
+                    {
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            "Programs", "Logiciel d'Impression 3D"),
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                            "Logiciel d'Impression 3D"),
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                            "Logiciel d'Impression 3D"),
+                    };
+                    foreach (var f in fallbacks)
+                    {
+                        if (Directory.Exists(f)) { dossierInstall = f; break; }
+                    }
                 }
 
                 if (string.IsNullOrEmpty(dossierInstall))

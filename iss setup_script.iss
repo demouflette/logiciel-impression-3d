@@ -10,7 +10,7 @@
 
 [Setup]
 ; Informations de base
-AppId={{B7F2E8A9-3C1D-4F6B-9A2E-7D5C8B4F1A3E}}
+AppId={{B7F2E8A9-3C1D-4F6B-9A2E-7D5C8B4F1A3E}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
