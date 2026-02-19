@@ -156,7 +156,17 @@ namespace logiciel_d_impression_3d
             this.Close();
         }
 
-        // ── Lien achat ────────────────────────────────────────────────────
+        // ── Achat PayPal ──────────────────────────────────────────────────
+        private void btnAcheterPaypal_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(LicenceManager.UrlServeur + "/acheter");
+            }
+            catch { }
+        }
+
+        // ── Lien contact ─────────────────────────────────────────────────
         private void lnkAcheter_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             var contact = new ContactAdminForm();

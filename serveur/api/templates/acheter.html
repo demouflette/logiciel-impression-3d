@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acheter une licence — Logiciel d'impression 3D</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; color: #2c3e50; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #fff; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.10); max-width: 480px; width: 100%; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #1a1a2e, #0f3460); padding: 32px 28px; text-align: center; }
+    .header h1 { color: #fff; font-size: 1.3rem; margin-bottom: 6px; }
+    .header p  { color: rgba(255,255,255,0.65); font-size: 0.85rem; }
+    .body { padding: 32px 28px; }
+    .offer { background: #f0f6ff; border: 2px solid #3498db; border-radius: 14px; padding: 24px; margin-bottom: 28px; text-align: center; }
+    .offer .prix { font-size: 2.8rem; font-weight: 800; color: #1a1a2e; line-height: 1; }
+    .offer .periode { font-size: 0.9rem; color: #7f8c8d; margin-top: 4px; }
+    .offer .desc { font-size: 0.85rem; color: #555; margin-top: 14px; line-height: 1.6; }
+    .features { list-style: none; margin-bottom: 28px; }
+    .features li { padding: 7px 0; font-size: 0.9rem; color: #555; }
+    .features li::before { content: "✓ "; color: #27ae60; font-weight: 700; }
+    .paypal-btn { width: 100%; }
+    .paypal-btn input[type=submit], .paypal-btn input[type=image] { cursor: pointer; }
+    .paypal-form { text-align: center; }
+    .paypal-form input[type=submit] {
+      background: #FFD140; border: none; border-radius: 10px;
+      padding: 14px 32px; font-size: 1rem; font-weight: 700;
+      color: #111; cursor: pointer; width: 100%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      transition: background 0.2s;
+    }
+    .paypal-form input[type=submit]:hover { background: #f0c300; }
+    .secure { text-align: center; margin-top: 14px; font-size: 0.78rem; color: #aaa; }
+    .sandbox-banner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #856404; margin-bottom: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>🖨️ Logiciel d'impression 3D</h1>
+      <p>Activez l'accès complet au logiciel</p>
+    </div>
+    <div class="body">
+
+      {% if paypal_email == "votre@paypal.com" or not paypal_email %}
+      <div class="sandbox-banner">⚠️ Page de paiement non encore configurée. Contactez l'administrateur.</div>
+      {% elif paypal_mode == "sandbox" %}
+      <div class="sandbox-banner">🧪 Mode test (sandbox) — aucun vrai paiement ne sera débité</div>
+      {% endif %}
+
+      <div class="offer">
+        <div class="prix">{{ prix_mensuel }} €</div>
+        <div class="periode">par mois · renouvellement manuel</div>
+        <div class="desc">
+          Accès complet pendant 30 jours.<br>
+          Votre clé de licence vous sera envoyée par email immédiatement après paiement.
+        </div>
+      </div>
+
+      <ul class="features">
+        <li>Calcul depuis fichier 3MF (Bambu Lab)</li>
+        <li>Paramètres avancés : électricité, purge AMS, TVA, marge</li>
+        <li>Toutes les fonctionnalités premium débloquées</li>
+        <li>Clé liée à votre machine (sécurisée)</li>
+      </ul>
+
+      {% if paypal_email and paypal_email != "votre@paypal.com" %}
+      <form action="{{ paypal_url }}" method="post" class="paypal-form">
+        <input type="hidden" name="cmd"           value="_xclick">
+        <input type="hidden" name="business"      value="{{ paypal_email }}">
+        <input type="hidden" name="item_name"     value="Licence mensuelle — Logiciel Impression 3D">
+        <input type="hidden" name="amount"        value="{{ prix_mensuel }}">
+        <input type="hidden" name="currency_code" value="EUR">
+        <input type="hidden" name="notify_url"    value="{{ notify_url }}">
+        <input type="hidden" name="return"        value="{{ return_url }}">
+        <input type="hidden" name="cancel_return" value="{{ cancel_url }}">
+        <input type="hidden" name="custom"        value="monthly:30">
+        <input type="hidden" name="no_shipping"   value="1">
+        <input type="hidden" name="no_note"       value="1">
+        <input type="hidden" name="charset"       value="UTF-8">
+        <input type="submit" value="Payer avec PayPal →">
+      </form>
+      {% endif %}
+
+      <p class="secure">🔒 Paiement sécurisé par PayPal · Clé envoyée à votre adresse PayPal</p>
+    </div>
+  </div>
+</body>
+</html>

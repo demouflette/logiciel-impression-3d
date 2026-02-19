@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if succes %}Paiement reçu{% else %}Paiement annulé{% endif %} — Logiciel d'impression 3D</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; color: #2c3e50; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #fff; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.10); max-width: 460px; width: 100%; text-align: center; padding: 48px 32px; }
+    .icon { font-size: 4rem; margin-bottom: 20px; }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; }
+    p  { color: #7f8c8d; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px; }
+    .btn { display: inline-block; margin-top: 24px; background: #3498db; color: #fff; border-radius: 10px; padding: 12px 28px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    {% if succes %}
+    <div class="icon">🎉</div>
+    <h1>Paiement reçu !</h1>
+    <p>Merci pour votre achat.</p>
+    <p>Votre clé de licence va être générée et vous sera envoyée par email <strong>dans les prochaines secondes</strong> à l'adresse associée à votre compte PayPal.</p>
+    <p style="margin-top:14px; font-size:0.85rem; color:#aaa;">Si vous ne recevez rien dans 5 minutes, vérifiez vos spams ou contactez l'administration depuis le logiciel.</p>
+    {% else %}
+    <div class="icon">↩️</div>
+    <h1>Paiement annulé</h1>
+    <p>Votre paiement a été annulé. Aucune somme n'a été débitée.</p>
+    <p>Vous pouvez recommencer quand vous le souhaitez.</p>
+    <a href="/acheter" class="btn">Retour à la page d'achat</a>
+    {% endif %}
+  </div>
+</body>
+</html>

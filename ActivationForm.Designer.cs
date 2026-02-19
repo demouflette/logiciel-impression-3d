@@ -16,6 +16,7 @@ namespace logiciel_d_impression_3d
             this.lblTitre = new System.Windows.Forms.Label();
             this.lblSousTitre = new System.Windows.Forms.Label();
             this.lblObtenirCle = new System.Windows.Forms.Label();
+            this.btnAcheterPaypal = new System.Windows.Forms.Button();
             this.txtCle = new System.Windows.Forms.TextBox();
             this.btnActiver = new System.Windows.Forms.Button();
             this.btnEssai = new System.Windows.Forms.Button();
@@ -26,7 +27,7 @@ namespace logiciel_d_impression_3d
 
             // ── Fenêtre ──────────────────────────────────────────────────
             this.Text = "Activation du logiciel";
-            this.Size = new System.Drawing.Size(460, 340);
+            this.Size = new System.Drawing.Size(460, 380);
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -74,21 +75,33 @@ namespace logiciel_d_impression_3d
             this.lblInfo.Font = new System.Drawing.Font("Segoe UI", 8.5F);
 
             // ── lblObtenirCle ─────────────────────────────────────────────
-            this.lblObtenirCle.Text = "Pas encore de clé ? Contactez l'administration pour en obtenir une.";
+            this.lblObtenirCle.Text = "Pas encore de clé ?";
             this.lblObtenirCle.Location = new System.Drawing.Point(20, 205);
-            this.lblObtenirCle.Size = new System.Drawing.Size(410, 18);
+            this.lblObtenirCle.Size = new System.Drawing.Size(200, 18);
             this.lblObtenirCle.Font = new System.Drawing.Font("Segoe UI", 8.5F);
 
+            // ── btnAcheterPaypal ──────────────────────────────────────────
+            this.btnAcheterPaypal.Text = "Acheter en ligne (PayPal)";
+            this.btnAcheterPaypal.Location = new System.Drawing.Point(20, 226);
+            this.btnAcheterPaypal.Size = new System.Drawing.Size(200, 34);
+            this.btnAcheterPaypal.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnAcheterPaypal.BackColor = System.Drawing.Color.FromArgb(255, 209, 64);
+            this.btnAcheterPaypal.ForeColor = System.Drawing.Color.FromArgb(17, 17, 17);
+            this.btnAcheterPaypal.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAcheterPaypal.FlatAppearance.BorderSize = 0;
+            this.btnAcheterPaypal.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnAcheterPaypal.Click += new System.EventHandler(this.btnAcheterPaypal_Click);
+
             // ── lnkAcheter ───────────────────────────────────────────────
-            this.lnkAcheter.Text = "Contacter l'administration →";
-            this.lnkAcheter.Location = new System.Drawing.Point(20, 225);
-            this.lnkAcheter.Size = new System.Drawing.Size(240, 20);
-            this.lnkAcheter.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lnkAcheter.Text = "Une question ? Contacter l'administration";
+            this.lnkAcheter.Location = new System.Drawing.Point(20, 266);
+            this.lnkAcheter.Size = new System.Drawing.Size(310, 18);
+            this.lnkAcheter.Font = new System.Drawing.Font("Segoe UI", 8.5F);
             this.lnkAcheter.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkAcheter_LinkClicked);
 
             // ── btnEssai ──────────────────────────────────────────────────
             this.btnEssai.Text = "Continuer l'essai";
-            this.btnEssai.Location = new System.Drawing.Point(20, 260);
+            this.btnEssai.Location = new System.Drawing.Point(20, 295);
             this.btnEssai.Size = new System.Drawing.Size(200, 36);
             this.btnEssai.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.btnEssai.Visible = false;
@@ -103,6 +116,7 @@ namespace logiciel_d_impression_3d
                 this.btnActiver,
                 this.lblInfo,
                 this.lblObtenirCle,
+                this.btnAcheterPaypal,
                 this.lnkAcheter,
                 this.btnEssai
             });
@@ -116,6 +130,7 @@ namespace logiciel_d_impression_3d
         private System.Windows.Forms.TextBox txtCle;
         private System.Windows.Forms.Button btnActiver;
         private System.Windows.Forms.Button btnEssai;
+        private System.Windows.Forms.Button btnAcheterPaypal;
         private System.Windows.Forms.LinkLabel lnkAcheter;
         private System.Windows.Forms.Label lblInfo;
         private System.Windows.Forms.Label lblObtenirCle;

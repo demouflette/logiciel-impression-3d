@@ -8,7 +8,9 @@ import random
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI, HTTPException, Header, Request
+import urllib.parse
+
+from fastapi import FastAPI, HTTPException, Header, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -30,12 +32,18 @@ from database import (
     verifier_utilisateur,
     lister_utilisateurs,
     definir_role,
+    paiement_existe,
+    enregistrer_paiement,
 )
-from email_service import email_verification_compte, email_contact_admin
+from email_service import email_verification_compte, email_contact_admin, email_licence
+from paypal_service import valider_ipn
 
 # ── Configuration ────────────────────────────────────────────────────────────
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "changez-moi-en-production")
-APP_VERSION = "1.0.0"
+ADMIN_KEY          = os.environ.get("ADMIN_KEY",           "changez-moi-en-production")
+PAYPAL_EMAIL       = os.environ.get("PAYPAL_EMAIL",        "").strip().lower()
+PAYPAL_MODE        = os.environ.get("PAYPAL_MODE",         "sandbox")
+PAYPAL_PRIX_MENSUEL = os.environ.get("PAYPAL_PRIX_MENSUEL", "9.99")
+APP_VERSION        = "1.0.0"
 
 app = FastAPI(title="Serveur de licences", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory="/app/templates")
@@ -81,6 +89,108 @@ class RequeteContact(BaseModel):
     email_expediteur: str
     sujet: str
     message: str
+
+
+# ── PayPal ───────────────────────────────────────────────────────────────────
+@app.get("/acheter", response_class=HTMLResponse)
+def page_achat(request: Request):
+    """Page publique d'achat de licence via PayPal."""
+    paypal_url = (
+        "https://www.sandbox.paypal.com/cgi-bin/webscr"
+        if PAYPAL_MODE == "sandbox"
+        else "https://www.paypal.com/cgi-bin/webscr"
+    )
+    return templates.TemplateResponse("acheter.html", {
+        "request":      request,
+        "paypal_url":   paypal_url,
+        "paypal_email": PAYPAL_EMAIL,
+        "prix_mensuel": PAYPAL_PRIX_MENSUEL,
+        "notify_url":   f"{SERVEUR_URL}/api/paypal/ipn",
+        "return_url":   f"{SERVEUR_URL}/paiement-succes",
+        "cancel_url":   f"{SERVEUR_URL}/paiement-annule",
+    })
+
+
+@app.get("/paiement-succes", response_class=HTMLResponse)
+def paiement_succes(request: Request):
+    """Page affichée après un paiement réussi."""
+    return templates.TemplateResponse("paiement_succes.html", {"request": request, "succes": True})
+
+
+@app.get("/paiement-annule", response_class=HTMLResponse)
+def paiement_annule(request: Request):
+    """Page affichée si le paiement est annulé."""
+    return templates.TemplateResponse("paiement_succes.html", {"request": request, "succes": False})
+
+
+@app.post("/api/paypal/ipn")
+async def paypal_ipn(request: Request):
+    """Réception et traitement des notifications IPN PayPal."""
+    raw_body = await request.body()
+
+    # Toujours répondre 200 en premier (exigence PayPal)
+    # Validation asynchrone
+    if not valider_ipn(raw_body):
+        print("⚠️  IPN PayPal rejeté (non vérifié)")
+        return Response(status_code=200)
+
+    # Parser les paramètres IPN
+    params = urllib.parse.parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+    def get(key):
+        return params.get(key, [None])[0] or ""
+
+    payment_status  = get("payment_status")
+    receiver_email  = get("receiver_email").strip().lower()
+    txn_id          = get("txn_id")
+    payer_email     = get("payer_email").strip()
+    custom          = get("custom") or "monthly:30"
+    mc_gross        = get("mc_gross") or "0"
+    mc_currency     = get("mc_currency") or "EUR"
+
+    # Vérifier que le paiement est bien pour nous
+    if PAYPAL_EMAIL and receiver_email != PAYPAL_EMAIL:
+        print(f"⚠️  IPN: receiver_email inattendu ({receiver_email})")
+        return Response(status_code=200)
+
+    if payment_status != "Completed":
+        print(f"IPN reçu — statut ignoré : {payment_status}")
+        return Response(status_code=200)
+
+    if not txn_id or not payer_email:
+        print("⚠️  IPN: txn_id ou payer_email manquant")
+        return Response(status_code=200)
+
+    # Anti-doublon
+    if paiement_existe(txn_id):
+        print(f"IPN: transaction déjà traitée : {txn_id}")
+        return Response(status_code=200)
+
+    # Parser le champ custom : "monthly:30"
+    parts = custom.split(":")
+    type_licence = parts[0] if parts[0] in ("monthly", "lifetime") else "monthly"
+    try:
+        duree_jours = int(parts[1]) if len(parts) >= 2 else 30
+    except ValueError:
+        duree_jours = 30
+
+    # Générer la clé de licence
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    cle = "-".join(
+        "".join(secrets.choice(alphabet) for _ in range(4))
+        for _ in range(4)
+    )
+    scratch_token   = secrets.token_urlsafe(32)
+    date_expiration = (datetime.utcnow() + timedelta(days=duree_jours)).isoformat()
+
+    inserer_licence(cle, payer_email, type_licence, date_expiration, scratch_token)
+    enregistrer_paiement(txn_id, payer_email, mc_gross, mc_currency, type_licence, cle)
+
+    # Envoyer l'email avec la scratch card
+    lien_scratch = f"/scratch/{scratch_token}"
+    envoye = email_licence(payer_email, cle, lien_scratch, type_licence, date_expiration)
+
+    print(f"✅ Paiement {txn_id} traité — clé {cle} {'envoyée' if envoye else 'générée (SMTP absent)'} à {payer_email}")
+    return Response(status_code=200)
 
 
 # ── Endpoints publics ────────────────────────────────────────────────────────

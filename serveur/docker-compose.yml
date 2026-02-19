@@ -22,6 +22,10 @@ services:
       - SMTP_PASS=mot-de-passe-application-gmail
       - EMAIL_FROM=Logiciel Impression 3D
       - ADMIN_EMAIL=admin@mondomaine.fr
+      # ── Configuration PayPal ──
+      - PAYPAL_EMAIL=votre@paypal.com
+      - PAYPAL_MODE=sandbox
+      - PAYPAL_PRIX_MENSUEL=9.99
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/sante')"]
       interval: 30s

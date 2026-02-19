@@ -46,6 +46,18 @@ def initialiser_db():
                 token_email TEXT DEFAULT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS paiements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                txn_id TEXT NOT NULL UNIQUE,
+                payer_email TEXT NOT NULL,
+                montant TEXT NOT NULL,
+                devise TEXT NOT NULL DEFAULT 'EUR',
+                type_licence TEXT NOT NULL DEFAULT 'monthly',
+                date_paiement TEXT NOT NULL,
+                cle_generee TEXT DEFAULT NULL
+            )
+        """)
         conn.commit()
 
 
@@ -165,6 +177,27 @@ def lister_utilisateurs():
         return conn.execute(
             "SELECT id, nom_utilisateur, email, role, date_inscription, verifie FROM utilisateurs ORDER BY date_inscription DESC"
         ).fetchall()
+
+
+def paiement_existe(txn_id: str) -> bool:
+    with obtenir_connexion() as conn:
+        row = conn.execute(
+            "SELECT id FROM paiements WHERE txn_id = ?", (txn_id,)
+        ).fetchone()
+        return row is not None
+
+
+def enregistrer_paiement(txn_id: str, payer_email: str, montant: str, devise: str,
+                          type_licence: str, cle: str):
+    now = datetime.utcnow().isoformat()
+    with obtenir_connexion() as conn:
+        conn.execute(
+            """INSERT OR IGNORE INTO paiements
+               (txn_id, payer_email, montant, devise, type_licence, date_paiement, cle_generee)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (txn_id, payer_email, montant, devise, type_licence, now, cle)
+        )
+        conn.commit()
 
 
 def definir_role(nom: str, role: str):
