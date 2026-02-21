@@ -14,7 +14,7 @@ services:
       # ⚠️ CHANGEZ ces valeurs avant de déployer en production !
       - ADMIN_KEY=CHANGEZ-MOI-EN-PRODUCTION
       - DB_PATH=/data/licences.db
-      - SERVEUR_URL=https://licence.mondomaine.fr
+      - SERVEUR_URL=https://licence.demouflette.fr
       # ── Configuration SMTP (Gmail recommandé) ──
       - SMTP_HOST=smtp.gmail.com
       - SMTP_PORT=587

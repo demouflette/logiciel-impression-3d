@@ -19,7 +19,7 @@ namespace logiciel_d_impression_3d
     public static class LicenceManager
     {
         // ── Configuration ──────────────────────────────────────────────────
-        public const string UrlServeur = "https://licence.mondomaine.fr";
+        public const string UrlServeur = "https://licence.demouflette.fr";
         private const int GracePeriodeJours = 7;   // Offline grace period
         private const int DureeEssaiJours = 14;
         private const int IntervalleVerifHeures = 24;
