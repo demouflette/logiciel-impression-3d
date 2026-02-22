@@ -34,6 +34,15 @@ from database import (
     definir_role,
     paiement_existe,
     enregistrer_paiement,
+    creer_session,
+    lier_session_cle,
+    obtenir_session,
+    creer_promotion,
+    obtenir_promo_disponible,
+    marquer_promo_utilisee,
+    lister_promotions,
+    prolonger_licence,
+    supprimer_promo,
 )
 from email_service import email_verification_compte, email_contact_admin, email_licence
 from paypal_service import valider_ipn
@@ -43,6 +52,7 @@ ADMIN_KEY          = os.environ.get("ADMIN_KEY",           "changez-moi-en-produ
 PAYPAL_EMAIL       = os.environ.get("PAYPAL_EMAIL",        "").strip().lower()
 PAYPAL_MODE        = os.environ.get("PAYPAL_MODE",         "sandbox")
 PAYPAL_PRIX_MENSUEL = os.environ.get("PAYPAL_PRIX_MENSUEL", "9.99")
+SERVEUR_URL        = os.environ.get("SERVEUR_URL",         "https://licence.demouflette.fr")
 APP_VERSION        = "1.0.0"
 
 app = FastAPI(title="Serveur de licences", docs_url=None, redoc_url=None)
@@ -91,6 +101,23 @@ class RequeteContact(BaseModel):
     message: str
 
 
+class RequeteCreerPromo(BaseModel):
+    titre: str
+    message: str
+    type: str = "info"       # "info" | "code"
+    code: str = ""
+    jours_offerts: int = 0
+    date_expiration: str     # ISO date "YYYY-MM-DD"
+    emails: list             # list[str]
+
+
+class RequeteUtiliserPromo(BaseModel):
+    promo_id: int
+    email: str
+    machine_id: str
+    code: str = ""
+
+
 # ── PayPal ───────────────────────────────────────────────────────────────────
 @app.get("/acheter", response_class=HTMLResponse)
 def page_achat(request: Request):
@@ -100,6 +127,8 @@ def page_achat(request: Request):
         if PAYPAL_MODE == "sandbox"
         else "https://www.paypal.com/cgi-bin/webscr"
     )
+    session_id = secrets.token_urlsafe(16)
+    creer_session(session_id)
     return templates.TemplateResponse("acheter.html", {
         "request":      request,
         "paypal_url":   paypal_url,
@@ -107,9 +136,28 @@ def page_achat(request: Request):
         "paypal_mode":  PAYPAL_MODE,
         "prix_mensuel": PAYPAL_PRIX_MENSUEL,
         "notify_url":   f"{SERVEUR_URL}/api/paypal/ipn",
-        "return_url":   f"{SERVEUR_URL}/paiement-succes",
+        "return_url":   f"{SERVEUR_URL}/paiement-retour/{session_id}",
         "cancel_url":   f"{SERVEUR_URL}/paiement-annule",
+        "session_id":   session_id,
     })
+
+
+@app.get("/paiement-retour/{session_id}", response_class=HTMLResponse)
+def paiement_retour(session_id: str, request: Request):
+    """Page de transition : attend la clé puis redirige vers l'app via logiciel3d://"""
+    return templates.TemplateResponse("paiement_retour.html", {
+        "request":    request,
+        "session_id": session_id,
+    })
+
+
+@app.get("/api/session/{session_id}")
+def verifier_session(session_id: str):
+    """Polling JS : retourne la clé quand l'IPN l'a générée."""
+    data = obtenir_session(session_id)
+    if data:
+        return {"prete": True, "cle": data["cle"]}
+    return {"prete": False}
 
 
 @app.get("/paiement-succes", response_class=HTMLResponse)
@@ -210,13 +258,14 @@ async def paypal_ipn(request: Request):
         print(f"IPN: transaction déjà traitée : {txn_id}")
         return Response(status_code=200)
 
-    # Parser le champ custom : "monthly:30"
+    # Parser le champ custom : "monthly:30:SESSION_ID"
     parts = custom.split(":")
     type_licence = parts[0] if parts[0] in ("monthly", "lifetime") else "monthly"
     try:
         duree_jours = int(parts[1]) if len(parts) >= 2 else 30
     except ValueError:
         duree_jours = 30
+    session_id = parts[2] if len(parts) >= 3 else None
 
     # Générer la clé de licence
     alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -230,7 +279,11 @@ async def paypal_ipn(request: Request):
     inserer_licence(cle, payer_email, type_licence, date_expiration, scratch_token)
     enregistrer_paiement(txn_id, payer_email, mc_gross, mc_currency, type_licence, cle)
 
-    # Envoyer l'email avec la scratch card
+    # Lier la clé à la session pour le redirect vers l'app
+    if session_id:
+        lier_session_cle(session_id, cle, scratch_token)
+
+    # Envoyer l'email avec la scratch card (en complément)
     lien_scratch = f"/scratch/{scratch_token}"
     envoye = email_licence(payer_email, cle, lien_scratch, type_licence, date_expiration)
 
@@ -524,6 +577,83 @@ def renvoyer_code(req: RequeteInscription):
     return {"message": "Nouveau code envoyé", "email_envoye": envoye}
 
 
+# ── Promotions ───────────────────────────────────────────────────────────────
+@app.get("/api/promo")
+def verifier_promo(email: str, machine_id: str):
+    """Vérifie si une promotion est disponible pour cet email/machine."""
+    if not email or not machine_id:
+        return {"disponible": False}
+    promo = obtenir_promo_disponible(email.strip().lower(), machine_id.strip())
+    if not promo:
+        return {"disponible": False}
+    return {
+        "disponible": True,
+        "id": promo["id"],
+        "titre": promo["titre"],
+        "message": promo["message"],
+        "type": promo["type"],
+        "jours_offerts": promo["jours_offerts"],
+        "code": promo["code"] or "",
+    }
+
+
+@app.post("/api/promo/utiliser")
+def utiliser_promo(req: RequeteUtiliserPromo):
+    """Marque une promo comme utilisée et prolonge la licence si applicable."""
+    email = req.email.strip().lower()
+    machine_id = req.machine_id.strip()
+
+    # Vérifier que la promo est toujours disponible
+    promo = obtenir_promo_disponible(email, machine_id)
+    if not promo or promo["id"] != req.promo_id:
+        raise HTTPException(status_code=409, detail="Promotion déjà utilisée ou expirée")
+
+    # Vérifier le code si type='code'
+    if promo["type"] == "code":
+        if not req.code or req.code.strip().upper() != (promo["code"] or "").strip().upper():
+            raise HTTPException(status_code=400, detail="Code incorrect")
+
+    # Marquer comme utilisée
+    marquer_promo_utilisee(promo["id"], machine_id, email)
+
+    # Prolonger la licence si jours_offerts > 0
+    jours = promo["jours_offerts"]
+    if jours > 0:
+        prolonger_licence(email, jours)
+
+    return {"ok": True, "jours_ajoutes": jours}
+
+
+@app.post("/api/admin/creer-promo")
+def admin_creer_promo(req: RequeteCreerPromo, x_admin_key: str = Header(None)):
+    verifier_admin(x_admin_key)
+    if req.type not in ("info", "code"):
+        raise HTTPException(status_code=400, detail="Type invalide : 'info' ou 'code'")
+    if req.type == "code" and not req.code:
+        raise HTTPException(status_code=400, detail="Code requis pour le type 'code'")
+    if not req.emails:
+        raise HTTPException(status_code=400, detail="Au moins un email cible requis")
+    promo_id = creer_promotion(
+        req.titre, req.message, req.type,
+        req.code or None, req.jours_offerts,
+        req.date_expiration, req.emails
+    )
+    return {"ok": True, "promo_id": promo_id}
+
+
+@app.get("/api/admin/promos")
+def admin_lister_promos(x_admin_key: str = Header(None)):
+    verifier_admin(x_admin_key)
+    return lister_promotions()
+
+
+@app.delete("/api/admin/promos/{promo_id}")
+def admin_supprimer_promo(promo_id: int, x_admin_key: str = Header(None)):
+    verifier_admin(x_admin_key)
+    supprimer_promo(promo_id)
+    return {"ok": True, "message": f"Promotion {promo_id} supprimée"}
+
+
 # ── Dashboard admin web ──────────────────────────────────────────────────────
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, key: str = ""):
@@ -541,11 +671,13 @@ def admin_dashboard(request: Request, key: str = ""):
 
     licences = [dict(row) for row in lister_licences()]
     utilisateurs = [dict(row) for row in lister_utilisateurs()]
+    promotions = lister_promotions()
 
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "licences": licences,
         "utilisateurs": utilisateurs,
+        "promotions": promotions,
         "admin_key": key,
         "stats": {
             "total_utilisateurs": len(utilisateurs),

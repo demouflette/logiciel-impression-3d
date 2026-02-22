@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Windows.Forms;
 
@@ -16,6 +17,17 @@ namespace logiciel_d_impression_3d
         private Dictionary<string, Color> couleursDictionnaire;
         private ThreeMFParser.ThreeMFFile fichier3mfAnalyse;
         private bool valeurSlicerUtilisees = false;
+
+        // Bouton PROMO arc-en-ciel
+        private ToolStripMenuItem _menuPromo;
+        private System.Windows.Forms.Timer _timerPromo;
+        private int _promoHue = 0;
+        private int _promoId = -1;
+        private string _promoTitre;
+        private string _promoMessage;
+        private string _promoType;
+        private int _promoJours;
+        private string _promoCode;
 
         public Form1(UserManager manager)
         {
@@ -43,6 +55,9 @@ namespace logiciel_d_impression_3d
 
             // Ajouter le menu Activer une licence
             AjouterMenuActiverLicence();
+
+            // Ajouter le bouton PROMO
+            AjouterMenuPromo();
 
             // Afficher le nombre de données de calibration
             MettreAJourInfoCalibration();
@@ -1491,6 +1506,181 @@ namespace logiciel_d_impression_3d
                 aideToolStripMenuItem.DropDownItems.Insert(indexAPropos, menuContact);
             else
                 aideToolStripMenuItem.DropDownItems.Add(menuContact);
+        }
+
+        // ── Bouton PROMO arc-en-ciel ──────────────────────────────────────────
+        private void AjouterMenuPromo()
+        {
+            _menuPromo = new ToolStripMenuItem("PROMO");
+            _menuPromo.Tag = "promo";   // Le FlatMenuRenderer respecte ForeColor pour ce tag
+            _menuPromo.Enabled = false; // Grisé par défaut (aucune promo)
+            _menuPromo.ForeColor = Color.Gray;
+            _menuPromo.Font = new System.Drawing.Font(menuStrip1.Font ?? SystemFonts.DefaultFont, FontStyle.Bold);
+            _menuPromo.Click += (s, e) => OuvrirPromo();
+            // Insérer juste après "Fichier" (index 0), avant "Aide"
+            menuStrip1.Items.Insert(1, _menuPromo);
+            // Aide complètement à droite
+            aideToolStripMenuItem.Alignment = ToolStripItemAlignment.Right;
+
+            // Lancer la vérification en arrière-plan après construction complète
+            this.Load += (s, e) => VerifierPromoAsync();
+        }
+
+        private void VerifierPromoAsync()
+        {
+            string email = userManager.CurrentUser?.Email ?? "";
+            string machineId = LicenceManager.ObtenirMachineId();
+            if (string.IsNullOrEmpty(email)) return;
+
+            new System.Threading.Thread(() =>
+            {
+                try
+                {
+                    string url = string.Format("{0}/api/promo?email={1}&machine_id={2}",
+                        LicenceManager.UrlServeur,
+                        Uri.EscapeDataString(email),
+                        Uri.EscapeDataString(machineId));
+
+                    using (var client = new WebClient())
+                    {
+                        client.Headers.Add("User-Agent", "LogicielImpression3D-Client/1.0");
+                        string json = client.DownloadString(url);
+
+                        // Parsing JSON minimal (sans librairie)
+                        bool disponible = json.Contains("\"disponible\":true") || json.Contains("\"disponible\": true");
+                        if (!disponible) return;
+
+                        int id = ExtraireInt(json, "\"id\"");
+                        string titre = ExtraireString(json, "\"titre\"");
+                        string message = ExtraireString(json, "\"message\"");
+                        string type = ExtraireString(json, "\"type\"");
+                        int jours = ExtraireInt(json, "\"jours_offerts\"");
+                        string code = ExtraireString(json, "\"code\"");
+
+                        // Activer l'animation dans le thread UI
+                        this.Invoke((Action)(() =>
+                        {
+                            _promoId = id;
+                            _promoTitre = titre;
+                            _promoMessage = message;
+                            _promoType = type;
+                            _promoJours = jours;
+                            _promoCode = code;
+                            _menuPromo.Enabled = true;
+
+                            _timerPromo = new System.Windows.Forms.Timer();
+                            _timerPromo.Interval = 80;
+                            _timerPromo.Tick += TimerPromo_Tick;
+                            _timerPromo.Start();
+                        }));
+                    }
+                }
+                catch { /* Serveur inaccessible — pas grave, le bouton reste grisé */ }
+            })
+            { IsBackground = true }.Start();
+        }
+
+        private void TimerPromo_Tick(object sender, EventArgs e)
+        {
+            _promoHue = (_promoHue + 6) % 360;
+            // ForeColor force le FlatMenuRenderer à utiliser notre couleur (Tag="promo")
+            _menuPromo.ForeColor = CouleurHsv(_promoHue, 1.0, 0.85);
+        }
+
+        /// <summary>Convertit une teinte HSV (h=0-359, s=0-1, v=0-1) en Color RGB.</summary>
+        private static Color CouleurHsv(int h, double s, double v)
+        {
+            double c = v * s;
+            double x = c * (1 - Math.Abs((h / 60.0) % 2 - 1));
+            double m = v - c;
+            double r, g, b;
+            if      (h <  60) { r = c; g = x; b = 0; }
+            else if (h < 120) { r = x; g = c; b = 0; }
+            else if (h < 180) { r = 0; g = c; b = x; }
+            else if (h < 240) { r = 0; g = x; b = c; }
+            else if (h < 300) { r = x; g = 0; b = c; }
+            else              { r = c; g = 0; b = x; }
+            return Color.FromArgb(
+                (int)((r + m) * 255),
+                (int)((g + m) * 255),
+                (int)((b + m) * 255));
+        }
+
+        private void OuvrirPromo()
+        {
+            _timerPromo?.Stop();
+            using (var f = new PromoForm(_promoId, _promoTitre, _promoMessage, _promoType,
+                                         _promoJours, _promoCode ?? "",
+                                         userManager.CurrentUser.Email,
+                                         LicenceManager.ObtenirMachineId()))
+            {
+                if (f.ShowDialog(this) == DialogResult.OK)
+                {
+                    // Promo utilisée → revenir à l'état grisé
+                    _promoId = -1;
+                    _timerPromo?.Stop();
+                    _menuPromo.Enabled = false;
+                    _menuPromo.ForeColor = Color.Gray;
+                }
+                else
+                {
+                    // Fenêtre fermée sans utiliser → reprendre l'animation
+                    _timerPromo?.Start();
+                }
+            }
+        }
+
+        /// <summary>Extrait un entier d'un JSON minimal (premier entier après la clé).</summary>
+        private static int ExtraireInt(string json, string cle)
+        {
+            // Chercher "cle": pour être précis (éviter de trouver "cle_autrechose")
+            string pattern = cle + ":";
+            int idx = json.IndexOf(pattern, StringComparison.Ordinal);
+            if (idx < 0) return 0;
+            idx += pattern.Length;
+            while (idx < json.Length && (json[idx] == ' ')) idx++;
+            int start = idx;
+            while (idx < json.Length && (char.IsDigit(json[idx]) || json[idx] == '-')) idx++;
+            int val;
+            return int.TryParse(json.Substring(start, idx - start), out val) ? val : 0;
+        }
+
+        /// <summary>Extrait une chaîne JSON (entre guillemets) après la clé donnée, avec gestion \uXXXX.</summary>
+        private static string ExtraireString(string json, string cle)
+        {
+            // Chercher "cle": pour être précis
+            string pattern = cle + ":";
+            int idx = json.IndexOf(pattern, StringComparison.Ordinal);
+            if (idx < 0) return "";
+            idx += pattern.Length;
+            // Sauter jusqu'au premier guillemet ouvrant
+            while (idx < json.Length && json[idx] != '"') idx++;
+            if (idx >= json.Length) return "";
+            idx++; // sauter le guillemet ouvrant
+            var sb = new System.Text.StringBuilder();
+            while (idx < json.Length && json[idx] != '"')
+            {
+                if (json[idx] == '\\' && idx + 1 < json.Length)
+                {
+                    idx++;
+                    if (json[idx] == 'n')       sb.Append('\n');
+                    else if (json[idx] == 't')  sb.Append('\t');
+                    else if (json[idx] == 'r')  sb.Append('\r');
+                    else if (json[idx] == 'u' && idx + 4 < json.Length)
+                    {
+                        // Séquence \uXXXX (ex: \u00e9 → é)
+                        string hex = json.Substring(idx + 1, 4);
+                        int code;
+                        if (int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out code))
+                            sb.Append((char)code);
+                        idx += 4;
+                    }
+                    else sb.Append(json[idx]);
+                }
+                else sb.Append(json[idx]);
+                idx++;
+            }
+            return sb.ToString();
         }
 
         private void àProposToolStripMenuItem_Click(object sender, EventArgs e)

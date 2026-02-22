@@ -335,7 +335,11 @@ namespace logiciel_d_impression_3d
 
             protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
             {
-                e.TextColor = TextPrimary;
+                // Les items avec Tag="promo" utilisent leur propre ForeColor (animation arc-en-ciel)
+                if (e.Item.Tag as string == "promo")
+                    e.TextColor = e.Item.ForeColor;
+                else
+                    e.TextColor = e.Item.Enabled ? TextPrimary : TextSecondary;
                 base.OnRenderItemText(e);
             }
         }

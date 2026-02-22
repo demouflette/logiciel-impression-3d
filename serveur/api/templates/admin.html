@@ -293,6 +293,108 @@
         </div>
     </div>
 
+    <!-- ── Section Promotions ──────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-header">
+            <span>🎁 Promotions</span>
+            <button class="btn btn-primary" onclick="toggleCreerPromo()">+ Créer une promo</button>
+        </div>
+
+        <!-- Formulaire de création -->
+        <div id="formCreerPromo" style="display:none;padding:20px 24px;border-bottom:1px solid #f0f0f0;background:#f8faff;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+                <div>
+                    <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Titre</label>
+                    <input id="promoTitre" type="text" placeholder="Ex: Merci pour votre fidélité !" class="search-box" style="width:100%;margin:0">
+                </div>
+                <div>
+                    <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Type</label>
+                    <select id="promoType" onchange="togglePromoCode()" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;">
+                        <option value="info">Informatif (message uniquement)</option>
+                        <option value="code">Code promo (débloque des jours)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Message personnalisé</label>
+                <textarea id="promoMessage" rows="3" placeholder="Votre message pour l'utilisateur…" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;resize:vertical;"></textarea>
+            </div>
+            <div id="promoCodeSection" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+                <div>
+                    <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Code à saisir par l'utilisateur</label>
+                    <input id="promoCode" type="text" placeholder="Ex: MERCI30" class="search-box" style="width:100%;margin:0;text-transform:uppercase;">
+                </div>
+                <div>
+                    <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Jours offerts</label>
+                    <input id="promoJours" type="number" min="0" value="30" class="search-box" style="width:100%;margin:0;">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+                <div>
+                    <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Date d'expiration</label>
+                    <input id="promoExpiration" type="date" class="search-box" style="width:100%;margin:0;">
+                </div>
+                <div>
+                    <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Emails ciblés (un par ligne)</label>
+                    <textarea id="promoEmails" rows="3" placeholder="utilisateur@email.com&#10;autre@email.com" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-primary" onclick="creerPromo()">Créer la promotion</button>
+                <button class="btn" onclick="toggleCreerPromo()" style="background:#f0f0f0;color:#555;">Annuler</button>
+            </div>
+        </div>
+
+        <!-- Tableau des promos existantes -->
+        <div style="padding:16px 24px;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                <thead>
+                    <tr style="border-bottom:2px solid #f0f0f0;color:#888;text-align:left;">
+                        <th style="padding:8px 12px;">Titre</th>
+                        <th style="padding:8px 12px;">Type</th>
+                        <th style="padding:8px 12px;">Code</th>
+                        <th style="padding:8px 12px;">Jours</th>
+                        <th style="padding:8px 12px;">Utilisations</th>
+                        <th style="padding:8px 12px;">Expiration</th>
+                        <th style="padding:8px 12px;">Statut</th>
+                        <th style="padding:8px 12px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyPromos">
+                    {% for p in promotions %}
+                    <tr style="border-bottom:1px solid #f8f8f8;{% if p.statut == 'supprimee' %}opacity:0.45;{% endif %}">
+                        <td style="padding:8px 12px;font-weight:500;">{{ p.titre }}</td>
+                        <td style="padding:8px 12px;">
+                            <span class="badge {% if p.type == 'code' %}badge-active{% else %}badge-verifie{% endif %}">
+                                {{ p.type }}
+                            </span>
+                        </td>
+                        <td style="padding:8px 12px;font-family:monospace;">{{ p.code or '—' }}</td>
+                        <td style="padding:8px 12px;">{{ p.jours_offerts }}j</td>
+                        <td style="padding:8px 12px;">{{ p.nb_utilisations }}</td>
+                        <td style="padding:8px 12px;">{{ p.date_expiration[:10] }}</td>
+                        <td style="padding:8px 12px;">
+                            <span class="badge {% if p.statut == 'active' %}badge-active{% elif p.statut == 'supprimee' %}badge-revoked{% else %}badge-revoked{% endif %}">
+                                {{ p.statut }}
+                            </span>
+                        </td>
+                        <td style="padding:8px 12px;">
+                            {% if p.statut == 'active' %}
+                            <button class="btn" onclick="supprimerPromo({{ p.id }}, this)"
+                                style="padding:4px 10px;font-size:0.78rem;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+                                Supprimer
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" style="padding:20px;text-align:center;color:#aaa;">Aucune promotion créée</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </main>
 
 <div id="toast"></div>
@@ -342,6 +444,75 @@
             td.innerHTML = '<span class="badge badge-verifie">✓ Vérifié</span>';
             btn.remove();
         }).catch(() => toast('Erreur lors de la vérification', true));
+    }
+
+    // ── Promotions ────────────────────────────────────────────────────────
+    function toggleCreerPromo() {
+        const el = document.getElementById('formCreerPromo');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        // Pré-remplir la date d'expiration à J+30
+        if (el.style.display === 'block') {
+            const d = new Date();
+            d.setDate(d.getDate() + 30);
+            document.getElementById('promoExpiration').value = d.toISOString().slice(0, 10);
+        }
+    }
+
+    function togglePromoCode() {
+        const type = document.getElementById('promoType').value;
+        const sec = document.getElementById('promoCodeSection');
+        sec.style.display = type === 'code' ? 'grid' : 'none';
+    }
+
+    function supprimerPromo(promoId, btn) {
+        if (!confirm('Supprimer cette promotion ? Les utilisateurs ne la verront plus.')) return;
+        fetch('/api/admin/promos/' + promoId, {
+            method: 'DELETE',
+            headers: { 'X-Admin-Key': ADMIN_KEY }
+        }).then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Erreur'); });
+            return r.json();
+        }).then(() => {
+            toast('✓ Promotion supprimée');
+            const row = btn.closest('tr');
+            row.style.opacity = '0.4';
+            btn.remove();
+            row.querySelector('.badge').className = 'badge badge-revoked';
+            row.querySelector('.badge').textContent = 'supprimee';
+        }).catch(e => toast(e.message, true));
+    }
+
+    function creerPromo() {
+        const titre = document.getElementById('promoTitre').value.trim();
+        const message = document.getElementById('promoMessage').value.trim();
+        const type = document.getElementById('promoType').value;
+        const code = document.getElementById('promoCode').value.trim().toUpperCase();
+        const jours = parseInt(document.getElementById('promoJours').value) || 0;
+        const expiration = document.getElementById('promoExpiration').value;
+        const emailsRaw = document.getElementById('promoEmails').value;
+        const emails = emailsRaw.split('\n').map(e => e.trim()).filter(e => e.length > 0);
+
+        if (!titre || !message || !expiration || emails.length === 0) {
+            toast('Titre, message, date d\'expiration et au moins un email sont requis', true);
+            return;
+        }
+        if (type === 'code' && !code) {
+            toast('Un code est requis pour le type "code"', true);
+            return;
+        }
+
+        fetch('/api/admin/creer-promo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+            body: JSON.stringify({ titre, message, type, code, jours_offerts: jours, date_expiration: expiration, emails })
+        }).then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Erreur'); });
+            return r.json();
+        }).then(d => {
+            toast('✓ Promotion créée (ID ' + d.promo_id + ')');
+            toggleCreerPromo();
+            setTimeout(() => location.reload(), 1500);
+        }).catch(e => toast(e.message, true));
     }
 </script>
 </body>

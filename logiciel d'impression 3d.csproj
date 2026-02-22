@@ -94,6 +94,18 @@
     <Compile Include="RoundedPanel.cs" />
     <Compile Include="ImprimanteSpecsManager.cs" />
     <Compile Include="LicenceManager.cs" />
+    <Compile Include="ScratchCardForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScratchCardForm.Designer.cs">
+      <DependentUpon>ScratchCardForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PromoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PromoForm.Designer.cs">
+      <DependentUpon>PromoForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="ActivationForm.cs">
       <SubType>Form</SubType>
     </Compile>
