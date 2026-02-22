@@ -17,10 +17,37 @@ namespace logiciel_d_impression_3d
         };
 
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // ── Enregistrer le protocole URL logiciel3d:// ────────────────────
+            EnregistrerProtocoleUrl();
+
+            // ── Gestion du protocole logiciel3d://scratch?cle=XXXX ────────────
+            string cleScratch = null;
+            if (args.Length > 0 && args[0].StartsWith("logiciel3d://scratch", StringComparison.OrdinalIgnoreCase))
+                cleScratch = ExtraireCle(args[0]);
+
+            if (cleScratch != null)
+            {
+                // Afficher la carte à gratter native
+                using (var scratch = new ScratchCardForm(cleScratch))
+                    scratch.ShowDialog();
+
+                // Activer automatiquement la clé
+                if (!LicenceManager.ActiverCle(cleScratch, out string erreurActivation))
+                {
+                    MessageBox.Show(
+                        $"Clé révélée mais activation échouée :\n{erreurActivation}\n\nVotre clé a aussi été envoyée par email.",
+                        "Avertissement",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning
+                    );
+                }
+                return; // Fermer cette instance après activation
+            }
 
             // ── Correction mise à jour depuis %TEMP% ──────────────────────────
             // Si l'exe tourne depuis le dossier temporaire Windows (ex: mis à jour
@@ -71,9 +98,46 @@ namespace logiciel_d_impression_3d
             LoginForm loginForm = new LoginForm(userManager);
             if (loginForm.ShowDialog() == DialogResult.OK)
             {
-                // Si connexion réussie, afficher la fenêtre principale avec le UserManager
+                if (loginForm.ModeDemo)
+                    userManager.ConnecterEnModeDemo();
+
                 Application.Run(new Form1(userManager));
             }
+        }
+
+        /// <summary>
+        /// Enregistre le protocole URL logiciel3d:// dans le registre Windows (HKCU).
+        /// Permet au navigateur d'ouvrir l'app après un paiement PayPal.
+        /// </summary>
+        private static void EnregistrerProtocoleUrl()
+        {
+            try
+            {
+                string exe = Application.ExecutablePath;
+                using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\logiciel3d"))
+                {
+                    k.SetValue("", "URL:Logiciel Impression 3D");
+                    k.SetValue("URL Protocol", "");
+                    using (var cmd = k.CreateSubKey(@"shell\open\command"))
+                        cmd.SetValue("", $"\"{exe}\" \"%1\"");
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Extrait la clé de licence depuis une URL logiciel3d://scratch?cle=XXXX.
+        /// </summary>
+        private static string ExtraireCle(string url)
+        {
+            int i = url.IndexOf("cle=", StringComparison.OrdinalIgnoreCase);
+            if (i < 0) return null;
+            string val = url.Substring(i + 4);
+            int amp = val.IndexOf('&');
+            val = amp >= 0 ? val.Substring(0, amp) : val;
+            // Décoder les caractères URL-encodés
+            val = Uri.UnescapeDataString(val);
+            return string.IsNullOrWhiteSpace(val) ? null : val.ToUpper().Trim();
         }
 
         /// <summary>

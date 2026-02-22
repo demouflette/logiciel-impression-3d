@@ -158,6 +158,7 @@
     </Compile>
     <Compile Include="ThreeMFParser.cs" />
     <Compile Include="UpdateManager.cs" />
+    <Compile Include="DemoManager.cs" />
     <Compile Include="User.cs" />
     <Compile Include="UserManager.cs" />
     <Compile Include="UserManagerDuplicate.cs" />

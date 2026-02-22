@@ -115,8 +115,29 @@
             transition: opacity 0.15s;
         }
         .btn-action:hover { opacity: 0.8; }
-        .btn-revoke { background: #fce4ec; color: #c62828; }
-        .btn-verify { background: #e3f2fd; color: #1565c0; }
+        .btn-revoke  { background: #fce4ec; color: #c62828; }
+        .btn-verify  { background: #e3f2fd; color: #1565c0; }
+        .btn-mdp     { background: #f3e5f5; color: #7b1fa2; }
+
+        /* ── Formulaires inline ──────────────────────────── */
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .form-label { font-size: 0.82rem; color: #555; display: block; margin-bottom: 4px; }
+        .form-input {
+            width: 100%; padding: 8px 12px;
+            border: 1px solid #ddd; border-radius: 8px;
+            font-size: 0.9rem; outline: none;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus { border-color: #3498db; }
+        .form-select {
+            width: 100%; padding: 8px 12px;
+            border: 1px solid #ddd; border-radius: 8px;
+            font-size: 0.9rem; outline: none; background: #fff;
+        }
+        .btn-create { background: #2ecc71; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+        .btn-create:hover { opacity: 0.85; }
+        .btn-cancel-form { background: #f0f0f0; color: #555; border: none; border-radius: 8px; padding: 9px 20px; font-size: 0.88rem; cursor: pointer; }
 
         /* ── Recherche ──────────────────────────────────── */
         .search-bar {
@@ -175,6 +196,14 @@
             <div class="val">{{ stats.licences_actives }}</div>
             <div class="lbl">Licences actives</div>
         </div>
+        <div class="stat-card rouge">
+            <div class="val">{{ stats.licences_expirant_7j }}</div>
+            <div class="lbl">Expirent dans 7 jours</div>
+        </div>
+        <div class="stat-card">
+            <div class="val">{{ stats.connexions_aujourd_hui }}</div>
+            <div class="lbl">Connexions aujourd'hui</div>
+        </div>
     </div>
 
     <!-- Utilisateurs -->
@@ -214,15 +243,18 @@
                             <span class="badge badge-non">En attente</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td style="white-space:nowrap;">
                             {% if not u.verifie %}
                             <button class="btn-action btn-verify"
-                                    onclick="forcerVerification('{{ u.email }}', this)">
+                                    onclick="forcerVerification('{{ u.email }}', this)"
+                                    style="margin-right:4px;">
                                 ✓ Forcer vérif.
                             </button>
-                            {% else %}
-                            <span style="color:#ccc;font-size:0.78rem;">—</span>
                             {% endif %}
+                            <button class="btn-action btn-mdp"
+                                    onclick="ouvrirChangerMdp('{{ u.nom_utilisateur }}')">
+                                🔑 MDP
+                            </button>
                         </td>
                     </tr>
                     {% else %}
@@ -237,7 +269,13 @@
     <div class="section">
         <div class="section-header">
             <h2>🔑 Licences</h2>
-            <span class="count">{{ licences | length }}</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span class="count">{{ licences | length }}</span>
+                <a href="/api/admin/licences/export-csv?key={{ admin_key }}"
+                   style="background:#3498db;color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;cursor:pointer;">
+                    📥 CSV
+                </a>
+            </div>
         </div>
         <div class="search-bar">
             <input type="text" id="searchLicences" placeholder="Rechercher une licence..." oninput="filtrerTableau('tbodyLicences', this.value)">
@@ -290,6 +328,48 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ── Section Créer un compte ─────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-header">
+            <h2>➕ Créer un compte</h2>
+            <button class="btn-create" onclick="toggleFormCompte()" id="btnToggleCompte">+ Nouveau compte</button>
+        </div>
+        <div id="formCreerCompte" style="display:none;padding:20px 24px;background:#f8faff;border-bottom:1px solid #f0f0f0;">
+            <div class="form-grid-3">
+                <div>
+                    <label class="form-label">Nom d'utilisateur</label>
+                    <input id="compteNom" type="text" class="form-input" placeholder="ex: demouflette" autocomplete="off">
+                </div>
+                <div>
+                    <label class="form-label">Adresse email</label>
+                    <input id="compteEmail" type="email" class="form-input" placeholder="ex: admin@email.com" autocomplete="off">
+                </div>
+                <div>
+                    <label class="form-label">Rôle</label>
+                    <select id="compteRole" class="form-select">
+                        <option value="user">Utilisateur</option>
+                        <option value="admin">Administrateur</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-grid-2">
+                <div>
+                    <label class="form-label">Mot de passe</label>
+                    <input id="compteMdp" type="password" class="form-input" placeholder="Minimum 6 caractères" autocomplete="new-password">
+                </div>
+                <div>
+                    <label class="form-label">Confirmer le mot de passe</label>
+                    <input id="compteMdp2" type="password" class="form-input" placeholder="Répétez le mot de passe" autocomplete="new-password">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-create" onclick="creerCompte()">Créer le compte</button>
+                <button class="btn-cancel-form" onclick="toggleFormCompte()">Annuler</button>
+                <span id="msgCompte" style="font-size:0.85rem;margin-left:8px;"></span>
+            </div>
         </div>
     </div>
 
@@ -378,8 +458,12 @@
                                 {{ p.statut }}
                             </span>
                         </td>
-                        <td style="padding:8px 12px;">
+                        <td style="padding:8px 12px;white-space:nowrap;">
                             {% if p.statut == 'active' %}
+                            <button class="btn" onclick="ouvrirModifierPromo({{ p.id }}, this)"
+                                style="padding:4px 10px;font-size:0.78rem;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:4px;">
+                                Modifier
+                            </button>
                             <button class="btn" onclick="supprimerPromo({{ p.id }}, this)"
                                 style="padding:4px 10px;font-size:0.78rem;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;">
                                 Supprimer
@@ -395,7 +479,122 @@
         </div>
     </div>
 
+    <!-- Historique des connexions -->
+    <div class="section">
+        <div class="section-header">
+            <h2>📋 Historique des connexions</h2>
+            <span class="count">50 dernières</span>
+        </div>
+        <div class="scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>IP</th>
+                        <th>Résultat</th>
+                        <th>Date</th>
+                        <th>Détails</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td><strong>{{ log.nom_utilisateur }}</strong></td>
+                        <td style="color:#aaa;font-size:0.8rem;">{{ log.ip or '—' }}</td>
+                        <td>
+                            {% if log.succes %}
+                            <span class="badge badge-active">✓ Succès</span>
+                            {% else %}
+                            <span class="badge badge-revoked">✗ Échec</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:#888;font-size:0.82rem;">{{ log.date[:19].replace('T', ' ') if log.date else '—' }}</td>
+                        <td style="color:#aaa;font-size:0.8rem;">{{ log.details or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" style="text-align:center;color:#aaa;padding:32px;">Aucune connexion enregistrée</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </main>
+
+<!-- ── Panneau d'édition de promo (overlay) ──────────────────────────── -->
+<div id="overlayEdit" onclick="fermerModifierPromo()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;"></div>
+<div id="panneauEdit" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:#fff;border-radius:16px;padding:28px 32px;width:540px;max-width:95vw;z-index:101;
+    box-shadow:0 8px 40px rgba(0,0,0,0.22);">
+    <h3 style="margin-bottom:18px;color:#1a1a2e;">Modifier la promotion</h3>
+    <input type="hidden" id="editPromoId">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+            <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Titre</label>
+            <input id="editTitre" type="text" class="search-box" style="width:100%;margin:0;">
+        </div>
+        <div>
+            <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Type</label>
+            <select id="editType" onchange="toggleEditCode()" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;">
+                <option value="info">Informatif</option>
+                <option value="code">Code promo</option>
+            </select>
+        </div>
+    </div>
+    <div style="margin-bottom:12px;">
+        <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Message</label>
+        <textarea id="editMessage" rows="3" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;resize:vertical;"></textarea>
+    </div>
+    <div id="editCodeSection" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+            <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Code</label>
+            <input id="editCode" type="text" class="search-box" style="width:100%;margin:0;text-transform:uppercase;">
+        </div>
+        <div>
+            <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Jours offerts</label>
+            <input id="editJours" type="number" min="0" class="search-box" style="width:100%;margin:0;">
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+            <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Date d'expiration</label>
+            <input id="editExpiration" type="date" class="search-box" style="width:100%;margin:0;">
+        </div>
+        <div>
+            <label style="font-size:0.82rem;color:#555;display:block;margin-bottom:4px;">Emails ciblés (un par ligne)</label>
+            <textarea id="editEmails" rows="3" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;resize:vertical;"></textarea>
+        </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn" onclick="fermerModifierPromo()" style="background:#f0f0f0;color:#555;">Annuler</button>
+        <button class="btn btn-primary" onclick="sauvegarderPromo()">Enregistrer</button>
+    </div>
+</div>
+
+<!-- ── Modal changement MDP ──────────────────────────────────────────── -->
+<div id="overlayMdp" onclick="fermerChangerMdp()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;"></div>
+<div id="panneauMdp"
+     style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:#fff;border-radius:16px;padding:28px 32px;width:420px;max-width:95vw;
+            z-index:201;box-shadow:0 8px 40px rgba(0,0,0,0.22);">
+    <h3 style="margin-bottom:18px;color:#1a1a2e;">🔑 Changer le mot de passe</h3>
+    <p id="mdpNomUtil" style="font-size:0.88rem;color:#555;margin-bottom:16px;"></p>
+    <input type="hidden" id="mdpUsername">
+    <div style="margin-bottom:12px;">
+        <label class="form-label">Nouveau mot de passe</label>
+        <input id="mdpNouv" type="password" class="form-input" placeholder="Minimum 6 caractères" autocomplete="new-password">
+    </div>
+    <div style="margin-bottom:18px;">
+        <label class="form-label">Confirmer le mot de passe</label>
+        <input id="mdpNouv2" type="password" class="form-input" placeholder="Répétez le mot de passe" autocomplete="new-password">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;">
+        <span id="msgMdp" style="font-size:0.82rem;flex:1;"></span>
+        <button class="btn-cancel-form" onclick="fermerChangerMdp()">Annuler</button>
+        <button class="btn-create" onclick="sauvegarderMdp()">Enregistrer</button>
+    </div>
+</div>
 
 <div id="toast"></div>
 
@@ -464,6 +663,74 @@
         sec.style.display = type === 'code' ? 'grid' : 'none';
     }
 
+    function ouvrirModifierPromo(promoId, btn) {
+        document.getElementById('editPromoId').value = promoId;
+        // Récupérer les données depuis la ligne du tableau
+        const row = btn.closest('tr');
+        const cells = row.querySelectorAll('td');
+        document.getElementById('editTitre').value = cells[0].textContent.trim();
+        const type = cells[1].textContent.trim();
+        document.getElementById('editType').value = type;
+        document.getElementById('editCode').value = cells[2].textContent.trim() === '—' ? '' : cells[2].textContent.trim();
+        document.getElementById('editJours').value = parseInt(cells[3].textContent) || 0;
+        document.getElementById('editExpiration').value = cells[5].textContent.trim();
+        toggleEditCode();
+        // Charger les emails depuis l'API
+        fetch('/api/admin/promos/' + promoId + '/emails', {
+            headers: { 'X-Admin-Key': ADMIN_KEY }
+        }).then(r => r.json()).then(d => {
+            document.getElementById('editEmails').value = (d.emails || []).join('\n');
+        }).catch(() => {});
+        // Récupérer le message (pas dans le tableau, on laisse l'utilisateur le saisir)
+        document.getElementById('editMessage').value = '';
+        document.getElementById('overlayEdit').style.display = 'block';
+        document.getElementById('panneauEdit').style.display = 'block';
+    }
+
+    function fermerModifierPromo() {
+        document.getElementById('overlayEdit').style.display = 'none';
+        document.getElementById('panneauEdit').style.display = 'none';
+    }
+
+    function toggleEditCode() {
+        const type = document.getElementById('editType').value;
+        document.getElementById('editCodeSection').style.display = type === 'code' ? 'grid' : 'none';
+    }
+
+    function sauvegarderPromo() {
+        const promoId = document.getElementById('editPromoId').value;
+        const titre = document.getElementById('editTitre').value.trim();
+        const message = document.getElementById('editMessage').value.trim();
+        const type = document.getElementById('editType').value;
+        const code = document.getElementById('editCode').value.trim().toUpperCase();
+        const jours = parseInt(document.getElementById('editJours').value) || 0;
+        const expiration = document.getElementById('editExpiration').value;
+        const emailsRaw = document.getElementById('editEmails').value;
+        const emails = emailsRaw.split('\n').map(e => e.trim()).filter(e => e.length > 0);
+
+        if (!titre || !expiration || emails.length === 0) {
+            toast('Titre, date d\'expiration et au moins un email sont requis', true);
+            return;
+        }
+        if (type === 'code' && !code) {
+            toast('Un code est requis pour le type "code"', true);
+            return;
+        }
+
+        fetch('/api/admin/promos/' + promoId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+            body: JSON.stringify({ titre, message, type, code, jours_offerts: jours, date_expiration: expiration, emails })
+        }).then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Erreur'); });
+            return r.json();
+        }).then(() => {
+            toast('✓ Promotion modifiée');
+            fermerModifierPromo();
+            setTimeout(() => location.reload(), 1200);
+        }).catch(e => toast(e.message, true));
+    }
+
     function supprimerPromo(promoId, btn) {
         if (!confirm('Supprimer cette promotion ? Les utilisateurs ne la verront plus.')) return;
         fetch('/api/admin/promos/' + promoId, {
@@ -480,6 +747,118 @@
             row.querySelector('.badge').className = 'badge badge-revoked';
             row.querySelector('.badge').textContent = 'supprimee';
         }).catch(e => toast(e.message, true));
+    }
+
+    // ── Créer un compte ───────────────────────────────────────────────────
+    function toggleFormCompte() {
+        const f = document.getElementById('formCreerCompte');
+        f.style.display = f.style.display === 'none' ? 'block' : 'none';
+        if (f.style.display === 'block') {
+            document.getElementById('compteNom').focus();
+            document.getElementById('msgCompte').textContent = '';
+        }
+    }
+
+    function creerCompte() {
+        const nom   = document.getElementById('compteNom').value.trim();
+        const email = document.getElementById('compteEmail').value.trim();
+        const role  = document.getElementById('compteRole').value;
+        const mdp   = document.getElementById('compteMdp').value;
+        const mdp2  = document.getElementById('compteMdp2').value;
+        const msg   = document.getElementById('msgCompte');
+
+        if (!nom || !email || !mdp) {
+            msg.textContent = '⚠ Tous les champs sont requis.';
+            msg.style.color = '#e74c3c';
+            return;
+        }
+        if (mdp.length < 6) {
+            msg.textContent = '⚠ Mot de passe trop court (min. 6 caractères).';
+            msg.style.color = '#e74c3c';
+            return;
+        }
+        if (mdp !== mdp2) {
+            msg.textContent = '⚠ Les mots de passe ne correspondent pas.';
+            msg.style.color = '#e74c3c';
+            return;
+        }
+
+        msg.textContent = 'Création en cours…';
+        msg.style.color = '#888';
+
+        fetch('/api/admin/creer-compte', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+            body: JSON.stringify({ nom_utilisateur: nom, email, password: mdp, role })
+        }).then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Erreur'); });
+            return r.json();
+        }).then(d => {
+            toast('✓ Compte « ' + nom + ' » créé (' + role + ')');
+            document.getElementById('compteNom').value  = '';
+            document.getElementById('compteEmail').value = '';
+            document.getElementById('compteMdp').value  = '';
+            document.getElementById('compteMdp2').value = '';
+            msg.textContent = '✓ Compte créé avec succès !';
+            msg.style.color = '#2ecc71';
+            setTimeout(() => location.reload(), 1800);
+        }).catch(e => {
+            msg.textContent = '✗ ' + e.message;
+            msg.style.color = '#e74c3c';
+        });
+    }
+
+    // ── Changer le mot de passe ───────────────────────────────────────────
+    function ouvrirChangerMdp(nom) {
+        document.getElementById('mdpUsername').value = nom;
+        document.getElementById('mdpNomUtil').textContent = 'Utilisateur : ' + nom;
+        document.getElementById('mdpNouv').value  = '';
+        document.getElementById('mdpNouv2').value = '';
+        document.getElementById('msgMdp').textContent = '';
+        document.getElementById('overlayMdp').style.display = 'block';
+        document.getElementById('panneauMdp').style.display = 'block';
+        setTimeout(() => document.getElementById('mdpNouv').focus(), 50);
+    }
+
+    function fermerChangerMdp() {
+        document.getElementById('overlayMdp').style.display = 'none';
+        document.getElementById('panneauMdp').style.display = 'none';
+    }
+
+    function sauvegarderMdp() {
+        const nom  = document.getElementById('mdpUsername').value;
+        const mdp  = document.getElementById('mdpNouv').value;
+        const mdp2 = document.getElementById('mdpNouv2').value;
+        const msg  = document.getElementById('msgMdp');
+
+        if (mdp.length < 6) {
+            msg.textContent = '⚠ Min. 6 caractères';
+            msg.style.color = '#e74c3c';
+            return;
+        }
+        if (mdp !== mdp2) {
+            msg.textContent = '⚠ Mots de passe différents';
+            msg.style.color = '#e74c3c';
+            return;
+        }
+
+        msg.textContent = '…';
+        msg.style.color = '#888';
+
+        fetch('/api/admin/changer-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+            body: JSON.stringify({ nom_utilisateur: nom, password: mdp })
+        }).then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Erreur'); });
+            return r.json();
+        }).then(() => {
+            toast('✓ Mot de passe de « ' + nom + ' » mis à jour');
+            fermerChangerMdp();
+        }).catch(e => {
+            msg.textContent = '✗ ' + e.message;
+            msg.style.color = '#e74c3c';
+        });
     }
 
     function creerPromo() {

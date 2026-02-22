@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ouverture du logiciel…</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+    }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #4facfe;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 28px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 1.3rem; margin-bottom: 10px; }
+    p  { color: rgba(255,255,255,0.6); font-size: 0.9rem; line-height: 1.6; }
+    .etape {
+      margin-top: 28px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.4);
+    }
+    .ok { color: #4facfe; font-size: 1.4rem; display: none; margin-bottom: 16px; }
+    .erreur { color: #e74c3c; font-size: 0.85rem; display: none; margin-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="spinner" id="spinner"></div>
+  <div class="ok" id="ok">✓</div>
+  <h1 id="titre">Paiement reçu !</h1>
+  <p id="message">Votre clé est en cours de génération.<br>Le logiciel va s'ouvrir automatiquement…</p>
+  <div class="etape" id="etape">Connexion avec PayPal en cours…</div>
+  <div class="erreur" id="erreur">
+    Le logiciel n'a pas pu s'ouvrir automatiquement.<br>
+    Votre clé vous a été envoyée par email.<br>
+    <a href="/" style="color:#4facfe">Retour à l'accueil</a>
+  </div>
+</div>
+
+<script>
+  const SESSION_ID = {{ session_id | tojson }};
+  let tentatives = 0;
+  const MAX = 30; // 30 secondes max
+
+  function poll() {
+    fetch('/api/session/' + SESSION_ID)
+      .then(r => r.json())
+      .then(data => {
+        tentatives++;
+        if (data.prete) {
+          // Clé prête → ouvrir le logiciel
+          document.getElementById('etape').textContent = 'Ouverture du logiciel…';
+          document.getElementById('spinner').style.display = 'none';
+          document.getElementById('ok').style.display = 'block';
+          document.getElementById('message').textContent =
+            'Clé générée ! Le logiciel s\'ouvre avec votre carte à gratter…';
+
+          // Rediriger vers le protocole custom
+          window.location.href = 'logiciel3d://scratch?cle=' + encodeURIComponent(data.cle);
+
+          // Si le protocole n'est pas installé, afficher l'erreur après 4s
+          setTimeout(() => {
+            document.getElementById('erreur').style.display = 'block';
+          }, 4000);
+
+        } else if (tentatives >= MAX) {
+          // Timeout — la clé sera envoyée par email
+          document.getElementById('spinner').style.display = 'none';
+          document.getElementById('titre').textContent = 'Traitement en cours…';
+          document.getElementById('message').textContent =
+            'La génération prend plus de temps que prévu. Votre clé vous sera envoyée par email.';
+          document.getElementById('erreur').style.display = 'block';
+        } else {
+          document.getElementById('etape').textContent =
+            'Attente de confirmation PayPal… (' + tentatives + 's)';
+          setTimeout(poll, 1000);
+        }
+      })
+      .catch(() => {
+        if (tentatives < MAX) {
+          tentatives++;
+          setTimeout(poll, 1000);
+        }
+      });
+  }
+
+  setTimeout(poll, 1500); // Attendre 1.5s avant le premier poll
+</script>
+</body>
+</html>

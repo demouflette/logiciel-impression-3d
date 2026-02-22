@@ -43,8 +43,28 @@ from database import (
     lister_promotions,
     prolonger_licence,
     supprimer_promo,
+    modifier_promo,
+    obtenir_emails_promo,
+    verifier_credentials,
+    creer_compte_admin,
+    mettre_a_jour_password,
+    creer_session_auth,
+    obtenir_session_auth,
+    supprimer_session_auth,
+    nettoyer_sessions_expirees,
+    nettoyer_licences_obsoletes,
+    nettoyer_promos_obsoletes,
+    verifier_blocage,
+    enregistrer_echec_connexion,
+    reinitialiser_tentatives,
+    ajouter_log_connexion,
+    nettoyer_logs_connexion,
+    obtenir_logs_connexion,
+    compter_connexions_aujourd_hui,
+    obtenir_licences_expirant_bientot,
+    marquer_alerte_expiration,
 )
-from email_service import email_verification_compte, email_contact_admin, email_licence
+from email_service import email_verification_compte, email_contact_admin, email_licence, email_alerte_expiration
 from paypal_service import valider_ipn
 
 # ── Configuration ────────────────────────────────────────────────────────────
@@ -58,10 +78,33 @@ APP_VERSION        = "1.0.0"
 app = FastAPI(title="Serveur de licences", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory="/app/templates")
 
+# Throttle anti-spam pour /api/contact : max 3 messages par IP par heure
+_contact_throttle: dict[str, list] = {}  # ip → liste de datetime
+
 # ── Démarrage ────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def startup():
     initialiser_db()
+    nettoyer_sessions_expirees()
+    nettoyer_licences_obsoletes()
+    nettoyer_promos_obsoletes()
+    nettoyer_logs_connexion()
+    _envoyer_alertes_expiration()
+
+
+def _envoyer_alertes_expiration():
+    """Envoie un email d'alerte aux utilisateurs dont la licence expire dans 7 jours."""
+    licences = obtenir_licences_expirant_bientot(jours=7)
+    for lic in licences:
+        try:
+            date_exp = datetime.fromisoformat(lic["date_expiration"])
+            jours_restants = max(0, (date_exp - datetime.utcnow()).days)
+            envoye = email_alerte_expiration(lic["email"], lic["cle"], lic["date_expiration"], jours_restants)
+            if envoye:
+                marquer_alerte_expiration(lic["cle"])
+                print(f"✉️  Alerte expiration envoyée à {lic['email']} (J-{jours_restants})")
+        except Exception as e:
+            print(f"⚠️  Erreur alerte expiration {lic['cle']} : {e}")
 
 
 # ── Modèles Pydantic ─────────────────────────────────────────────────────────
@@ -88,6 +131,28 @@ class RequeteRevocation(BaseModel):
 class RequeteInscription(BaseModel):
     nom_utilisateur: str
     email: str
+    password: str = ""      # Optionnel pour rétrocompatibilité
+
+
+class RequeteConnexion(BaseModel):
+    nom_utilisateur: str
+    password: str
+
+
+class RequeteDeconnexion(BaseModel):
+    session_id: str
+
+
+class RequeteCreerCompte(BaseModel):
+    nom_utilisateur: str
+    email: str
+    password: str
+    role: str = "user"
+
+
+class RequeteChangerPassword(BaseModel):
+    nom_utilisateur: str
+    password: str
 
 
 class RequeteVerificationCode(BaseModel):
@@ -293,8 +358,19 @@ async def paypal_ipn(request: Request):
 
 # ── Endpoints publics ────────────────────────────────────────────────────────
 @app.post("/api/contact")
-def contact_admin(req: RequeteContact):
+def contact_admin(req: RequeteContact, request: Request):
     """Transmet un message utilisateur à l'administrateur par email."""
+    ip = request.client.host if request.client else "inconnue"
+
+    # Throttle : max 3 messages par IP par heure
+    maintenant = datetime.utcnow()
+    historique = _contact_throttle.get(ip, [])
+    historique = [t for t in historique if (maintenant - t).total_seconds() < 3600]
+    if len(historique) >= 3:
+        raise HTTPException(status_code=429, detail="Trop de messages envoyés. Réessayez dans une heure.")
+    historique.append(maintenant)
+    _contact_throttle[ip] = historique
+
     email = req.email_expediteur.strip()
     sujet = req.sujet.strip()
     message = req.message.strip()
@@ -415,7 +491,7 @@ def reveler_scratch(token: str):
 
 # ── Endpoints admin ──────────────────────────────────────────────────────────
 def verifier_admin(x_admin_key: str = Header(None)):
-    if x_admin_key != ADMIN_KEY:
+    if not x_admin_key or not secrets.compare_digest(x_admin_key, ADMIN_KEY):
         raise HTTPException(status_code=401, detail="Clé admin invalide")
 
 
@@ -462,6 +538,33 @@ def liste_licences(x_admin_key: str = Header(None)):
     return [dict(row) for row in licences]
 
 
+@app.get("/api/admin/licences/export-csv")
+def exporter_licences_csv(key: str = "", x_admin_key: str = Header(None)):
+    """Export CSV de toutes les licences (accessible via URL avec ?key= ou header)."""
+    k = key or x_admin_key or ""
+    if not k or not secrets.compare_digest(k, ADMIN_KEY):
+        raise HTTPException(status_code=401, detail="Clé admin invalide")
+    licences = [dict(row) for row in lister_licences()]
+    colonnes = ["cle", "email", "type", "statut", "date_creation", "date_expiration", "machine_id"]
+    lignes = [";".join(colonnes)]
+    for l in licences:
+        ligne = [str(l.get(c) or "") for c in colonnes]
+        lignes.append(";".join(ligne))
+    contenu = "\n".join(lignes)
+    nom_fichier = f"licences_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    return Response(
+        content=contenu.encode("utf-8-sig"),  # utf-8-sig pour compatibilité Excel
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={nom_fichier}"}
+    )
+
+
+@app.get("/api/admin/logs-connexions")
+def liste_logs_connexions(limit: int = 50, x_admin_key: str = Header(None)):
+    verifier_admin(x_admin_key)
+    return [dict(row) for row in obtenir_logs_connexion(limit)]
+
+
 @app.get("/api/sante")
 def sante():
     return {"statut": "ok", "version": APP_VERSION}
@@ -473,9 +576,13 @@ def inscrire_utilisateur(req: RequeteInscription):
     """Enregistre un nouvel utilisateur et envoie l'email de vérification."""
     email = req.email.strip().lower()
     nom   = req.nom_utilisateur.strip()
+    password = req.password.strip() if req.password else ""
 
     if not nom or not email:
         raise HTTPException(status_code=400, detail="Nom et email requis")
+
+    if len(password) < 6 and password:
+        raise HTTPException(status_code=400, detail="Mot de passe trop court (minimum 6 caractères)")
 
     if obtenir_utilisateur_par_nom(nom):
         raise HTTPException(status_code=409, detail="Nom d'utilisateur déjà utilisé")
@@ -488,7 +595,11 @@ def inscrire_utilisateur(req: RequeteInscription):
     token = secrets.token_urlsafe(32)
     expiration = (datetime.utcnow() + timedelta(minutes=30)).isoformat()
 
-    inserer_utilisateur(nom, email, code, expiration, token)
+    # Hasher le mot de passe côté serveur si fourni
+    from database import _hasher_password
+    password_hash = _hasher_password(password) if password else None
+
+    inserer_utilisateur(nom, email, code, expiration, token, password_hash)
 
     # Envoyer email (non bloquant si SMTP absent)
     envoye = email_verification_compte(email, nom, code, token)
@@ -577,6 +688,106 @@ def renvoyer_code(req: RequeteInscription):
     return {"message": "Nouveau code envoyé", "email_envoye": envoye}
 
 
+# ── Authentification utilisateurs ────────────────────────────────────────────
+
+@app.post("/api/utilisateurs/connexion")
+def connexion_utilisateur(req: RequeteConnexion, request: Request):
+    """Authentifie un utilisateur et retourne un session_id valable 90 jours."""
+    nom = req.nom_utilisateur.strip()
+    ip = request.client.host if request.client else "inconnue"
+    ua = request.headers.get("user-agent", "")
+
+    if not nom or not req.password:
+        raise HTTPException(status_code=400, detail="Identifiants requis")
+
+    # Vérifier si le compte est bloqué (brute force)
+    if verifier_blocage(nom):
+        ajouter_log_connexion(nom, ip, False, "compte bloqué (trop de tentatives)")
+        raise HTTPException(status_code=429, detail=f"Compte temporairement bloqué. Réessayez dans 15 minutes.")
+
+    utilisateur = verifier_credentials(nom, req.password)
+    if not utilisateur:
+        enregistrer_echec_connexion(nom)
+        ajouter_log_connexion(nom, ip, False, "identifiants incorrects")
+        raise HTTPException(status_code=401, detail="Identifiants incorrects")
+
+    if not utilisateur["verifie"]:
+        ajouter_log_connexion(nom, ip, False, "email non vérifié")
+        raise HTTPException(status_code=403, detail="Email non vérifié. Vérifiez votre boîte mail.")
+
+    # Connexion réussie : réinitialiser le compteur d'échecs
+    reinitialiser_tentatives(nom)
+    ajouter_log_connexion(nom, ip, True, "connexion réussie")
+
+    session_id = secrets.token_urlsafe(48)
+    date_expiration = creer_session_auth(session_id, utilisateur["nom_utilisateur"], ua)
+
+    return {
+        "session_id": session_id,
+        "nom_utilisateur": utilisateur["nom_utilisateur"],
+        "email": utilisateur["email"],
+        "role": utilisateur["role"],
+        "date_expiration": date_expiration,
+    }
+
+
+@app.get("/api/utilisateurs/verifier-session")
+def verifier_session_utilisateur(session_id: str):
+    """Vérifie qu'une session est encore valide et retourne les infos."""
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id requis")
+    utilisateur = obtenir_session_auth(session_id)
+    if not utilisateur:
+        raise HTTPException(status_code=401, detail="Session invalide ou expirée")
+    return {
+        "nom_utilisateur": utilisateur["nom_utilisateur"],
+        "email": utilisateur["email"],
+        "role": utilisateur["role"],
+        "date_expiration": utilisateur["date_expiration"],
+    }
+
+
+@app.post("/api/utilisateurs/deconnexion")
+def deconnexion_utilisateur(req: RequeteDeconnexion):
+    """Invalide une session (déconnexion)."""
+    supprimer_session_auth(req.session_id)
+    return {"message": "Déconnecté"}
+
+
+@app.post("/api/admin/creer-compte")
+def admin_creer_compte(req: RequeteCreerCompte, x_admin_key: str = Header(None)):
+    """Crée un compte (admin ou user) directement depuis le dashboard."""
+    verifier_admin(x_admin_key)
+    nom = req.nom_utilisateur.strip()
+    email = req.email.strip().lower()
+    if not nom or not email or not req.password:
+        raise HTTPException(status_code=400, detail="Nom, email et mot de passe requis")
+    if len(req.password) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe trop court (minimum 6 caractères)")
+    if req.role not in ("user", "admin"):
+        raise HTTPException(status_code=400, detail="Rôle invalide (user ou admin)")
+
+    ok = creer_compte_admin(nom, email, req.password)
+    if not ok:
+        raise HTTPException(status_code=409, detail="Nom d'utilisateur ou email déjà utilisé")
+
+    # Ajuster le rôle si 'user' demandé (creer_compte_admin crée admin par défaut)
+    if req.role == "user":
+        definir_role(nom, "user")
+
+    return {"message": f"Compte '{nom}' ({req.role}) créé avec succès"}
+
+
+@app.post("/api/admin/changer-password")
+def admin_changer_password(req: RequeteChangerPassword, x_admin_key: str = Header(None)):
+    """Modifie le mot de passe d'un utilisateur (depuis le dashboard admin)."""
+    verifier_admin(x_admin_key)
+    if len(req.password) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe trop court (minimum 6 caractères)")
+    mettre_a_jour_password(req.nom_utilisateur, req.password)
+    return {"message": f"Mot de passe de '{req.nom_utilisateur}' mis à jour"}
+
+
 # ── Promotions ───────────────────────────────────────────────────────────────
 @app.get("/api/promo")
 def verifier_promo(email: str, machine_id: str):
@@ -654,6 +865,27 @@ def admin_supprimer_promo(promo_id: int, x_admin_key: str = Header(None)):
     return {"ok": True, "message": f"Promotion {promo_id} supprimée"}
 
 
+@app.get("/api/admin/promos/{promo_id}/emails")
+def admin_emails_promo(promo_id: int, x_admin_key: str = Header(None)):
+    verifier_admin(x_admin_key)
+    return {"emails": obtenir_emails_promo(promo_id)}
+
+
+@app.patch("/api/admin/promos/{promo_id}")
+def admin_modifier_promo(promo_id: int, req: RequeteCreerPromo, x_admin_key: str = Header(None)):
+    verifier_admin(x_admin_key)
+    if req.type not in ("info", "code"):
+        raise HTTPException(status_code=400, detail="Type invalide : 'info' ou 'code'")
+    if req.type == "code" and not req.code:
+        raise HTTPException(status_code=400, detail="Code requis pour le type 'code'")
+    modifier_promo(
+        promo_id, req.titre, req.message, req.type,
+        req.code or None, req.jours_offerts,
+        req.date_expiration, req.emails
+    )
+    return {"ok": True}
+
+
 # ── Dashboard admin web ──────────────────────────────────────────────────────
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, key: str = ""):
@@ -672,18 +904,31 @@ def admin_dashboard(request: Request, key: str = ""):
     licences = [dict(row) for row in lister_licences()]
     utilisateurs = [dict(row) for row in lister_utilisateurs()]
     promotions = lister_promotions()
+    logs = [dict(row) for row in obtenir_logs_connexion(50)]
+
+    now = datetime.utcnow()
+    dans_7j = (now + timedelta(days=7)).isoformat()
+    licences_expirant_7j = sum(
+        1 for l in licences
+        if l["statut"] == "active"
+        and l["date_expiration"] <= dans_7j
+        and l["date_expiration"] >= now.isoformat()
+    )
 
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "licences": licences,
         "utilisateurs": utilisateurs,
         "promotions": promotions,
+        "logs": logs,
         "admin_key": key,
         "stats": {
             "total_utilisateurs": len(utilisateurs),
             "utilisateurs_verifies": sum(1 for u in utilisateurs if u["verifie"]),
             "total_licences": len(licences),
             "licences_actives": sum(1 for l in licences if l["statut"] == "active"),
+            "licences_expirant_7j": licences_expirant_7j,
+            "connexions_aujourd_hui": compter_connexions_aujourd_hui(),
         }
     })
 

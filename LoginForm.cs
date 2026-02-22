@@ -8,6 +8,8 @@ namespace logiciel_d_impression_3d
     {
         private UserManager userManager;
 
+        public bool ModeDemo { get; private set; }
+
         public LoginForm(UserManager manager)
         {
             InitializeComponent();
@@ -17,7 +19,47 @@ namespace logiciel_d_impression_3d
             {
                 this.AcceptButton = tabControl1.SelectedIndex == 0 ? btnLogin : btnRegister;
             };
+            // Agrandir la fenêtre pour laisser de la place au bouton démo sous "Se connecter"
+            this.ClientSize = new Size(450, 415);
             AppliquerTheme();
+            AjouterBoutonDemo();
+        }
+
+        private void AjouterBoutonDemo()
+        {
+            bool disponible = DemoManager.EstDemoDisponible();
+            int jours = DemoManager.JoursRestants();
+
+            // Placé dans tabPageLogin bien en dessous de btnLogin (bottom = y240+h40 = 280)
+            var btnDemo = new Button();
+            btnDemo.Size = new Size(260, 32);
+            btnDemo.Location = new Point(91, 308);
+            btnDemo.FlatStyle = FlatStyle.Flat;
+            btnDemo.FlatAppearance.BorderSize = 0;
+            btnDemo.Font = new Font("Segoe UI", 8.5F);
+            btnDemo.Cursor = disponible ? Cursors.Hand : Cursors.Default;
+            btnDemo.Enabled = disponible;
+
+            if (disponible)
+            {
+                btnDemo.BackColor = Color.FromArgb(52, 152, 219);
+                btnDemo.ForeColor = Color.White;
+                btnDemo.Text = $"Essayer sans compte ({jours} jour(s))";
+                btnDemo.Click += (s, e) =>
+                {
+                    ModeDemo = true;
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                };
+            }
+            else
+            {
+                btnDemo.BackColor = Color.FromArgb(220, 220, 220);
+                btnDemo.ForeColor = Color.FromArgb(120, 120, 120);
+                btnDemo.Text = "Démo expirée — créez un compte";
+            }
+
+            tabPageLogin.Controls.Add(btnDemo);
         }
 
         private void AppliquerTheme()
@@ -50,25 +92,17 @@ namespace logiciel_d_impression_3d
 
             if (userManager.AuthenticateUser(username, password))
             {
-                // Rappel de vérification email si non vérifié
-                if (!userManager.CurrentUser.Verifie)
+                if (userManager.ConnexionHorsLigne)
                 {
-                    DialogResult rappel = MessageBox.Show(
-                        $"Votre adresse email ({userManager.CurrentUser.Email}) n'est pas encore vérifiée.\n\n" +
-                        "Voulez-vous la vérifier maintenant ?",
-                        "Email non vérifié", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-                    if (rappel == DialogResult.Yes)
-                    {
-                        var verifForm = new VerificationEmailForm(userManager,
-                            userManager.CurrentUser.Username, userManager.CurrentUser.Email);
-                        verifForm.ShowDialog();
-                    }
+                    MessageBox.Show(
+                        "Le serveur est temporairement inaccessible.\n" +
+                        "Vous êtes connecté en mode hors-ligne.\n\n" +
+                        "Certaines fonctionnalités nécessitent une connexion internet.",
+                        "Mode hors-ligne",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
                 }
 
-                MessageBox.Show($"Bienvenue {userManager.CurrentUser.Username} !\n" +
-                    $"Dernière connexion : {userManager.PrecedenteConnexion:dd/MM/yyyy HH:mm}",
-                    "Connexion réussie", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
@@ -115,7 +149,7 @@ namespace logiciel_d_impression_3d
                 return;
             }
 
-            if (userManager.RegisterUser(username, password, email))
+            if (userManager.RegisterUser(username, password, email, out string erreurInscription))
             {
                 // Passer à l'onglet de connexion et pré-remplir
                 tabControl1.SelectedIndex = 0;
@@ -143,8 +177,11 @@ namespace logiciel_d_impression_3d
             }
             else
             {
-                MessageBox.Show("Ce nom d'utilisateur existe déjà.", "Erreur",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    string.IsNullOrEmpty(erreurInscription)
+                        ? "Ce nom d'utilisateur ou cet email existe déjà."
+                        : erreurInscription,
+                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

@@ -2,9 +2,12 @@
 Gestion de la base de données SQLite pour les licences.
 """
 
+import hashlib
 import sqlite3
 import os
-from datetime import datetime
+import secrets
+import bcrypt
+from datetime import datetime, timedelta
 
 DB_PATH = os.environ.get("DB_PATH", "/data/licences.db")
 
@@ -96,6 +99,45 @@ def initialiser_db():
                 PRIMARY KEY (promo_id, machine_id)
             )
         """)
+        # Table des sessions d'authentification (connexion depuis l'app)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions_auth (
+                session_id TEXT PRIMARY KEY,
+                nom_utilisateur TEXT NOT NULL,
+                date_creation TEXT NOT NULL,
+                date_expiration TEXT NOT NULL
+            )
+        """)
+        # Anti brute force : tentatives de connexion échouées
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS tentatives_connexion (
+                nom_utilisateur TEXT PRIMARY KEY,
+                nb_echecs INTEGER NOT NULL DEFAULT 0,
+                derniere_tentative TEXT NOT NULL,
+                bloque_jusqu TEXT DEFAULT NULL
+            )
+        """)
+        # Journal des connexions (succès et échecs)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS log_connexions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nom_utilisateur TEXT NOT NULL,
+                ip TEXT,
+                succes INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                details TEXT
+            )
+        """)
+        # Migrations : colonnes ajoutées après la création initiale
+        colonnes_utilisateurs = [r["name"] for r in conn.execute("PRAGMA table_info(utilisateurs)")]
+        if "password_hash" not in colonnes_utilisateurs:
+            conn.execute("ALTER TABLE utilisateurs ADD COLUMN password_hash TEXT DEFAULT NULL")
+        colonnes_sessions = [r["name"] for r in conn.execute("PRAGMA table_info(sessions_auth)")]
+        if "user_agent" not in colonnes_sessions:
+            conn.execute("ALTER TABLE sessions_auth ADD COLUMN user_agent TEXT DEFAULT NULL")
+        colonnes_licences = [r["name"] for r in conn.execute("PRAGMA table_info(licences)")]
+        if "alerte_expiration_envoyee" not in colonnes_licences:
+            conn.execute("ALTER TABLE licences ADD COLUMN alerte_expiration_envoyee INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
 
@@ -168,14 +210,15 @@ def lister_licences():
 
 # ── Utilisateurs ─────────────────────────────────────────────────────────────
 
-def inserer_utilisateur(nom: str, email: str, code: str, expiration: str, token: str):
+def inserer_utilisateur(nom: str, email: str, code: str, expiration: str, token: str,
+                        password_hash: str = None):
     now = datetime.utcnow().isoformat()
     with obtenir_connexion() as conn:
         conn.execute(
             """INSERT OR REPLACE INTO utilisateurs
-               (nom_utilisateur, email, date_inscription, code_verification, code_expiration, token_email)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (nom, email, now, code, expiration, token)
+               (nom_utilisateur, email, date_inscription, code_verification, code_expiration, token_email, password_hash)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (nom, email, now, code, expiration, token, password_hash)
         )
         conn.commit()
 
@@ -342,6 +385,34 @@ def lister_promotions():
         return [dict(r) for r in rows]
 
 
+def modifier_promo(promo_id: int, titre: str, message: str, type_promo: str,
+                   code: str, jours_offerts: int, date_expiration: str, emails: list):
+    with obtenir_connexion() as conn:
+        conn.execute(
+            """UPDATE promotions SET titre=?, message=?, type=?, code=?, jours_offerts=?, date_expiration=?
+               WHERE id=?""",
+            (titre, message, type_promo, code or None, jours_offerts, date_expiration, promo_id)
+        )
+        # Remplacer les emails ciblés
+        conn.execute("DELETE FROM promotions_cibles WHERE promo_id=?", (promo_id,))
+        for email in emails:
+            email = email.strip().lower()
+            if email:
+                conn.execute(
+                    "INSERT OR IGNORE INTO promotions_cibles (promo_id, email) VALUES (?, ?)",
+                    (promo_id, email)
+                )
+        conn.commit()
+
+
+def obtenir_emails_promo(promo_id: int):
+    with obtenir_connexion() as conn:
+        rows = conn.execute(
+            "SELECT email FROM promotions_cibles WHERE promo_id=?", (promo_id,)
+        ).fetchall()
+        return [r["email"] for r in rows]
+
+
 def supprimer_promo(promo_id: int):
     """Désactive (supprime logiquement) une promotion."""
     with obtenir_connexion() as conn:
@@ -370,3 +441,275 @@ def prolonger_licence(email: str, jours: int):
         )
         conn.commit()
         return True
+
+
+# ── Authentification utilisateurs ─────────────────────────────────────────────
+
+def _hasher_password(password: str) -> str:
+    """Hash un mot de passe avec bcrypt. Retourne le hash bcrypt."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
+
+
+def _verifier_hash(password: str, password_hash_stocke: str) -> bool:
+    """Vérifie un mot de passe contre le hash stocké.
+    Supporte bcrypt (nouveau format) et SHA-256 salé (ancien format 'sel:hash')."""
+    if not password_hash_stocke:
+        return False
+    # Nouveau format bcrypt
+    if password_hash_stocke.startswith("$2b$") or password_hash_stocke.startswith("$2a$"):
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash_stocke.encode("utf-8"))
+    # Ancien format SHA-256 : 'sel:hash' — compatibilité migration
+    if ":" in password_hash_stocke:
+        sel, h = password_hash_stocke.split(":", 1)
+        h_calcule = hashlib.sha256((sel + password).encode("utf-8")).hexdigest()
+        return h_calcule == h
+    return False
+
+
+def verifier_credentials(nom_utilisateur: str, password: str):
+    """Vérifie les identifiants. Retourne le dict utilisateur ou None.
+    Si le hash est encore en ancien format SHA-256, le migre automatiquement vers bcrypt."""
+    with obtenir_connexion() as conn:
+        row = conn.execute(
+            "SELECT * FROM utilisateurs WHERE nom_utilisateur = ? COLLATE NOCASE",
+            (nom_utilisateur,)
+        ).fetchone()
+        if not row:
+            return None
+        h = row["password_hash"]
+        if not _verifier_hash(password, h):
+            return None
+        # Migration transparente : si encore en SHA-256, re-hasher en bcrypt
+        if h and not (h.startswith("$2b$") or h.startswith("$2a$")):
+            conn.execute(
+                "UPDATE utilisateurs SET password_hash = ? WHERE nom_utilisateur = ? COLLATE NOCASE",
+                (_hasher_password(password), nom_utilisateur)
+            )
+            conn.commit()
+        return dict(row)
+
+
+def creer_compte_admin(nom: str, email: str, password: str) -> bool:
+    """Crée un compte administrateur vérifié. Retourne False si le nom/email existe déjà."""
+    with obtenir_connexion() as conn:
+        existant = conn.execute(
+            "SELECT id FROM utilisateurs WHERE nom_utilisateur = ? COLLATE NOCASE OR email = ? COLLATE NOCASE",
+            (nom, email)
+        ).fetchone()
+        if existant:
+            return False
+        now = datetime.utcnow().isoformat()
+        conn.execute(
+            """INSERT INTO utilisateurs
+               (nom_utilisateur, email, role, date_inscription, verifie, password_hash)
+               VALUES (?, ?, 'admin', ?, 1, ?)""",
+            (nom, email.strip().lower(), now, _hasher_password(password))
+        )
+        conn.commit()
+    return True
+
+
+def mettre_a_jour_password(nom_utilisateur: str, password: str):
+    """Met à jour le hash du mot de passe d'un utilisateur existant."""
+    with obtenir_connexion() as conn:
+        conn.execute(
+            "UPDATE utilisateurs SET password_hash = ? WHERE nom_utilisateur = ? COLLATE NOCASE",
+            (_hasher_password(password), nom_utilisateur)
+        )
+        conn.commit()
+
+
+# ── Sessions d'authentification ───────────────────────────────────────────────
+
+SESSION_DUREE_JOURS = 90  # durée de validité d'une session serveur
+
+
+def creer_session_auth(session_id: str, nom_utilisateur: str, user_agent: str = None) -> str:
+    """Crée une session d'authentification. Retourne la date d'expiration ISO."""
+    now = datetime.utcnow()
+    expiration = (now + timedelta(days=SESSION_DUREE_JOURS)).isoformat()
+    with obtenir_connexion() as conn:
+        conn.execute(
+            """INSERT OR REPLACE INTO sessions_auth
+               (session_id, nom_utilisateur, date_creation, date_expiration, user_agent)
+               VALUES (?, ?, ?, ?, ?)""",
+            (session_id, nom_utilisateur, now.isoformat(), expiration, user_agent)
+        )
+        conn.commit()
+    return expiration
+
+
+def obtenir_session_auth(session_id: str):
+    """Retourne les infos utilisateur si la session est valide, sinon None."""
+    now = datetime.utcnow().isoformat()
+    with obtenir_connexion() as conn:
+        row = conn.execute(
+            """SELECT u.nom_utilisateur, u.email, u.role, u.verifie,
+                      s.date_expiration
+               FROM sessions_auth s
+               JOIN utilisateurs u ON u.nom_utilisateur = s.nom_utilisateur COLLATE NOCASE
+               WHERE s.session_id = ? AND s.date_expiration > ?""",
+            (session_id, now)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def supprimer_session_auth(session_id: str):
+    """Invalide une session (déconnexion)."""
+    with obtenir_connexion() as conn:
+        conn.execute("DELETE FROM sessions_auth WHERE session_id = ?", (session_id,))
+        conn.commit()
+
+
+def nettoyer_sessions_expirees():
+    """Supprime les sessions expirées (à appeler périodiquement)."""
+    now = datetime.utcnow().isoformat()
+    with obtenir_connexion() as conn:
+        conn.execute("DELETE FROM sessions_auth WHERE date_expiration < ?", (now,))
+        conn.commit()
+
+
+def nettoyer_licences_obsoletes():
+    """Supprime définitivement les licences expirées ou révoquées depuis plus de 15 jours."""
+    with obtenir_connexion() as conn:
+        conn.execute("""
+            DELETE FROM licences
+            WHERE date_expiration < datetime('now', '-15 days')
+               OR (statut = 'revoked' AND date_creation < datetime('now', '-15 days'))
+        """)
+        conn.commit()
+
+
+def nettoyer_promos_obsoletes():
+    """Supprime définitivement les promotions expirées ou supprimées depuis plus de 15 jours,
+    ainsi que leurs données liées (cibles et utilisations)."""
+    with obtenir_connexion() as conn:
+        rows = conn.execute("""
+            SELECT id FROM promotions
+            WHERE date_expiration < datetime('now', '-15 days')
+               OR (statut = 'supprimee' AND date_creation < datetime('now', '-15 days'))
+        """).fetchall()
+        if rows:
+            ids = [r[0] for r in rows]
+            placeholders = ','.join('?' * len(ids))
+            conn.execute(f"DELETE FROM promotions_utilisations WHERE promo_id IN ({placeholders})", ids)
+            conn.execute(f"DELETE FROM promotions_cibles WHERE promo_id IN ({placeholders})", ids)
+            conn.execute(f"DELETE FROM promotions WHERE id IN ({placeholders})", ids)
+        conn.commit()
+
+
+# ── Anti brute force ──────────────────────────────────────────────────────────
+
+MAX_ECHECS     = 5     # tentatives avant blocage
+BLOCAGE_MINUTES = 15  # durée du blocage
+
+
+def verifier_blocage(nom_utilisateur: str) -> bool:
+    """Retourne True si le compte est actuellement bloqué (trop de tentatives)."""
+    with obtenir_connexion() as conn:
+        row = conn.execute(
+            "SELECT bloque_jusqu FROM tentatives_connexion WHERE nom_utilisateur = ? COLLATE NOCASE",
+            (nom_utilisateur,)
+        ).fetchone()
+    if not row or not row["bloque_jusqu"]:
+        return False
+    return datetime.utcnow().isoformat() < row["bloque_jusqu"]
+
+
+def enregistrer_echec_connexion(nom_utilisateur: str):
+    """Incrémente le compteur d'échecs. Bloque le compte après MAX_ECHECS tentatives."""
+    now = datetime.utcnow()
+    with obtenir_connexion() as conn:
+        row = conn.execute(
+            "SELECT nb_echecs FROM tentatives_connexion WHERE nom_utilisateur = ? COLLATE NOCASE",
+            (nom_utilisateur,)
+        ).fetchone()
+        nb = (row["nb_echecs"] + 1) if row else 1
+        bloque_jusqu = None
+        if nb >= MAX_ECHECS:
+            bloque_jusqu = (now + timedelta(minutes=BLOCAGE_MINUTES)).isoformat()
+        conn.execute(
+            """INSERT INTO tentatives_connexion (nom_utilisateur, nb_echecs, derniere_tentative, bloque_jusqu)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(nom_utilisateur) DO UPDATE SET
+                   nb_echecs = excluded.nb_echecs,
+                   derniere_tentative = excluded.derniere_tentative,
+                   bloque_jusqu = excluded.bloque_jusqu""",
+            (nom_utilisateur, nb, now.isoformat(), bloque_jusqu)
+        )
+        conn.commit()
+
+
+def reinitialiser_tentatives(nom_utilisateur: str):
+    """Remet à zéro le compteur après une connexion réussie."""
+    with obtenir_connexion() as conn:
+        conn.execute(
+            "DELETE FROM tentatives_connexion WHERE nom_utilisateur = ? COLLATE NOCASE",
+            (nom_utilisateur,)
+        )
+        conn.commit()
+
+
+# ── Journal des connexions ─────────────────────────────────────────────────────
+
+def ajouter_log_connexion(nom_utilisateur: str, ip: str, succes: bool, details: str = None):
+    """Enregistre une tentative de connexion (réussie ou échouée)."""
+    with obtenir_connexion() as conn:
+        conn.execute(
+            """INSERT INTO log_connexions (nom_utilisateur, ip, succes, date, details)
+               VALUES (?, ?, ?, ?, ?)""",
+            (nom_utilisateur, ip, 1 if succes else 0, datetime.utcnow().isoformat(), details)
+        )
+        conn.commit()
+
+
+def nettoyer_logs_connexion():
+    """Supprime les logs de connexion de plus de 30 jours."""
+    with obtenir_connexion() as conn:
+        conn.execute("DELETE FROM log_connexions WHERE date < datetime('now', '-30 days')")
+        conn.commit()
+
+
+def obtenir_logs_connexion(limit: int = 50):
+    """Retourne les dernières tentatives de connexion."""
+    with obtenir_connexion() as conn:
+        return conn.execute(
+            "SELECT * FROM log_connexions ORDER BY date DESC LIMIT ?", (limit,)
+        ).fetchall()
+
+
+def compter_connexions_aujourd_hui():
+    """Retourne le nombre de connexions réussies aujourd'hui."""
+    today = datetime.utcnow().isoformat()[:10]
+    with obtenir_connexion() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) as nb FROM log_connexions WHERE date LIKE ? AND succes = 1",
+            (today + "%",)
+        ).fetchone()
+        return row["nb"] if row else 0
+
+
+# ── Alertes expiration de licence ─────────────────────────────────────────────
+
+def obtenir_licences_expirant_bientot(jours: int = 7):
+    """Retourne les licences actives qui expirent dans moins de `jours` jours
+    et dont l'alerte email n'a pas encore été envoyée."""
+    limite = (datetime.utcnow() + timedelta(days=jours)).isoformat()
+    now = datetime.utcnow().isoformat()
+    with obtenir_connexion() as conn:
+        return conn.execute("""
+            SELECT * FROM licences
+            WHERE statut = 'active'
+              AND date_expiration <= ?
+              AND date_expiration >= ?
+              AND alerte_expiration_envoyee = 0
+        """, (limite, now)).fetchall()
+
+
+def marquer_alerte_expiration(cle: str):
+    """Marque la licence comme ayant reçu l'alerte d'expiration."""
+    with obtenir_connexion() as conn:
+        conn.execute(
+            "UPDATE licences SET alerte_expiration_envoyee = 1 WHERE cle = ?", (cle,)
+        )
+        conn.commit()

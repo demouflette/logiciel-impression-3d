@@ -134,6 +134,39 @@ def email_verification_compte(dest: str, nom_utilisateur: str, code: str, token:
     return envoyer_email(dest, "✓ Vérifiez votre adresse email", corps)
 
 
+def email_alerte_expiration(dest: str, cle: str, date_expiration: str, jours_restants: int) -> bool:
+    """Alerte envoyée à l'utilisateur quand sa licence expire dans moins de 7 jours."""
+    corps = f"""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="font-family:'Segoe UI',sans-serif;background:#f5f5f5;margin:0;padding:20px;">
+  <div style="max-width:540px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+    <div style="background:linear-gradient(135deg,#e67e22,#d35400);padding:28px 24px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:1.2rem;">⚠️ Votre licence expire bientôt</h1>
+      <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:0.85rem;">Logiciel d'impression 3D</p>
+    </div>
+    <div style="padding:28px 24px;">
+      <p style="color:#333;font-size:0.95rem;">Bonjour,</p>
+      <p style="color:#555;font-size:0.9rem;">
+        Votre licence expire dans <strong style="color:#e67e22;">{jours_restants} jour(s)</strong>,
+        le <strong>{date_expiration[:10]}</strong>.
+      </p>
+      <div style="background:#fff8f0;border-left:4px solid #e67e22;border-radius:4px;padding:14px 16px;margin:20px 0;">
+        <p style="margin:0;font-size:0.85rem;color:#666;">Clé concernée :</p>
+        <code style="font-size:1rem;font-weight:700;color:#1a1a2e;letter-spacing:0.1em;">{cle}</code>
+      </div>
+      <p style="color:#555;font-size:0.9rem;">
+        Pour continuer à utiliser le logiciel sans interruption, contactez l'administration
+        pour renouveler votre licence.
+      </p>
+    </div>
+    <div style="background:#f8f9fa;padding:14px 24px;text-align:center;border-top:1px solid #eee;">
+      <p style="color:#bbb;font-size:0.72rem;margin:0;">Logiciel d'impression 3D — Ne pas répondre à cet email</p>
+    </div>
+  </div>
+</body></html>"""
+    return envoyer_email(dest, f"⚠️ Votre licence expire dans {jours_restants} jour(s)", corps)
+
+
 def email_licence(dest: str, cle: str, lien_scratch: str, type_licence: str, date_exp: str) -> bool:
     """Email de livraison de licence (scratch card)."""
     type_affiche = "Mensuel" if type_licence == "monthly" else "À vie"

@@ -2,7 +2,7 @@
 ; G�n�r� avec Inno Setup
 
 #define MyAppName "Logiciel d'Impression 3D"
-#define MyAppVersion "1.1.0.0"
+#define MyAppVersion "1.6.11.0"
 #define MyAppPublisher "DemouFlette"
 #define MyAppURL "https://github.com/demouflette/logiciel-impression-3d-updates"
 #define MyAppExeName "logiciel d'impression 3d.exe"
@@ -77,7 +77,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Lancer {#MyAppName}"; Flags: no
 
 [UninstallDelete]
 ; Supprimer les fichiers de donn�es lors de la d�sinstallation (OPTIONNEL)
-Type: files; Name: "{app}\users.dat"
+; users.dat est maintenant dans %APPDATA%\DemouFlette\Logiciel3D\ — pas supprimé ici
 Type: files; Name: "{app}\parametres_impression.dat"
 Type: files; Name: "{app}\imprimantes_specs_cache.dat"
 

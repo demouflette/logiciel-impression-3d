@@ -18,7 +18,7 @@ namespace logiciel_d_impression_3d
         private const string UrlLatestRelease = "https://api.github.com/repos/{0}/{1}/releases/latest";
         
         // Nom des fichiers dans la release
-        private const string InstallerFileName = "Logiciel_Impression_3D_Setup_";  // Suffixe avec version
+        private const string InstallerFileName = "setup.exe";  // Installateur dans la release GitHub
         private const string ExeFileName = "logiciel-impression-3d.exe";
 
         public static void VerifierMiseAJour(bool afficherSiAJour = false)
@@ -124,8 +124,8 @@ namespace logiciel_d_impression_3d
                     
                     if (string.IsNullOrEmpty(downloadUrl))
                     {
-                        // Fallback: essayer de trouver l'installateur
-                        downloadUrl = TrouverUrlAssetPartiel(json, InstallerFileName);
+                        // Fallback: chercher l'installateur setup.exe
+                        downloadUrl = TrouverUrlAsset(json, InstallerFileName);
                     }
                     
                     return new ReleaseInfo
@@ -281,10 +281,16 @@ namespace logiciel_d_impression_3d
                         if (e.Error == null)
                         {
                             MessageBox.Show(
-                                "Téléchargement terminé ! L'application va se mettre à jour et redémarrer.",
+                                "Téléchargement terminé ! L'installateur va démarrer.\n" +
+                                "Acceptez l'élévation UAC pour finaliser la mise à jour.",
                                 "Mise à jour", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                            LancerMiseAJourSurPlace(cheminTemp);
+                            // Lancer l'installateur directement (il gère lui-même l'élévation UAC)
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = cheminTemp,
+                                UseShellExecute = true
+                            });
                             Application.Exit();
                         }
                         else

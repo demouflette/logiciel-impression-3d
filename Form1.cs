@@ -56,6 +56,9 @@ namespace logiciel_d_impression_3d
             // Ajouter le menu Activer une licence
             AjouterMenuActiverLicence();
 
+            // Déplacer "Paramètres impression" dans la barre principale (entre Fichier et PROMO)
+            DeplacerParametresMenu();
+
             // Ajouter le bouton PROMO
             AjouterMenuPromo();
 
@@ -142,8 +145,31 @@ namespace logiciel_d_impression_3d
 
         private void InitializeForm()
         {
-            // Afficher le nom de l'utilisateur connecté
-            lblWelcomeUser.Text = $"Bienvenue, {userManager.CurrentUser.Username}";
+            // Afficher le nom de l'utilisateur connecté + état de la licence
+            if (userManager.EstModeDemo)
+            {
+                int joursDemo = DemoManager.JoursRestants();
+                lblWelcomeUser.Text = $"Mode démonstration — {joursDemo} jour(s) restant(s) (sans compte)";
+                lblWelcomeUser.ForeColor = ThemeManager.AccentOrange;
+            }
+            else
+            {
+                EtatLicence etatLic = LicenceManager.ObtenirEtat();
+                string infoLicence;
+                if (etatLic == EtatLicence.Valide)
+                {
+                    int joursRestants = LicenceManager.JoursRestantsLicence();
+                    if (joursRestants <= 7)
+                        infoLicence = $" ⚠ Licence expire dans {joursRestants} jour(s) ({LicenceManager.DateExpiration:dd/MM/yyyy})";
+                    else
+                        infoLicence = $" — Licence valide jusqu'au {LicenceManager.DateExpiration:dd/MM/yyyy}";
+                }
+                else if (etatLic == EtatLicence.Essai)
+                    infoLicence = $" — Essai : {LicenceManager.JoursRestantsEssai()} jour(s) restant(s)";
+                else
+                    infoLicence = "";
+                lblWelcomeUser.Text = $"Bienvenue, {userManager.CurrentUser.Username}{infoLicence}";
+            }
             
             // Détecter le slicer Bambu Studio
             if (SlicerManager.EstInstalle())
@@ -1509,6 +1535,14 @@ namespace logiciel_d_impression_3d
         }
 
         // ── Bouton PROMO arc-en-ciel ──────────────────────────────────────────
+        private void DeplacerParametresMenu()
+        {
+            // Retire "Paramètres impression" du sous-menu Fichier
+            // et le place dans la barre principale à l'index 1 (juste après Fichier).
+            fichierToolStripMenuItem.DropDownItems.Remove(paramètresToolStripMenuItem);
+            menuStrip1.Items.Insert(1, paramètresToolStripMenuItem);
+        }
+
         private void AjouterMenuPromo()
         {
             _menuPromo = new ToolStripMenuItem("PROMO");
@@ -1517,13 +1551,14 @@ namespace logiciel_d_impression_3d
             _menuPromo.ForeColor = Color.Gray;
             _menuPromo.Font = new System.Drawing.Font(menuStrip1.Font ?? SystemFonts.DefaultFont, FontStyle.Bold);
             _menuPromo.Click += (s, e) => OuvrirPromo();
-            // Insérer juste après "Fichier" (index 0), avant "Aide"
-            menuStrip1.Items.Insert(1, _menuPromo);
+            // Insérer à l'index 2 : après "Fichier"(0) et "Paramètres"(1), avant "Aide"
+            menuStrip1.Items.Insert(2, _menuPromo);
             // Aide complètement à droite
             aideToolStripMenuItem.Alignment = ToolStripItemAlignment.Right;
 
-            // Lancer la vérification en arrière-plan après construction complète
-            this.Load += (s, e) => VerifierPromoAsync();
+            // Lancer la vérification en arrière-plan après construction complète (pas en mode démo)
+            if (!userManager.EstModeDemo)
+                this.Load += (s, e) => VerifierPromoAsync();
         }
 
         private void VerifierPromoAsync()

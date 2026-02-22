@@ -259,6 +259,8 @@ namespace logiciel_d_impression_3d
             return Math.Max(0, (int)(_dateExpiration - DateTime.UtcNow).TotalDays);
         }
 
+        public static DateTime DateExpiration => _dateExpiration;
+
         // ── Activation ────────────────────────────────────────────────────
         public static bool ActiverCle(string cle, out string messageErreur)
         {

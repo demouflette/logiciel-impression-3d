@@ -74,7 +74,7 @@
         <input type="hidden" name="notify_url"    value="{{ notify_url }}">
         <input type="hidden" name="return"        value="{{ return_url }}">
         <input type="hidden" name="cancel_return" value="{{ cancel_url }}">
-        <input type="hidden" name="custom"        value="monthly:30">
+        <input type="hidden" name="custom"        value="monthly:30:{{ session_id }}">
         <input type="hidden" name="no_shipping"   value="1">
         <input type="hidden" name="no_note"       value="1">
         <input type="hidden" name="charset"       value="UTF-8">
