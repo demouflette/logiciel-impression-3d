@@ -2,7 +2,7 @@
 ; G�n�r� avec Inno Setup
 
 #define MyAppName "Logiciel d'Impression 3D"
-#define MyAppVersion "1.6.11.0"
+#define MyAppVersion "1.6.12.0"
 #define MyAppPublisher "DemouFlette"
 #define MyAppURL "https://github.com/demouflette/logiciel-impression-3d-updates"
 #define MyAppExeName "logiciel d'impression 3d.exe"

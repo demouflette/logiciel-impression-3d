@@ -19,8 +19,6 @@ namespace logiciel_d_impression_3d
             {
                 this.AcceptButton = tabControl1.SelectedIndex == 0 ? btnLogin : btnRegister;
             };
-            // Agrandir la fenêtre pour laisser de la place au bouton démo sous "Se connecter"
-            this.ClientSize = new Size(450, 415);
             AppliquerTheme();
             AjouterBoutonDemo();
         }
@@ -30,10 +28,11 @@ namespace logiciel_d_impression_3d
             bool disponible = DemoManager.EstDemoDisponible();
             int jours = DemoManager.JoursRestants();
 
-            // Placé dans tabPageLogin bien en dessous de btnLogin (bottom = y240+h40 = 280)
             var btnDemo = new Button();
-            btnDemo.Size = new Size(260, 32);
-            btnDemo.Location = new Point(91, 308);
+            btnDemo.Width = btnLogin.Width;
+            btnDemo.Height = 32;
+            // Position calculée à partir du Bottom réel de btnLogin (déjà mis à l'échelle par AutoScale/DPI)
+            btnDemo.Location = new Point(btnLogin.Left, btnLogin.Bottom + 15);
             btnDemo.FlatStyle = FlatStyle.Flat;
             btnDemo.FlatAppearance.BorderSize = 0;
             btnDemo.Font = new Font("Segoe UI", 8.5F);
@@ -58,6 +57,11 @@ namespace logiciel_d_impression_3d
                 btnDemo.ForeColor = Color.FromArgb(120, 120, 120);
                 btnDemo.Text = "Démo expirée — créez un compte";
             }
+
+            // Agrandir la fenêtre si nécessaire pour que le bouton soit visible
+            int hauteurRequise = tabPageLogin.Location.Y + btnDemo.Bottom + 20;
+            if (this.ClientSize.Height < hauteurRequise)
+                this.ClientSize = new Size(this.ClientSize.Width, hauteurRequise);
 
             tabPageLogin.Controls.Add(btnDemo);
         }
