@@ -320,23 +320,72 @@ namespace logiciel_d_impression_3d
 
         // ── Hash local pour la vérification hors-ligne ───────────────────────
         // Le hash local est utilisé UNIQUEMENT pour la connexion hors-ligne.
-        // Il est stocké dans session_cache.dat (pas le mot de passe en clair).
+        // Format : pbkdf2:{iterations}:{sel_hex}:{hash_hex}
+        // Chaque utilisateur a un sel aléatoire différent (anti rainbow tables).
+
+        private const int PBKDF2_ITERATIONS = 200_000;
 
         private static string HashPasswordLocal(string password)
         {
-            using (SHA256 sha = SHA256.Create())
+            byte[] sel = new byte[16];
+            using (var rng = new RNGCryptoServiceProvider())
+                rng.GetBytes(sel);
+
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, sel, PBKDF2_ITERATIONS, HashAlgorithmName.SHA256))
             {
-                byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes("offline_salt_3d:" + password));
-                var sb = new StringBuilder();
-                foreach (byte b in bytes) sb.Append(b.ToString("x2"));
-                return sb.ToString();
+                byte[] hash = pbkdf2.GetBytes(32);
+                return $"pbkdf2:{PBKDF2_ITERATIONS}:{OctetsVersHex(sel)}:{OctetsVersHex(hash)}";
             }
         }
 
         private static bool VerifierPasswordLocal(string password, string hashStocke)
         {
             if (string.IsNullOrEmpty(hashStocke)) return false;
-            return HashPasswordLocal(password) == hashStocke;
+            // Ancien format (sel statique) : forcer reconnexion en ligne
+            if (!hashStocke.StartsWith("pbkdf2:")) return false;
+
+            string[] parts = hashStocke.Split(':');
+            if (parts.Length != 4) return false;
+            if (!int.TryParse(parts[1], out int iterations) || iterations < 1) return false;
+
+            byte[] sel, hashStockeBytes;
+            try
+            {
+                sel = HexVersOctets(parts[2]);
+                hashStockeBytes = HexVersOctets(parts[3]);
+            }
+            catch { return false; }
+
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, sel, iterations, HashAlgorithmName.SHA256))
+            {
+                byte[] hash = pbkdf2.GetBytes(32);
+                return ComparaisonTempsConstant(hash, hashStockeBytes);
+            }
+        }
+
+        // Comparaison en temps constant (résistance aux attaques par timing)
+        private static bool ComparaisonTempsConstant(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length) return false;
+            int diff = 0;
+            for (int i = 0; i < a.Length; i++)
+                diff |= a[i] ^ b[i];
+            return diff == 0;
+        }
+
+        private static string OctetsVersHex(byte[] octets)
+        {
+            var sb = new StringBuilder(octets.Length * 2);
+            foreach (byte b in octets) sb.Append(b.ToString("x2"));
+            return sb.ToString();
+        }
+
+        private static byte[] HexVersOctets(string hex)
+        {
+            byte[] result = new byte[hex.Length / 2];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+            return result;
         }
 
         // ── Appel HTTP générique ──────────────────────────────────────────────

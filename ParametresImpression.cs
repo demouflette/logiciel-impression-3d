@@ -788,6 +788,7 @@ namespace logiciel_d_impression_3d
         public decimal CoutMainOeuvreHeure { get; set; } = 0m;
         public decimal AmortissementMachineHeure { get; set; } = 0m;
         public string CheminSlicer { get; set; } = "";
+        public string CheminOrcaSlicer { get; set; } = "";
         public string NomEntreprise { get; set; } = "";
         public string AdresseEntreprise { get; set; } = "";
         public string TelephoneEntreprise { get; set; } = "";

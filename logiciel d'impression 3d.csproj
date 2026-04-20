@@ -6,6 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{907D6C03-2A2F-429B-90BA-064C32805F90}</ProjectGuid>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>imprimante_new.ico</ApplicationIcon>
     <RootNamespace>logiciel_d_impression_3d</RootNamespace>
     <AssemblyName>logiciel d%27impression 3d</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
@@ -90,6 +91,7 @@
     <Compile Include="StatistiquesForm.cs" />
     <Compile Include="CalibrationManager.cs" />
     <Compile Include="SlicerManager.cs" />
+    <Compile Include="StlParser.cs" />
     <Compile Include="ThemeManager.cs" />
     <Compile Include="RoundedPanel.cs" />
     <Compile Include="ImprimanteSpecsManager.cs" />
@@ -162,6 +164,7 @@
     <Compile Include="User.cs" />
     <Compile Include="UserManager.cs" />
     <Compile Include="UserManagerDuplicate.cs" />
+    <EmbeddedResource Include="logo_activation.png" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

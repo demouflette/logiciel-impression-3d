@@ -18,6 +18,36 @@ namespace logiciel_d_impression_3d
         private ThreeMFParser.ThreeMFFile fichier3mfAnalyse;
         private bool valeurSlicerUtilisees = false;
 
+        // ── Onglet STL / OrcaSlicer ───────────────────────────────────────────
+        private TabPage tabPageStl;
+        private TextBox txtStlFile;
+        private TextBox txtGcodeFile;
+        private TextBox txtStlInfo;
+        private ComboBox cmbStlPrinter;
+        private NumericUpDown numStlPoidsFilament;
+        private NumericUpDown numStlTempsImpression;
+        private CheckBox chkStlAMS;
+        private NumericUpDown numStlNombreCouleurs;
+        private Label lblStlNombreCouleurs;
+        private Label lblStatutOrcaSlicer;
+        private CheckBox chkStlUtiliserOrca;
+        private ProgressBar progressBarStl;
+        private Button btnBrowseStl;
+        private Button btnAnalyserStl;
+        private Button btnBrowseGcode;
+        private Button btnImporterGcode;
+        private Button btnOuvrirOrcaSlicer;
+        private Button btnCalculerDevisStl;
+        private ComboBox cmbStlMatiere;
+        private ResultatStl stlAnalyse;
+        private bool valeurGcodeUtilisees = false;
+
+        // Bannière publicitaire
+        private Panel _pnlPub;
+        private Label _lblPubTexte;
+        private System.Windows.Forms.Timer _timerMarquee;
+        private int _marqueeX;
+
         // Bouton PROMO arc-en-ciel
         private ToolStripMenuItem _menuPromo;
         private System.Windows.Forms.Timer _timerPromo;
@@ -32,6 +62,7 @@ namespace logiciel_d_impression_3d
         public Form1(UserManager manager)
         {
             InitializeComponent();
+            this.Text = "Crea-Coût 3D - Calcul de Devis";
             userManager = manager;
             InitializeForm();
 
@@ -67,6 +98,9 @@ namespace logiciel_d_impression_3d
 
             // Nettoyage automatique de l'historique (> 365 jours)
             HistoriqueManager.NettoyerHistorique();
+
+            // Charger la bannière pub depuis le serveur après affichage du formulaire
+            this.Shown += (s, e) => System.Threading.ThreadPool.QueueUserWorkItem(_ => ChargerBannierePub());
 
             // Charger le thème sauvegardé et appliquer
             ChargerThemeSauvegarde();
@@ -221,21 +255,433 @@ namespace logiciel_d_impression_3d
             chkAMS.Enabled = false;
             rdoMultiCouleur.Enabled = false;
 
+            // Initialiser l'onglet STL / OrcaSlicer
+            InitialiserOngletStl();
+
             // Verrouiller les fonctionnalités premium si pas d'abonnement actif
             AppliquerVerrouillageAbonnement();
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        // ONGLET STL / ORCASLICER
+        // ══════════════════════════════════════════════════════════════════════
+
+        private void InitialiserOngletStl()
+        {
+            tabPageStl = new TabPage("STL / OrcaSlicer");
+            tabControlMain.TabPages.Add(tabPageStl);
+
+            var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(10) };
+            tabPageStl.Controls.Add(scroll);
+
+            int y = 8;
+            int w = 640;
+
+            // ── GroupBox Fichier STL ──────────────────────────────────────────
+            var grpStl = new GroupBox { Text = "Fichier STL", Left = 8, Top = y, Width = w, Height = 110 };
+            scroll.Controls.Add(grpStl);
+
+            var lblStlF = new Label { Text = "Fichier :", Left = 10, Top = 22, AutoSize = true };
+            txtStlFile = new TextBox { Left = 70, Top = 19, Width = 420, ReadOnly = true };
+            btnBrowseStl = new Button { Text = "Parcourir...", Left = 498, Top = 17, Width = 90, Height = 26 };
+            btnAnalyserStl = new Button { Text = "Analyser STL", Left = 70, Top = 52, Width = 120, Height = 28 };
+
+            lblStatutOrcaSlicer = new Label { Left = 200, Top = 58, Width = 380, AutoSize = false, Height = 18 };
+            chkStlUtiliserOrca = new CheckBox { Text = "Ouvrir dans OrcaSlicer après analyse", Left = 200, Top = 78, Width = 300, Height = 20 };
+            progressBarStl = new ProgressBar { Left = 70, Top = 83, Width = 120, Height = 14, Style = ProgressBarStyle.Marquee, Visible = false };
+
+            grpStl.Controls.AddRange(new Control[] {
+                lblStlF, txtStlFile, btnBrowseStl, btnAnalyserStl,
+                lblStatutOrcaSlicer, chkStlUtiliserOrca, progressBarStl });
+
+            bool orcaOk = SlicerManager.OrcaSlicerEstInstalle();
+            if (orcaOk)
+            {
+                lblStatutOrcaSlicer.Text = "✓ OrcaSlicer détecté";
+                lblStatutOrcaSlicer.ForeColor = ThemeManager.SecondaryGreen;
+                chkStlUtiliserOrca.Visible = true;
+            }
+            else
+            {
+                lblStatutOrcaSlicer.Text = "OrcaSlicer non détecté (configurable dans Paramètres)";
+                lblStatutOrcaSlicer.ForeColor = ThemeManager.TextSecondary;
+                chkStlUtiliserOrca.Visible = false;
+            }
+
+            y += 118;
+
+            // ── GroupBox G-code OrcaSlicer ────────────────────────────────────
+            var grpGcode = new GroupBox { Text = "G-code OrcaSlicer (pour valeurs précises)", Left = 8, Top = y, Width = w, Height = 80 };
+            scroll.Controls.Add(grpGcode);
+
+            var lblGcodeF = new Label { Text = "G-code :", Left = 10, Top = 22, AutoSize = true };
+            txtGcodeFile = new TextBox { Left = 70, Top = 19, Width = 360, ReadOnly = true };
+            btnBrowseGcode = new Button { Text = "Parcourir...", Left = 438, Top = 17, Width = 90, Height = 26 };
+            btnImporterGcode = new Button { Text = "Importer G-code", Left = 536, Top = 17, Width = 110, Height = 26 };
+            btnOuvrirOrcaSlicer = new Button
+            {
+                Text = "Ouvrir OrcaSlicer",
+                Left = 70, Top = 48, Width = 130, Height = 24,
+                Visible = orcaOk,
+                Enabled = false
+            };
+            var lblGcodeInfo = new Label
+            {
+                Text = "Slicez votre fichier dans OrcaSlicer, exportez le G-code, puis importez-le ici.",
+                Left = 210, Top = 52, Width = 430, AutoSize = false, Height = 18,
+                ForeColor = ThemeManager.TextSecondary
+            };
+
+            grpGcode.Controls.AddRange(new Control[] { lblGcodeF, txtGcodeFile, btnBrowseGcode, btnImporterGcode, btnOuvrirOrcaSlicer, lblGcodeInfo });
+
+            y += 88;
+
+            // ── GroupBox Informations ─────────────────────────────────────────
+            var grpInfo = new GroupBox { Text = "Résultat analyse", Left = 8, Top = y, Width = w, Height = 160 };
+            scroll.Controls.Add(grpInfo);
+
+            txtStlInfo = new TextBox
+            {
+                Left = 10, Top = 18, Width = grpInfo.Width - 24, Height = 132,
+                Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
+                Font = new System.Drawing.Font("Consolas", 8.5f)
+            };
+            grpInfo.Controls.Add(txtStlInfo);
+
+            y += 168;
+
+            // ── GroupBox Calcul du devis ──────────────────────────────────────
+            var grpCalc = new GroupBox { Text = "Calcul du devis", Left = 8, Top = y, Width = w, Height = 190 };
+            scroll.Controls.Add(grpCalc);
+
+            int cx = 10, cy = 22;
+
+            var lblPrinter = new Label { Text = "Imprimante :", Left = cx, Top = cy + 3, AutoSize = true };
+            cmbStlPrinter = new ComboBox { Left = 130, Top = cy, Width = 280, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbStlPrinter.Items.AddRange(ImprimanteSpecsManager.ObtenirListeImprimantes().ToArray());
+            if (cmbStlPrinter.Items.Count > 0) cmbStlPrinter.SelectedIndex = 0;
+            cy += 34;
+
+            var lblMatiere = new Label { Text = "Matière :", Left = cx, Top = cy + 3, AutoSize = true };
+            cmbStlMatiere = new ComboBox { Left = 130, Top = cy, Width = 150, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbStlMatiere.Items.AddRange(new string[] { "PLA", "PETG", "ABS", "ASA", "TPU", "PA", "PC" });
+            cmbStlMatiere.SelectedIndex = 0;
+            cy += 34;
+
+            var lblPoids = new Label { Text = "Poids filament (g) :", Left = cx, Top = cy + 3, AutoSize = true };
+            numStlPoidsFilament = new NumericUpDown { Left = 130, Top = cy, Width = 90, Minimum = 0, Maximum = 9999, DecimalPlaces = 2 };
+            cy += 34;
+
+            var lblTemps = new Label { Text = "Temps (heures) :", Left = cx, Top = cy + 3, AutoSize = true };
+            numStlTempsImpression = new NumericUpDown { Left = 130, Top = cy, Width = 90, Minimum = 0, Maximum = 999, DecimalPlaces = 2 };
+
+            chkStlAMS = new CheckBox { Text = "Multi-couleur (AMS)", Left = 240, Top = cy + 2, AutoSize = true };
+            lblStlNombreCouleurs = new Label { Text = "Couleurs :", Left = 400, Top = cy + 3, AutoSize = true, Visible = false };
+            numStlNombreCouleurs = new NumericUpDown { Left = 465, Top = cy, Width = 55, Minimum = 2, Maximum = 16, Value = 2, Visible = false };
+            cy += 34;
+
+            btnCalculerDevisStl = new Button
+            {
+                Text = "Calculer le devis STL",
+                Left = cx, Top = cy, Width = 200, Height = 32
+            };
+
+            grpCalc.Controls.AddRange(new Control[] {
+                lblPrinter, cmbStlPrinter,
+                lblMatiere, cmbStlMatiere,
+                lblPoids, numStlPoidsFilament,
+                lblTemps, numStlTempsImpression,
+                chkStlAMS, lblStlNombreCouleurs, numStlNombreCouleurs,
+                btnCalculerDevisStl });
+
+            // ── Événements ────────────────────────────────────────────────────
+            btnBrowseStl.Click += BtnBrowseStl_Click;
+            btnAnalyserStl.Click += BtnAnalyserStl_Click;
+            btnBrowseGcode.Click += BtnBrowseGcode_Click;
+            btnImporterGcode.Click += BtnImporterGcode_Click;
+            btnOuvrirOrcaSlicer.Click += BtnOuvrirOrcaSlicer_Click;
+            btnCalculerDevisStl.Click += BtnCalculerDevisStl_Click;
+            chkStlAMS.CheckedChanged += (s, e) =>
+            {
+                lblStlNombreCouleurs.Visible = chkStlAMS.Checked;
+                numStlNombreCouleurs.Visible = chkStlAMS.Checked;
+            };
+
+            // Styler
+            ThemeManager.StyleButton(btnAnalyserStl, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButton(btnBrowseStl, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
+            ThemeManager.StyleButton(btnBrowseGcode, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
+            ThemeManager.StyleButton(btnImporterGcode, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
+            ThemeManager.StyleButton(btnOuvrirOrcaSlicer, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+            ThemeManager.StyleButtonLarge(btnCalculerDevisStl, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
+        }
+
+        // ── Événements STL ────────────────────────────────────────────────────
+
+        private void BtnBrowseStl_Click(object sender, EventArgs e)
+        {
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Fichiers STL (*.stl)|*.stl|Tous les fichiers (*.*)|*.*";
+                ofd.Title = "Sélectionnez un fichier STL";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    txtStlFile.Text = ofd.FileName;
+                    btnOuvrirOrcaSlicer.Enabled = true;
+                }
+            }
+        }
+
+        private void BtnAnalyserStl_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtStlFile.Text))
+            {
+                MessageBox.Show("Veuillez sélectionner un fichier STL.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!System.IO.File.Exists(txtStlFile.Text))
+            {
+                MessageBox.Show("Le fichier sélectionné n'existe pas.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                progressBarStl.Visible = true;
+                btnAnalyserStl.Enabled = false;
+                Application.DoEvents();
+
+                stlAnalyse = StlParser.Parser(txtStlFile.Text);
+                progressBarStl.Visible = false;
+                btnAnalyserStl.Enabled = true;
+
+                if (!stlAnalyse.Succes)
+                {
+                    txtStlInfo.Text = $"❌ Erreur : {stlAnalyse.MessageErreur}";
+                    return;
+                }
+
+                txtStlInfo.Text = StlParser.GenererRapport(stlAnalyse);
+                txtStlInfo.Select(0, 0);
+
+                string matiere = cmbStlMatiere.SelectedItem?.ToString() ?? "PLA";
+                numStlPoidsFilament.Value = Math.Max(0, Math.Min(9999,
+                    Math.Round(CalibrationManager.EstimerPoids(stlAnalyse.NombreTriangles * 3, matiere, 15), 2)));
+                decimal tempsH = CalibrationManager.EstimerTemps(stlAnalyse.NombreTriangles * 3,
+                    cmbStlPrinter.SelectedItem?.ToString() ?? "") / 60m;
+                numStlTempsImpression.Value = Math.Max(0, Math.Min(999, Math.Round(tempsH, 2)));
+
+                valeurGcodeUtilisees = false;
+
+                if (chkStlUtiliserOrca.Checked && SlicerManager.OrcaSlicerEstInstalle())
+                    SlicerManager.OuvrirAvecOrcaSlicer(txtStlFile.Text);
+            }
+            catch (Exception ex)
+            {
+                progressBarStl.Visible = false;
+                btnAnalyserStl.Enabled = true;
+                txtStlInfo.Text = $"❌ Erreur inattendue : {ex.Message}";
+            }
+        }
+
+        private void BtnBrowseGcode_Click(object sender, EventArgs e)
+        {
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Fichiers G-code (*.gcode;*.gc;*.g)|*.gcode;*.gc;*.g|Tous les fichiers (*.*)|*.*";
+                ofd.Title = "Sélectionnez le G-code exporté depuis OrcaSlicer";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                    txtGcodeFile.Text = ofd.FileName;
+            }
+        }
+
+        private void BtnImporterGcode_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtGcodeFile.Text) || !System.IO.File.Exists(txtGcodeFile.Text))
+            {
+                MessageBox.Show("Veuillez sélectionner un fichier G-code valide.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                var resultat = SlicerManager.ParserFichierGcode(txtGcodeFile.Text);
+
+                if (!resultat.Succes)
+                {
+                    MessageBox.Show($"Impossible de lire le G-code :\n{resultat.MessageErreur}",
+                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                valeurGcodeUtilisees = true;
+
+                if (resultat.PoidsFilamentGrammes > 0)
+                    numStlPoidsFilament.Value = Math.Min(9999, Math.Round(resultat.PoidsFilamentGrammes, 2));
+
+                if (resultat.TempsMinutes > 0)
+                    numStlTempsImpression.Value = Math.Min(999, Math.Round(resultat.TempsMinutes / 60m, 2));
+
+                string infoGcode = $"✅ G-code importé : {System.IO.Path.GetFileName(txtGcodeFile.Text)}\n";
+                if (resultat.PoidsFilamentGrammes > 0)
+                    infoGcode += $"   Poids filament : {resultat.PoidsFilamentGrammes:F2} g\n";
+                if (resultat.TempsMinutes > 0)
+                    infoGcode += $"   Temps : {(int)(resultat.TempsMinutes / 60)}h {(int)(resultat.TempsMinutes % 60):D2}min\n";
+                if (resultat.PoidsPurgeGrammes > 0)
+                    infoGcode += $"   Purge : {resultat.PoidsPurgeGrammes:F2} g\n";
+                infoGcode += "\n(Valeurs précises OrcaSlicer — supports inclus)";
+
+                txtStlInfo.Text = infoGcode + (stlAnalyse != null ? "\n\n" + StlParser.GenererRapport(stlAnalyse) : "");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors de l'import : {ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnOuvrirOrcaSlicer_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtStlFile.Text)) return;
+            if (!SlicerManager.OuvrirAvecOrcaSlicer(txtStlFile.Text))
+                MessageBox.Show("Impossible d'ouvrir OrcaSlicer.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        private void BtnCalculerDevisStl_Click(object sender, EventArgs e)
+        {
+            if (stlAnalyse == null && !valeurGcodeUtilisees)
+            {
+                MessageBox.Show("Veuillez d'abord analyser un fichier STL ou importer un G-code.",
+                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (numStlTempsImpression.Value == 0)
+            {
+                MessageBox.Show("Veuillez entrer le temps d'impression.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (numStlPoidsFilament.Value == 0)
+            {
+                MessageBox.Show("Veuillez entrer le poids de filament.", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+
+                decimal poidsFilament = numStlPoidsFilament.Value;
+                decimal tempsHeures = numStlTempsImpression.Value;
+                int nombreCouleurs = chkStlAMS.Checked ? (int)numStlNombreCouleurs.Value : 1;
+
+                decimal poidsPurge = 0;
+                if (!valeurGcodeUtilisees && chkStlAMS.Checked && nombreCouleurs > 1)
+                {
+                    var specs = ImprimanteSpecsManager.ObtenirSpecs(cmbStlPrinter.SelectedItem?.ToString() ?? "");
+                    poidsPurge = poidsFilament * (parametres.PourcentagePurgeAMS / 100m) * specs.CoefficientDechetAMS;
+                }
+
+                decimal poidsTotal = poidsFilament + poidsPurge;
+
+                string matiere = cmbStlMatiere.SelectedItem?.ToString() ?? "PLA";
+                decimal prixKgFilament = ObtenirPrixMoyenBobines(parametres, matiere);
+                decimal coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
+
+                var specsImp = ImprimanteSpecsManager.ObtenirSpecs(cmbStlPrinter.SelectedItem?.ToString() ?? "");
+                decimal coutElectricite = specsImp.ConsommationMoyenneKw * tempsHeures * parametres.CoutElectriciteKwh;
+                decimal coutMainOeuvre = tempsHeures * parametres.CoutMainOeuvreHeure;
+                decimal coutAmortissement = tempsHeures * parametres.AmortissementMachineHeure;
+
+                decimal coutProductionHT = coutMatiere + coutElectricite + coutMainOeuvre + coutAmortissement;
+                decimal marge = coutProductionHT * (parametres.MargeParObjet / 100m);
+                decimal sousTotalHT = coutProductionHT + marge;
+                decimal montantTVA = sousTotalHT * (parametres.TVA / 100m);
+                decimal prixTotalTTC = sousTotalHT + montantTVA;
+
+                var sb = new StringBuilder();
+                sb.Append(GenererEnteteEntreprise(parametres));
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine("          DEVIS D'IMPRESSION 3D - STL");
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine();
+                if (stlAnalyse != null)
+                    sb.AppendLine($"📄 Fichier : {stlAnalyse.NomFichier}");
+                sb.AppendLine($"🖨️  Imprimante : {cmbStlPrinter.SelectedItem}");
+                sb.AppendLine($"🧵 Matière : {matiere}");
+                if (valeurGcodeUtilisees)
+                    sb.AppendLine($"✅ Source : G-code OrcaSlicer (valeurs précises, supports inclus)");
+                else
+                    sb.AppendLine($"📐 Source : Estimation depuis fichier STL");
+                sb.AppendLine();
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine("  DÉTAILS DE L'IMPRESSION");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine($"⏱️  Temps d'impression : {tempsHeures:F2} heures");
+                sb.AppendLine($"🎨 Mode : {(chkStlAMS.Checked ? $"Multi-couleur ({nombreCouleurs} couleurs)" : "Mono-couleur")}");
+                sb.AppendLine($"📊 Poids filament net : {poidsFilament:F2} g");
+                if (poidsPurge > 0)
+                    sb.AppendLine($"🔄 Poids purge AMS ({parametres.PourcentagePurgeAMS}%) : {poidsPurge:F2} g");
+                sb.AppendLine($"📦 Poids total : {poidsTotal:F2} g");
+                sb.AppendLine();
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine("  DÉTAILS DES COÛTS");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine($"💰 Coût matière : {coutMatiere:F2} €");
+                sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
+                sb.AppendLine($"⚡ Coût électricité : {coutElectricite:F2} €");
+                if (coutMainOeuvre > 0)
+                    sb.AppendLine($"👷 Main-d'œuvre : {coutMainOeuvre:F2} €");
+                if (coutAmortissement > 0)
+                    sb.AppendLine($"🏭 Amortissement : {coutAmortissement:F2} €");
+                sb.AppendLine($"🔧 Coût production HT : {coutProductionHT:F2} €");
+                sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%) : {marge:F2} €");
+                sb.AppendLine();
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine($"   Sous-total HT : {sousTotalHT:F2} €");
+                sb.AppendLine($"   TVA ({parametres.TVA}%) : {montantTVA:F2} €");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine($"   💰 PRIX TOTAL TTC : {prixTotalTTC:F2} €");
+                sb.AppendLine("═══════════════════════════════════════════════════");
+
+                string contenu = sb.ToString();
+                HistoriqueManager.Sauvegarder(new EntreeHistorique
+                {
+                    Date = DateTime.Now,
+                    Titre = $"STL - {(stlAnalyse?.NomFichier ?? "import G-code")}",
+                    PrixTotalTTC = prixTotalTTC,
+                    ContenuDevis = contenu
+                });
+
+                new DevisForm("Devis d'impression 3D - STL", contenu).ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors du calcul : {ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void AppliquerVerrouillageAbonnement()
         {
+            // Les admins ont accès à toutes les fonctionnalités sans restriction
+            if (userManager.CurrentUser?.EstAdmin == true) return;
+
             if (LicenceManager.EstPremiumActif()) return;
 
             // Griser tous les contrôles de l'onglet 3MF
             tabPage3mf.Enabled = false;
 
-            // Bloquer la navigation vers l'onglet verrouillé
+            // Bloquer la navigation vers les onglets verrouillés
             tabControlMain.Selecting += (s, e) =>
             {
-                if (e.TabPage == tabPage3mf)
+                if (e.TabPage == tabPage3mf || e.TabPage == tabPageStl)
                     e.Cancel = true;
             };
 
@@ -260,6 +706,32 @@ namespace logiciel_d_impression_3d
             panel.Controls.Add(lbl);
             tabPage3mf.Controls.Add(panel);
             panel.BringToFront();
+
+            // Griser l'onglet STL
+            if (tabPageStl != null)
+            {
+                tabPageStl.Enabled = false;
+                var panelStl = new System.Windows.Forms.Panel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = System.Drawing.Color.FromArgb(235, 237, 240)
+                };
+                var lblStl = new System.Windows.Forms.Label
+                {
+                    Text = "Fonctionnalité réservée aux abonnés\r\n\r\n" +
+                           "L'analyse de fichiers STL et OrcaSlicer nécessite un abonnement actif.\r\n\r\n" +
+                           "Activez votre licence depuis le menu Aide > Activer une licence.",
+                    AutoSize = false,
+                    Dock = DockStyle.Fill,
+                    TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+                    ForeColor = ThemeManager.TextSecondary,
+                    Font = ThemeManager.FontBody,
+                    BackColor = System.Drawing.Color.Transparent
+                };
+                panelStl.Controls.Add(lblStl);
+                tabPageStl.Controls.Add(panelStl);
+                panelStl.BringToFront();
+            }
         }
 
         /// <summary>
@@ -1347,12 +1819,13 @@ namespace logiciel_d_impression_3d
 
         private void déconnexionToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult result = MessageBox.Show("Voulez-vous vraiment vous déconnecter ?", 
+            DialogResult result = MessageBox.Show("Voulez-vous vraiment vous déconnecter ?",
                 "Déconnexion", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
             if (result == DialogResult.Yes)
             {
-                this.Close();
+                userManager.Deconnecter();
+                Application.Restart();
             }
         }
 
@@ -1481,7 +1954,8 @@ namespace logiciel_d_impression_3d
             menuActiver.Click += (s, e) =>
             {
                 EtatLicence etat = LicenceManager.ObtenirEtat();
-                var form = new ActivationForm(etat);
+                string emailActif = userManager.CurrentUser?.Email ?? "";
+                var form = new ActivationForm(etat, emailActif);
                 if (form.ShowDialog(this) == DialogResult.OK)
                 {
                     MessageBox.Show(
@@ -1541,6 +2015,106 @@ namespace logiciel_d_impression_3d
             // et le place dans la barre principale à l'index 1 (juste après Fichier).
             fichierToolStripMenuItem.DropDownItems.Remove(paramètresToolStripMenuItem);
             menuStrip1.Items.Insert(1, paramètresToolStripMenuItem);
+        }
+
+        // ── Bannière publicitaire ─────────────────────────────────────────────
+        private void ChargerBannierePub()
+        {
+            try
+            {
+                var pub = LicenceManager.ChercherPubActive();
+                if (pub == null) return;
+                BeginInvoke(new Action(() => AfficherBannierePub(pub)));
+            }
+            catch { }
+        }
+
+        private void AfficherBannierePub(PubInfo pub)
+        {
+            Color couleurFond  = ColorTranslator.FromHtml(pub.CouleurFond);
+            Color couleurTexte = ColorTranslator.FromHtml(pub.CouleurTexte);
+            bool cliquable     = !string.IsNullOrEmpty(pub.Lien);
+            int hauteur        = 36;
+
+            // Positionner la bannière entre le panelHeader et le tabControlMain
+            int yBanniere = tabControlMain.Top;
+            tabControlMain.Top    += hauteur;
+            tabControlMain.Height -= hauteur;
+
+            _pnlPub = new Panel
+            {
+                Location  = new Point(tabControlMain.Left, yBanniere),
+                Width     = tabControlMain.Width,
+                Height    = hauteur,
+                Anchor    = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = couleurFond,
+                Cursor    = cliquable ? Cursors.Hand : Cursors.Default,
+            };
+
+            // Image / logo (optionnel)
+            if (!string.IsNullOrEmpty(pub.ImageUrl))
+            {
+                var picLogo = new PictureBox
+                {
+                    Size     = new Size(30, 30),
+                    Location = new Point(8, 5),
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Transparent,
+                };
+                _pnlPub.Controls.Add(picLogo);
+
+                System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    try
+                    {
+                        using (var wc = new WebClient())
+                        {
+                            byte[] data = wc.DownloadData(pub.ImageUrl);
+                            using (var ms = new System.IO.MemoryStream(data))
+                            {
+                                var img = Image.FromStream(ms);
+                                if (!picLogo.IsDisposed)
+                                    BeginInvoke(new Action(() => picLogo.Image = img));
+                            }
+                        }
+                    }
+                    catch { }
+                });
+            }
+
+            // Texte défilant
+            _lblPubTexte = new Label
+            {
+                Text      = pub.MessageDefilant,
+                ForeColor = couleurTexte,
+                BackColor = Color.Transparent,
+                AutoSize  = true,
+                Font      = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Location  = new Point(ClientSize.Width, 11),
+            };
+            _pnlPub.Controls.Add(_lblPubTexte);
+            _marqueeX = ClientSize.Width;
+
+            // Clic → ouvrir lien
+            if (cliquable)
+            {
+                EventHandler ouvrirLien = (s, e) => System.Diagnostics.Process.Start(pub.Lien);
+                _pnlPub.Click    += ouvrirLien;
+                _lblPubTexte.Click += ouvrirLien;
+            }
+
+            // Timer défilement
+            _timerMarquee = new System.Windows.Forms.Timer { Interval = 25 };
+            _timerMarquee.Tick += (s, e) =>
+            {
+                _marqueeX -= 2;
+                if (_marqueeX < -(_lblPubTexte.Width + 20))
+                    _marqueeX = _pnlPub.Width;
+                _lblPubTexte.Left = _marqueeX;
+            };
+            _timerMarquee.Start();
+
+            Controls.Add(_pnlPub);
         }
 
         private void AjouterMenuPromo()
@@ -1722,7 +2296,7 @@ namespace logiciel_d_impression_3d
         {
             string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
             MessageBox.Show(
-                $"Logiciel de Calcul de Devis pour Impression 3D\n\n" +
+                $"Crea-Coût 3D - Logiciel de calcul de devis\n\n" +
                 $"Version : {version}\n" +
                 $"© 2024 - Tous droits réservés\n\n" +
                 $"Fonctionnalités :\n" +

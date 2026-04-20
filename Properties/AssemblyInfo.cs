@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // Les informations générales relatives à un assembly dépendent de
 // l'ensemble d'attributs suivant. Changez les valeurs de ces attributs pour modifier les informations
 // associées à un assembly.
-[assembly: AssemblyTitle("logiciel d'impression 3d")]
-[assembly: AssemblyDescription("logiciel de calcul du prix de vente des impression 3d")]
+[assembly: AssemblyTitle("Crea-Coût 3D")]
+[assembly: AssemblyDescription("Logiciel de calcul du prix de vente des impressions 3D")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("logiciel d'impression 3d")]
+[assembly: AssemblyCompany("DemouFlette")]
+[assembly: AssemblyProduct("Crea-Coût 3D")]
 [assembly: AssemblyCopyright("Copyright ©  2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -30,6 +30,6 @@ using System.Runtime.InteropServices;
 //      Numéro de build
 //      Révision
 //
-[assembly: AssemblyVersion("1.6.12.0")]
-[assembly: AssemblyFileVersion("1.6.12.0")]
+[assembly: AssemblyVersion("1.8.0.0")]
+[assembly: AssemblyFileVersion("1.8.0.0")]
 [assembly: NeutralResourcesLanguage("fr")]

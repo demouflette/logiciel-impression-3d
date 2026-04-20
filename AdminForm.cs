@@ -17,6 +17,7 @@ namespace logiciel_d_impression_3d
             InitializeComponent();
             _userManager = userManager;
             AppliquerTheme();
+            AjouterMenuContextuelUtilisateurs();
             ChargerDonnees();
         }
 
@@ -124,6 +125,138 @@ namespace logiciel_d_impression_3d
             {
                 AfficherErreurGrille(dgvLicences, $"Erreur : {ex.Message}");
             }
+        }
+
+        // ── Menu contextuel utilisateurs ──────────────────────────────────
+        private void AjouterMenuContextuelUtilisateurs()
+        {
+            var menu = new ContextMenuStrip();
+
+            var itemVerifier = new ToolStripMenuItem("Forcer la vérification email");
+            itemVerifier.Click += (s, e) => MenuContextuel_ForcerVerification();
+
+            var itemPassword = new ToolStripMenuItem("Réinitialiser le mot de passe");
+            itemPassword.Click += (s, e) => MenuContextuel_ResetPassword();
+
+            var itemTemps = new ToolStripMenuItem("Ajouter du temps d'accès");
+            itemTemps.Click += (s, e) => MenuContextuel_AjouterTemps();
+
+            menu.Items.Add(itemVerifier);
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(itemPassword);
+            menu.Items.Add(itemTemps);
+
+            dgvUtilisateurs.ContextMenuStrip = menu;
+        }
+
+        private string ObtenirEmailSelectionne()
+        {
+            if (dgvUtilisateurs.SelectedRows.Count == 0 && dgvUtilisateurs.CurrentRow == null)
+            {
+                MessageBox.Show("Sélectionnez un utilisateur.", "Information",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return null;
+            }
+            int idx = dgvUtilisateurs.CurrentRow?.Index ?? -1;
+            if (idx < 0) return null;
+            return dgvUtilisateurs.Rows[idx].Cells[1].Value?.ToString();
+        }
+
+        private void MenuContextuel_ForcerVerification()
+        {
+            string email = ObtenirEmailSelectionne();
+            if (string.IsNullOrEmpty(email)) return;
+
+            int idx = dgvUtilisateurs.CurrentRow.Index;
+            string verifie = dgvUtilisateurs.Rows[idx].Cells[4].Value?.ToString();
+            if (verifie?.StartsWith("✓") == true)
+            {
+                MessageBox.Show($"L'utilisateur {email} est déjà vérifié.", "Information",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (MessageBox.Show($"Forcer la vérification de l'email pour {email} ?",
+                "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                ForcerVerificationUtilisateur(email, idx);
+            }
+        }
+
+        private void MenuContextuel_ResetPassword()
+        {
+            string email = ObtenirEmailSelectionne();
+            if (string.IsNullOrEmpty(email)) return;
+
+            using (var form = new SaisieNouveauPasswordForm(email))
+            {
+                if (form.ShowDialog() == DialogResult.OK)
+                    ResetPasswordUtilisateur(email, form.NouveauPassword);
+            }
+        }
+
+        private void MenuContextuel_AjouterTemps()
+        {
+            string email = ObtenirEmailSelectionne();
+            if (string.IsNullOrEmpty(email)) return;
+
+            using (var form = new SaisieJoursForm(email))
+            {
+                if (form.ShowDialog() == DialogResult.OK)
+                    AjouterTempsAcces(email, form.Jours);
+            }
+        }
+
+        private void ResetPasswordUtilisateur(string email, string nouveauPassword)
+        {
+            try
+            {
+                string corps = $"{{\"email\":\"{EchapperJson(email)}\",\"nouveau_password\":\"{EchapperJson(nouveauPassword)}\"}}";
+                string reponse = AppelerApiAdmin("/api/admin/reinitialiser-password", corps);
+                if (reponse == null)
+                {
+                    MessageBox.Show("Serveur inaccessible ou endpoint non disponible.", "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                lblStatut.Text = $"✓ Mot de passe réinitialisé pour {email}";
+                lblStatut.ForeColor = ThemeManager.SecondaryGreen;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur : {ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void AjouterTempsAcces(string email, int jours)
+        {
+            try
+            {
+                string corps = $"{{\"email\":\"{EchapperJson(email)}\",\"jours\":{jours}}}";
+                string reponse = AppelerApiAdmin("/api/admin/ajouter-temps", corps);
+                if (reponse == null)
+                {
+                    MessageBox.Show("Serveur inaccessible ou endpoint non disponible.", "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                lblStatut.Text = $"✓ {jours} jour(s) ajouté(s) pour {email}";
+                lblStatut.ForeColor = ThemeManager.SecondaryGreen;
+                ChargerLicences();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur : {ex.Message}", "Erreur",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static string EchapperJson(string valeur)
+        {
+            if (valeur == null) return "";
+            return valeur.Replace("\\", "\\\\").Replace("\"", "\\\"")
+                         .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
         }
 
         // ── Actions ───────────────────────────────────────────────────────
@@ -335,6 +468,80 @@ namespace logiciel_d_impression_3d
         {
             string v;
             return d.TryGetValue(k, out v) ? v ?? defaut : defaut;
+        }
+    }
+
+    // ── Mini-formulaire saisie nouveau mot de passe ───────────────────────────
+    internal class SaisieNouveauPasswordForm : Form
+    {
+        public string NouveauPassword { get; private set; }
+        private TextBox _txtPassword;
+        private TextBox _txtConfirm;
+        private Label   _lblErreur;
+
+        public SaisieNouveauPasswordForm(string email)
+        {
+            this.Text = "Réinitialiser le mot de passe";
+            this.Size = new Size(380, 200);
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+
+            var lbl1 = new Label { Text = $"Nouveau mot de passe pour {email} :", Location = new Point(16, 14), Size = new Size(340, 18) };
+            _txtPassword = new TextBox { Location = new Point(16, 36), Size = new Size(330, 26), UseSystemPasswordChar = true };
+            var lbl2 = new Label { Text = "Confirmer le mot de passe :", Location = new Point(16, 72), Size = new Size(200, 18) };
+            _txtConfirm  = new TextBox { Location = new Point(16, 92), Size = new Size(330, 26), UseSystemPasswordChar = true };
+            _lblErreur   = new Label { Location = new Point(16, 124), Size = new Size(330, 18), ForeColor = Color.Red, Font = new Font("Segoe UI", 8f) };
+
+            var btn = new Button { Text = "Réinitialiser", Location = new Point(220, 120), Size = new Size(126, 30) };
+            btn.Click += (s, e) =>
+            {
+                string pwd = _txtPassword.Text.Trim();
+                string conf = _txtConfirm.Text.Trim();
+                if (pwd.Length < 6) { _lblErreur.Text = "Minimum 6 caractères."; return; }
+                if (pwd != conf)    { _lblErreur.Text = "Les mots de passe ne correspondent pas."; return; }
+                NouveauPassword = pwd;
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            };
+            this.AcceptButton = btn;
+            this.Controls.AddRange(new Control[] { lbl1, _txtPassword, lbl2, _txtConfirm, _lblErreur, btn });
+        }
+    }
+
+    // ── Mini-formulaire saisie nombre de jours ────────────────────────────────
+    internal class SaisieJoursForm : Form
+    {
+        public int Jours { get; private set; }
+        private NumericUpDown _numJours;
+
+        public SaisieJoursForm(string email)
+        {
+            this.Text = "Ajouter du temps d'accès";
+            this.Size = new Size(340, 150);
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+
+            var lbl = new Label { Text = $"Jours à ajouter pour {email} :", Location = new Point(16, 16), Size = new Size(290, 18) };
+            _numJours = new NumericUpDown
+            {
+                Location = new Point(16, 40),
+                Size     = new Size(120, 28),
+                Minimum  = 1,
+                Maximum  = 3650,
+                Value    = 30,
+                Font     = new Font("Segoe UI", 10f)
+            };
+            var btn = new Button { Text = "Ajouter", Location = new Point(210, 74), Size = new Size(100, 30) };
+            btn.Click += (s, e) =>
+            {
+                Jours = (int)_numJours.Value;
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            };
+            this.AcceptButton = btn;
+            this.Controls.AddRange(new Control[] { lbl, _numJours, btn });
         }
     }
 

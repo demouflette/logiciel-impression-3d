@@ -13,6 +13,7 @@ namespace logiciel_d_impression_3d
         public LoginForm(UserManager manager)
         {
             InitializeComponent();
+            this.Text = "Crea-Coût 3D - Authentification";
             userManager = manager;
             this.AcceptButton = btnLogin;
             tabControl1.SelectedIndexChanged += (s, e) =>

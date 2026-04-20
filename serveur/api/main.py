@@ -12,6 +12,7 @@ import urllib.parse
 
 from fastapi import FastAPI, HTTPException, Header, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -52,19 +53,8 @@ from database import (
     obtenir_session_auth,
     supprimer_session_auth,
     nettoyer_sessions_expirees,
-    nettoyer_licences_obsoletes,
-    nettoyer_promos_obsoletes,
-    verifier_blocage,
-    enregistrer_echec_connexion,
-    reinitialiser_tentatives,
-    ajouter_log_connexion,
-    nettoyer_logs_connexion,
-    obtenir_logs_connexion,
-    compter_connexions_aujourd_hui,
-    obtenir_licences_expirant_bientot,
-    marquer_alerte_expiration,
 )
-from email_service import email_verification_compte, email_contact_admin, email_licence, email_alerte_expiration
+from email_service import email_verification_compte, email_contact_admin, email_licence
 from paypal_service import valider_ipn
 
 # ── Configuration ────────────────────────────────────────────────────────────
@@ -76,35 +66,14 @@ SERVEUR_URL        = os.environ.get("SERVEUR_URL",         "https://licence.demo
 APP_VERSION        = "1.0.0"
 
 app = FastAPI(title="Serveur de licences", docs_url=None, redoc_url=None)
+app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 templates = Jinja2Templates(directory="/app/templates")
-
-# Throttle anti-spam pour /api/contact : max 3 messages par IP par heure
-_contact_throttle: dict[str, list] = {}  # ip → liste de datetime
 
 # ── Démarrage ────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def startup():
     initialiser_db()
     nettoyer_sessions_expirees()
-    nettoyer_licences_obsoletes()
-    nettoyer_promos_obsoletes()
-    nettoyer_logs_connexion()
-    _envoyer_alertes_expiration()
-
-
-def _envoyer_alertes_expiration():
-    """Envoie un email d'alerte aux utilisateurs dont la licence expire dans 7 jours."""
-    licences = obtenir_licences_expirant_bientot(jours=7)
-    for lic in licences:
-        try:
-            date_exp = datetime.fromisoformat(lic["date_expiration"])
-            jours_restants = max(0, (date_exp - datetime.utcnow()).days)
-            envoye = email_alerte_expiration(lic["email"], lic["cle"], lic["date_expiration"], jours_restants)
-            if envoye:
-                marquer_alerte_expiration(lic["cle"])
-                print(f"✉️  Alerte expiration envoyée à {lic['email']} (J-{jours_restants})")
-        except Exception as e:
-            print(f"⚠️  Erreur alerte expiration {lic['cle']} : {e}")
 
 
 # ── Modèles Pydantic ─────────────────────────────────────────────────────────
@@ -181,6 +150,30 @@ class RequeteUtiliserPromo(BaseModel):
     email: str
     machine_id: str
     code: str = ""
+
+
+# ── Pages publiques ──────────────────────────────────────────────────────────
+GITHUB_LATEST_SETUP = "https://github.com/demouflette/logiciel-impression-3d/releases/latest/download/setup.exe"
+CURRENT_VERSION = "1.7.0"
+
+@app.get("/", response_class=HTMLResponse)
+def page_accueil(request: Request):
+    """Page d'accueil — présentation du logiciel."""
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "version": CURRENT_VERSION,
+        "url_setup": GITHUB_LATEST_SETUP,
+        "prix_mensuel": PAYPAL_PRIX_MENSUEL,
+    })
+
+@app.get("/telecharger", response_class=HTMLResponse)
+def page_telecharger(request: Request):
+    """Page publique de téléchargement du logiciel."""
+    return templates.TemplateResponse("telecharger.html", {
+        "request": request,
+        "version": CURRENT_VERSION,
+        "url_setup": GITHUB_LATEST_SETUP,
+    })
 
 
 # ── PayPal ───────────────────────────────────────────────────────────────────
@@ -358,19 +351,8 @@ async def paypal_ipn(request: Request):
 
 # ── Endpoints publics ────────────────────────────────────────────────────────
 @app.post("/api/contact")
-def contact_admin(req: RequeteContact, request: Request):
+def contact_admin(req: RequeteContact):
     """Transmet un message utilisateur à l'administrateur par email."""
-    ip = request.client.host if request.client else "inconnue"
-
-    # Throttle : max 3 messages par IP par heure
-    maintenant = datetime.utcnow()
-    historique = _contact_throttle.get(ip, [])
-    historique = [t for t in historique if (maintenant - t).total_seconds() < 3600]
-    if len(historique) >= 3:
-        raise HTTPException(status_code=429, detail="Trop de messages envoyés. Réessayez dans une heure.")
-    historique.append(maintenant)
-    _contact_throttle[ip] = historique
-
     email = req.email_expediteur.strip()
     sujet = req.sujet.strip()
     message = req.message.strip()
@@ -491,7 +473,7 @@ def reveler_scratch(token: str):
 
 # ── Endpoints admin ──────────────────────────────────────────────────────────
 def verifier_admin(x_admin_key: str = Header(None)):
-    if not x_admin_key or not secrets.compare_digest(x_admin_key, ADMIN_KEY):
+    if x_admin_key != ADMIN_KEY:
         raise HTTPException(status_code=401, detail="Clé admin invalide")
 
 
@@ -536,33 +518,6 @@ def liste_licences(x_admin_key: str = Header(None)):
     verifier_admin(x_admin_key)
     licences = lister_licences()
     return [dict(row) for row in licences]
-
-
-@app.get("/api/admin/licences/export-csv")
-def exporter_licences_csv(key: str = "", x_admin_key: str = Header(None)):
-    """Export CSV de toutes les licences (accessible via URL avec ?key= ou header)."""
-    k = key or x_admin_key or ""
-    if not k or not secrets.compare_digest(k, ADMIN_KEY):
-        raise HTTPException(status_code=401, detail="Clé admin invalide")
-    licences = [dict(row) for row in lister_licences()]
-    colonnes = ["cle", "email", "type", "statut", "date_creation", "date_expiration", "machine_id"]
-    lignes = [";".join(colonnes)]
-    for l in licences:
-        ligne = [str(l.get(c) or "") for c in colonnes]
-        lignes.append(";".join(ligne))
-    contenu = "\n".join(lignes)
-    nom_fichier = f"licences_{datetime.utcnow().strftime('%Y%m%d')}.csv"
-    return Response(
-        content=contenu.encode("utf-8-sig"),  # utf-8-sig pour compatibilité Excel
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={nom_fichier}"}
-    )
-
-
-@app.get("/api/admin/logs-connexions")
-def liste_logs_connexions(limit: int = 50, x_admin_key: str = Header(None)):
-    verifier_admin(x_admin_key)
-    return [dict(row) for row in obtenir_logs_connexion(limit)]
 
 
 @app.get("/api/sante")
@@ -691,36 +646,21 @@ def renvoyer_code(req: RequeteInscription):
 # ── Authentification utilisateurs ────────────────────────────────────────────
 
 @app.post("/api/utilisateurs/connexion")
-def connexion_utilisateur(req: RequeteConnexion, request: Request):
+def connexion_utilisateur(req: RequeteConnexion):
     """Authentifie un utilisateur et retourne un session_id valable 90 jours."""
     nom = req.nom_utilisateur.strip()
-    ip = request.client.host if request.client else "inconnue"
-    ua = request.headers.get("user-agent", "")
-
     if not nom or not req.password:
         raise HTTPException(status_code=400, detail="Identifiants requis")
 
-    # Vérifier si le compte est bloqué (brute force)
-    if verifier_blocage(nom):
-        ajouter_log_connexion(nom, ip, False, "compte bloqué (trop de tentatives)")
-        raise HTTPException(status_code=429, detail=f"Compte temporairement bloqué. Réessayez dans 15 minutes.")
-
     utilisateur = verifier_credentials(nom, req.password)
     if not utilisateur:
-        enregistrer_echec_connexion(nom)
-        ajouter_log_connexion(nom, ip, False, "identifiants incorrects")
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
 
     if not utilisateur["verifie"]:
-        ajouter_log_connexion(nom, ip, False, "email non vérifié")
         raise HTTPException(status_code=403, detail="Email non vérifié. Vérifiez votre boîte mail.")
 
-    # Connexion réussie : réinitialiser le compteur d'échecs
-    reinitialiser_tentatives(nom)
-    ajouter_log_connexion(nom, ip, True, "connexion réussie")
-
     session_id = secrets.token_urlsafe(48)
-    date_expiration = creer_session_auth(session_id, utilisateur["nom_utilisateur"], ua)
+    date_expiration = creer_session_auth(session_id, utilisateur["nom_utilisateur"])
 
     return {
         "session_id": session_id,
@@ -904,31 +844,18 @@ def admin_dashboard(request: Request, key: str = ""):
     licences = [dict(row) for row in lister_licences()]
     utilisateurs = [dict(row) for row in lister_utilisateurs()]
     promotions = lister_promotions()
-    logs = [dict(row) for row in obtenir_logs_connexion(50)]
-
-    now = datetime.utcnow()
-    dans_7j = (now + timedelta(days=7)).isoformat()
-    licences_expirant_7j = sum(
-        1 for l in licences
-        if l["statut"] == "active"
-        and l["date_expiration"] <= dans_7j
-        and l["date_expiration"] >= now.isoformat()
-    )
 
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "licences": licences,
         "utilisateurs": utilisateurs,
         "promotions": promotions,
-        "logs": logs,
         "admin_key": key,
         "stats": {
             "total_utilisateurs": len(utilisateurs),
             "utilisateurs_verifies": sum(1 for u in utilisateurs if u["verifie"]),
             "total_licences": len(licences),
             "licences_actives": sum(1 for l in licences if l["statut"] == "active"),
-            "licences_expirant_7j": licences_expirant_7j,
-            "connexions_aujourd_hui": compter_connexions_aujourd_hui(),
         }
     })
 

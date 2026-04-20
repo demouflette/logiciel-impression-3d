@@ -23,20 +23,30 @@ namespace logiciel_d_impression_3d
     }
 
     /// <summary>
-    /// Gestionnaire du slicer Bambu Studio CLI.
+    /// Gestionnaire des slicers (Bambu Studio et OrcaSlicer).
     /// Détecte l'installation, lance le slicing en arrière-plan,
-    /// et parse les résultats du 3MF slicé.
+    /// et parse les résultats du 3MF slicé ou du G-code.
     /// </summary>
     public static class SlicerManager
     {
-        // Chemins de détection par défaut
+        // Chemins Bambu Studio
         private static readonly string[] CheminsRecherche = new string[]
         {
             @"C:\Program Files\Bambu Studio\bambu-studio.exe",
             @"C:\Program Files (x86)\Bambu Studio\bambu-studio.exe"
         };
 
+        // Chemins OrcaSlicer
+        private static readonly string[] CheminsOrcaSlicer = new string[]
+        {
+            @"C:\Program Files\OrcaSlicer\orca-slicer.exe",
+            @"C:\Program Files (x86)\OrcaSlicer\orca-slicer.exe",
+            @"C:\Program Files\OrcaSlicer\OrcaSlicer.exe",
+            @"C:\Program Files (x86)\OrcaSlicer\OrcaSlicer.exe"
+        };
+
         private static string cheminSlicerCache;
+        private static string cheminOrcaSlicerCache;
 
         // ═══════════════════════════════════════════════════════
         // DÉTECTION DU SLICER
@@ -90,6 +100,205 @@ namespace logiciel_d_impression_3d
         public static void InvaliderCache()
         {
             cheminSlicerCache = null;
+            cheminOrcaSlicerCache = null;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // DÉTECTION ORCASLICER
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Vérifie si OrcaSlicer est installé
+        /// </summary>
+        public static bool OrcaSlicerEstInstalle()
+        {
+            return !string.IsNullOrEmpty(ObtenirCheminOrcaSlicer());
+        }
+
+        /// <summary>
+        /// Retourne le chemin d'OrcaSlicer (configuré ou auto-détecté)
+        /// </summary>
+        public static string ObtenirCheminOrcaSlicer()
+        {
+            if (cheminOrcaSlicerCache != null)
+                return cheminOrcaSlicerCache;
+
+            // 1. Vérifier le chemin configuré dans les paramètres
+            try
+            {
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+                if (!string.IsNullOrEmpty(parametres.CheminOrcaSlicer) && File.Exists(parametres.CheminOrcaSlicer))
+                {
+                    cheminOrcaSlicerCache = parametres.CheminOrcaSlicer;
+                    return cheminOrcaSlicerCache;
+                }
+            }
+            catch (Exception ex) { LogManager.Erreur("Lecture chemin OrcaSlicer", ex); }
+
+            // 2. Auto-détection dans les chemins connus
+            foreach (string chemin in CheminsOrcaSlicer)
+            {
+                if (File.Exists(chemin))
+                {
+                    cheminOrcaSlicerCache = chemin;
+                    return cheminOrcaSlicerCache;
+                }
+            }
+
+            cheminOrcaSlicerCache = "";
+            return "";
+        }
+
+        /// <summary>
+        /// Ouvre OrcaSlicer avec le fichier STL spécifié
+        /// </summary>
+        public static bool OuvrirAvecOrcaSlicer(string cheminFichier)
+        {
+            string chemin = ObtenirCheminOrcaSlicer();
+            if (string.IsNullOrEmpty(chemin)) return false;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = chemin,
+                    Arguments = $"\"{cheminFichier}\"",
+                    UseShellExecute = true
+                });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogManager.Erreur("Ouverture OrcaSlicer", ex);
+                return false;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // PARSING G-CODE (public — pour import OrcaSlicer)
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Parse un fichier G-code exporté par OrcaSlicer ou Bambu Studio
+        /// et en extrait le temps et le poids filament
+        /// </summary>
+        public static ResultatSlicing ParserFichierGcode(string cheminGcode)
+        {
+            var resultat = new ResultatSlicing();
+            try
+            {
+                using (var entry = new GcodeFileWrapper(cheminGcode))
+                {
+                    var tempsEtPurge = ParserGcodeStream(entry);
+                    resultat.TempsMinutes = tempsEtPurge.Item1;
+                    resultat.PoidsPurgeGrammes = tempsEtPurge.Item2;
+
+                    // Lire poids total
+                    decimal poids = LirePoidsFilamentGcode(cheminGcode);
+                    resultat.PoidsFilamentGrammes = poids;
+                }
+
+                resultat.Succes = resultat.TempsMinutes > 0 || resultat.PoidsFilamentGrammes > 0;
+                if (!resultat.Succes)
+                    resultat.MessageErreur = "Aucune donnée trouvée dans le G-code.";
+            }
+            catch (Exception ex)
+            {
+                resultat.Succes = false;
+                resultat.MessageErreur = $"Erreur lecture G-code : {ex.Message}";
+            }
+            return resultat;
+        }
+
+        private static decimal LirePoidsFilamentGcode(string chemin)
+        {
+            decimal poids = 0;
+            try
+            {
+                using (var reader = new StreamReader(chemin))
+                {
+                    string ligne;
+                    int lignesLues = 0;
+                    while ((ligne = reader.ReadLine()) != null && lignesLues < 200)
+                    {
+                        lignesLues++;
+                        ligne = ligne.Trim();
+                        if (!ligne.StartsWith(";")) continue;
+                        if ((ligne.Contains("total filament used") || ligne.Contains("filament used")) && ligne.Contains("[g]"))
+                        {
+                            var m = Regex.Match(ligne, @"=\s*([\d.]+)");
+                            if (m.Success && decimal.TryParse(m.Groups[1].Value,
+                                System.Globalization.NumberStyles.Any,
+                                System.Globalization.CultureInfo.InvariantCulture, out decimal p))
+                                poids = p;
+                        }
+                    }
+                    // Dernières lignes
+                    string contenu = File.ReadAllText(chemin);
+                    string[] lignes = contenu.Split('\n');
+                    for (int i = Math.Max(0, lignes.Length - 200); i < lignes.Length; i++)
+                    {
+                        string l = lignes[i].Trim();
+                        if (!l.StartsWith(";")) continue;
+                        if ((l.Contains("total filament used") || l.Contains("filament used")) && l.Contains("[g]"))
+                        {
+                            var m = Regex.Match(l, @"=\s*([\d.]+)");
+                            if (m.Success && decimal.TryParse(m.Groups[1].Value,
+                                System.Globalization.NumberStyles.Any,
+                                System.Globalization.CultureInfo.InvariantCulture, out decimal p))
+                                if (p > poids) poids = p;
+                        }
+                    }
+                }
+            }
+            catch { }
+            return poids;
+        }
+
+        private static Tuple<decimal, decimal> ParserGcodeStream(GcodeFileWrapper entry)
+        {
+            decimal tempsMinutes = 0;
+            decimal purgeGrammes = 0;
+
+            try
+            {
+                string contenu = File.ReadAllText(entry.Chemin);
+                string[] lignes = contenu.Split(new[] { '\n' }, StringSplitOptions.None);
+
+                for (int i = 0; i < lignes.Length; i++)
+                {
+                    if (i > 300 && i < lignes.Length - 300) continue;
+
+                    string ligne = lignes[i].Trim();
+                    if (!ligne.StartsWith(";")) continue;
+
+                    if (ligne.Contains("model printing time:") || ligne.Contains("total estimated time:"))
+                    {
+                        decimal t = ParserTempsImpression(ligne);
+                        if (t > tempsMinutes) tempsMinutes = t;
+                    }
+
+                    if ((ligne.Contains("filament_purge") || ligne.Contains("total flush")) && ligne.Contains("[g]"))
+                    {
+                        var m = Regex.Match(ligne, @"=\s*([\d.]+)");
+                        if (m.Success && decimal.TryParse(m.Groups[1].Value,
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out decimal purge))
+                            purgeGrammes += purge;
+                    }
+                }
+            }
+            catch { }
+
+            return Tuple.Create(tempsMinutes, purgeGrammes);
+        }
+
+        // Wrapper minimal pour factoriser le parsing G-code fichier vs ZipEntry
+        private class GcodeFileWrapper : IDisposable
+        {
+            public string Chemin { get; }
+            public GcodeFileWrapper(string chemin) { Chemin = chemin; }
+            public void Dispose() { }
         }
 
         // ═══════════════════════════════════════════════════════

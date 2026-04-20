@@ -24,10 +24,16 @@ namespace logiciel_d_impression_3d
         private const int DureeEssaiJours = 14;
         private const int IntervalleVerifHeures = 24;
 
-        private static readonly string FichierLicence =
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "licence.dat");
+        // Licence stockée par utilisateur dans %APPDATA% (DPAPI scope CurrentUser)
+        private static string FichierLicence => Path.Combine(DossierAppData, "licence.dat");
+
+        // Essai stocké par machine (dossier d'installation partagé)
         private static readonly string FichierEssai =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "essai.dat");
+
+        private static readonly string DossierAppData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "DemouFlette", "Logiciel3D");
 
         // ── Données en mémoire ─────────────────────────────────────────────
         private static string _cleActivee;
@@ -35,6 +41,24 @@ namespace logiciel_d_impression_3d
         private static DateTime _dateExpiration;
         private static DateTime _derniereVerification;
         private static DateTime _debutEssai;
+
+        // Email de l'utilisateur connecté — initialisé via Initialiser() avant ObtenirEtat()
+        private static string _emailUtilisateur = "";
+
+        /// <summary>
+        /// Doit être appelé après le login, avant ObtenirEtat().
+        /// Associe la vérification de licence à l'email de l'utilisateur connecté.
+        /// </summary>
+        public static void Initialiser(string email)
+        {
+            _emailUtilisateur = (email ?? "").Trim().ToLower();
+            // Réinitialiser l'état en mémoire pour éviter la pollution entre sessions
+            _cleActivee = null;
+            _typeLicence = null;
+            _dateExpiration = default;
+            _derniereVerification = default;
+            Directory.CreateDirectory(DossierAppData);
+        }
 
         // ── Machine ID ────────────────────────────────────────────────────
         public static string ObtenirMachineId()
@@ -65,28 +89,31 @@ namespace logiciel_d_impression_3d
             }
         }
 
-        // ── Chiffrement DPAPI ─────────────────────────────────────────────
+        // ── Chiffrement DPAPI (scope CurrentUser = par utilisateur Windows) ──
         private static byte[] Chiffrer(string texte)
         {
             byte[] données = Encoding.UTF8.GetBytes(texte);
-            return ProtectedData.Protect(données, null, DataProtectionScope.LocalMachine);
+            return ProtectedData.Protect(données, null, DataProtectionScope.CurrentUser);
         }
 
         private static string Déchiffrer(byte[] données)
         {
-            byte[] déchiffré = ProtectedData.Unprotect(données, null, DataProtectionScope.LocalMachine);
+            byte[] déchiffré = ProtectedData.Unprotect(données, null, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(déchiffré);
         }
 
         // ── Persistance locale ────────────────────────────────────────────
         private static void SauvegarderLicence()
         {
+            Directory.CreateDirectory(DossierAppData);
+            // Format : cle|machineId|type|dateExp|derniereVerif|email
             string contenu = string.Join("|",
                 _cleActivee,
                 ObtenirMachineId(),
                 _typeLicence,
                 _dateExpiration.ToString("O"),
-                _derniereVerification.ToString("O")
+                _derniereVerification.ToString("O"),
+                _emailUtilisateur
             );
             File.WriteAllBytes(FichierLicence, Chiffrer(contenu));
         }
@@ -101,14 +128,22 @@ namespace logiciel_d_impression_3d
                 string[] parts = contenu.Split('|');
                 if (parts.Length < 5) return false;
 
-                _cleActivee = parts[0];
+                _cleActivee           = parts[0];
                 string machineIdStocke = parts[1];
-                _typeLicence = parts[2];
-                _dateExpiration = DateTime.Parse(parts[3]);
+                _typeLicence          = parts[2];
+                _dateExpiration       = DateTime.Parse(parts[3]);
                 _derniereVerification = DateTime.Parse(parts[4]);
 
                 // Vérifier machine binding
                 if (machineIdStocke != ObtenirMachineId()) return false;
+
+                // Vérifier que la licence appartient bien à l'utilisateur connecté
+                if (parts.Length >= 6 && !string.IsNullOrEmpty(_emailUtilisateur))
+                {
+                    string emailStocke = parts[5].Trim().ToLower();
+                    if (!emailStocke.Equals(_emailUtilisateur, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
 
                 return true;
             }
@@ -338,7 +373,7 @@ namespace logiciel_d_impression_3d
             try
             {
                 string machineId = ObtenirMachineId();
-                string corps = $"{{\"cle\":\"{_cleActivee}\",\"machine_id\":\"{machineId}\"}}";
+                string corps = $"{{\"cle\":\"{_cleActivee}\",\"machine_id\":\"{machineId}\",\"email\":\"{_emailUtilisateur}\"}}";
 
                 string réponse = AppelerApi("/api/verifier", corps);
                 if (réponse == null) return false;
@@ -400,6 +435,117 @@ namespace logiciel_d_impression_3d
             return json.Substring(debut, fin - debut);
         }
 
+        // ── Code promo ────────────────────────────────────────────────────
+        /// <summary>
+        /// Applique un code promo pour l'email donné. Si succès, sauvegarde la licence localement.
+        /// </summary>
+        public static bool AppliquerCodePromo(string email, string code, out string messageErreur)
+        {
+            messageErreur = "";
+            code = code.Trim().ToUpper();
+
+            if (string.IsNullOrEmpty(code))
+            {
+                messageErreur = "Veuillez saisir un code promo.";
+                return false;
+            }
+
+            try
+            {
+                string machineId = ObtenirMachineId();
+                string corps = $"{{\"email\":\"{EchapperJson(email)}\",\"machine_id\":\"{machineId}\",\"code\":\"{EchapperJson(code)}\"}}";
+
+                var req = (HttpWebRequest)WebRequest.Create(UrlServeur + "/api/promo/appliquer-code");
+                req.Method = "POST";
+                req.ContentType = "application/json";
+                req.Timeout = 8000;
+                req.UserAgent = "LogicielImpression3D-LicenceClient/1.0";
+
+                byte[] data = Encoding.UTF8.GetBytes(corps);
+                req.ContentLength = data.Length;
+                using (var stream = req.GetRequestStream())
+                    stream.Write(data, 0, data.Length);
+
+                string réponse;
+                using (var resp = (HttpWebResponse)req.GetResponse())
+                using (var reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
+                    réponse = reader.ReadToEnd();
+
+                string cle     = ExtraireValeurJson(réponse, "cle") ?? "PROMO";
+                string dateExp = ExtraireValeurJson(réponse, "date_expiration");
+                string jours   = ExtraireValeurJson(réponse, "jours_ajoutes");
+
+                if (string.IsNullOrEmpty(dateExp))
+                {
+                    messageErreur = "Réponse serveur invalide.";
+                    return false;
+                }
+
+                // Sauvegarder la licence localement
+                _cleActivee          = cle;
+                _typeLicence         = "promo";
+                _dateExpiration      = DateTime.Parse(dateExp, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                _derniereVerification = DateTime.UtcNow;
+                SauvegarderLicence();
+
+                LogManager.Info($"Code promo appliqué : +{jours} jours, expire {_dateExpiration:d}");
+                return true;
+            }
+            catch (WebException ex) when (ex.Response is HttpWebResponse resp)
+            {
+                switch ((int)resp.StatusCode)
+                {
+                    case 404: messageErreur = "Code invalide, déjà utilisé ou non destiné à votre compte."; break;
+                    case 400: messageErreur = "Données incorrectes. Vérifiez le code saisi."; break;
+                    default:  messageErreur = $"Erreur serveur ({(int)resp.StatusCode})."; break;
+                }
+                return false;
+            }
+            catch (Exception)
+            {
+                messageErreur = "Impossible de joindre le serveur. Vérifiez votre connexion.";
+                return false;
+            }
+        }
+
+        private static string EchapperJson(string valeur)
+        {
+            if (valeur == null) return "";
+            return valeur.Replace("\\", "\\\\").Replace("\"", "\\\"")
+                         .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
+        }
+
+        // ── Publicité bannière ────────────────────────────────────────────
+        public static PubInfo ChercherPubActive()
+        {
+            try
+            {
+                var req = (HttpWebRequest)WebRequest.Create(UrlServeur + "/api/pub");
+                req.Method = "GET";
+                req.Timeout = 5000;
+                req.UserAgent = "LogicielImpression3D-LicenceClient/1.0";
+
+                using (var resp = (HttpWebResponse)req.GetResponse())
+                using (var reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
+                {
+                    string json = reader.ReadToEnd();
+                    if (json.Contains("\"active\":false") || json.Contains("\"active\": false"))
+                        return null;
+
+                    return new PubInfo
+                    {
+                        Titre           = ExtraireValeurJson(json, "titre") ?? "",
+                        MessageDefilant = ExtraireValeurJson(json, "message_defilant") ?? "",
+                        ImageUrl        = ExtraireValeurJson(json, "image_url") ?? "",
+                        Lien            = ExtraireValeurJson(json, "lien") ?? "",
+                        CouleurFond     = ExtraireValeurJson(json, "couleur_fond") ?? "#3498db",
+                        CouleurTexte    = ExtraireValeurJson(json, "couleur_texte") ?? "#ffffff",
+                    };
+                }
+            }
+            catch { return null; }
+        }
+
         // ── Validation format clé ─────────────────────────────────────────
         public static bool FormatCleValide(string cle)
         {
@@ -414,5 +560,15 @@ namespace logiciel_d_impression_3d
             }
             return true;
         }
+    }
+
+    public class PubInfo
+    {
+        public string Titre           { get; set; }
+        public string MessageDefilant { get; set; }
+        public string ImageUrl        { get; set; }
+        public string Lien            { get; set; }
+        public string CouleurFond     { get; set; }
+        public string CouleurTexte    { get; set; }
     }
 }

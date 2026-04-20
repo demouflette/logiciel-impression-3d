@@ -196,14 +196,6 @@
             <div class="val">{{ stats.licences_actives }}</div>
             <div class="lbl">Licences actives</div>
         </div>
-        <div class="stat-card rouge">
-            <div class="val">{{ stats.licences_expirant_7j }}</div>
-            <div class="lbl">Expirent dans 7 jours</div>
-        </div>
-        <div class="stat-card">
-            <div class="val">{{ stats.connexions_aujourd_hui }}</div>
-            <div class="lbl">Connexions aujourd'hui</div>
-        </div>
     </div>
 
     <!-- Utilisateurs -->
@@ -269,13 +261,7 @@
     <div class="section">
         <div class="section-header">
             <h2>🔑 Licences</h2>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span class="count">{{ licences | length }}</span>
-                <a href="/api/admin/licences/export-csv?key={{ admin_key }}"
-                   style="background:#3498db;color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:0.8rem;font-weight:600;text-decoration:none;cursor:pointer;">
-                    📥 CSV
-                </a>
-            </div>
+            <span class="count">{{ licences | length }}</span>
         </div>
         <div class="search-bar">
             <input type="text" id="searchLicences" placeholder="Rechercher une licence..." oninput="filtrerTableau('tbodyLicences', this.value)">
@@ -473,46 +459,6 @@
                     </tr>
                     {% else %}
                     <tr><td colspan="8" style="padding:20px;text-align:center;color:#aaa;">Aucune promotion créée</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Historique des connexions -->
-    <div class="section">
-        <div class="section-header">
-            <h2>📋 Historique des connexions</h2>
-            <span class="count">50 dernières</span>
-        </div>
-        <div class="scroll">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Utilisateur</th>
-                        <th>IP</th>
-                        <th>Résultat</th>
-                        <th>Date</th>
-                        <th>Détails</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td><strong>{{ log.nom_utilisateur }}</strong></td>
-                        <td style="color:#aaa;font-size:0.8rem;">{{ log.ip or '—' }}</td>
-                        <td>
-                            {% if log.succes %}
-                            <span class="badge badge-active">✓ Succès</span>
-                            {% else %}
-                            <span class="badge badge-revoked">✗ Échec</span>
-                            {% endif %}
-                        </td>
-                        <td style="color:#888;font-size:0.82rem;">{{ log.date[:19].replace('T', ' ') if log.date else '—' }}</td>
-                        <td style="color:#aaa;font-size:0.8rem;">{{ log.details or '—' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="5" style="text-align:center;color:#aaa;padding:32px;">Aucune connexion enregistrée</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

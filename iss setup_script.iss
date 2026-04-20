@@ -1,12 +1,12 @@
 ; Script d'installation pour Logiciel d'Impression 3D
 ; G�n�r� avec Inno Setup
 
-#define MyAppName "Logiciel d'Impression 3D"
-#define MyAppVersion "1.6.12.0"
+#define MyAppName "Crea-Cout 3D"
+#define MyAppVersion "1.7.0.0"
 #define MyAppPublisher "DemouFlette"
 #define MyAppURL "https://github.com/demouflette/logiciel-impression-3d-updates"
 #define MyAppExeName "logiciel d'impression 3d.exe"
-#define MyAppIcon "imprimante.ico"
+#define MyAppIcon "imprimante_new.ico"
 
 [Setup]
 ; Informations de base
@@ -26,14 +26,20 @@ AllowNoIcons=yes
 
 ; Fichiers de sortie
 OutputDir=D:\projet_3d\logiciel d'impression 3d\Installer
-OutputBaseFilename=Logiciel_Impression_3D_Setup_{#MyAppVersion}
+OutputBaseFilename=Crea_Cout_3D_Setup_{#MyAppVersion}
 SetupIconFile=D:\projet_3d\logiciel d'impression 3d\{#MyAppIcon}
 Compression=lzma2/max
 SolidCompression=yes
 
-; Privil�ges requis
-PrivilegesRequired=admin
-PrivilegesRequiredOverridesAllowed=dialog
+; Conditions Générales d'Utilisation — l'utilisateur doit accepter avant d'installer
+LicenseFile=D:\projet_3d\logiciel d'impression 3d\CGU_Logiciel_Impression_3D.rtf
+
+; Privilèges requis — lowest = installation dans AppData sans UAC
+PrivilegesRequired=lowest
+
+; Fermer automatiquement l'application si elle tourne pendant l'installation
+CloseApplications=yes
+RestartApplications=no
 
 ; Interface moderne
 WizardStyle=modern
@@ -59,17 +65,19 @@ Name: "quicklaunchicon"; Description: "Cr�er une ic�ne dans la barre de lanc
 ; Fichier principal (.exe)
 Source: "D:\projet_3d\logiciel d'impression 3d\bin\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\projet_3d\logiciel d'impression 3d\bin\Release\{#MyAppExeName}.config"; DestDir: "{app}"; Flags: ignoreversion
+; Icône personnalisée
+Source: "D:\projet_3d\logiciel d'impression 3d\{#MyAppIcon}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-; Raccourcis dans le menu d�marrer
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
-Name: "{group}\D�sinstaller {#MyAppName}"; Filename: "{uninstallexe}"
+; Raccourcis dans le menu démarrer
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIcon}"
+Name: "{group}\Désinstaller {#MyAppName}"; Filename: "{uninstallexe}"
 
-; Raccourci sur le bureau
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+; Raccourci sur le bureau (coché par défaut)
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppIcon}"
 
 ; Raccourci barre de lancement rapide
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon; IconFilename: "{app}\{#MyAppIcon}"
 
 [Run]
 ; Lancer l'application � la fin de l'installation

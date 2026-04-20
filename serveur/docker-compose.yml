@@ -10,6 +10,7 @@ services:
     volumes:
       - ./data:/data                    # Persistance de licences.db
       - ./api/templates:/app/templates  # Templates HTML
+      - ./api/static:/app/static        # Fichiers statiques (images, etc.)
     environment:
       # ⚠️ CHANGEZ ces valeurs avant de déployer en production !
       - ADMIN_KEY=CHANGEZ-MOI-EN-PRODUCTION
@@ -23,9 +24,9 @@ services:
       - EMAIL_FROM=Logiciel Impression 3D
       - ADMIN_EMAIL=admin@mondomaine.fr
       # ── Configuration PayPal ──
-      - PAYPAL_EMAIL=votre@paypal.com
-      - PAYPAL_MODE=sandbox
-      - PAYPAL_PRIX_MENSUEL=9.99
+      - PAYPAL_EMAIL=maquaire.alexandre@free.fr
+      - PAYPAL_MODE=live
+      - PAYPAL_PRIX_MENSUEL=3.99
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/sante')"]
       interval: 30s
