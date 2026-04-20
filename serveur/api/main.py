@@ -152,9 +152,19 @@ class RequeteUtiliserPromo(BaseModel):
     code: str = ""
 
 
+class RequeteResetPassword(BaseModel):
+    email: str
+    nouveau_password: str
+
+
+class RequeteAjouterTemps(BaseModel):
+    email: str
+    jours: int
+
+
 # ── Pages publiques ──────────────────────────────────────────────────────────
 GITHUB_LATEST_SETUP = "https://github.com/demouflette/logiciel-impression-3d/releases/latest/download/setup.exe"
-CURRENT_VERSION = "1.7.0"
+CURRENT_VERSION = "1.8.0"
 
 @app.get("/", response_class=HTMLResponse)
 def page_accueil(request: Request):
@@ -875,6 +885,36 @@ def forcer_verification(req: RequeteInscription, x_admin_key: str = Header(None)
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     verifier_utilisateur(req.email)
     return {"message": f"Utilisateur {req.email} vérifié manuellement"}
+
+
+@app.post("/api/admin/reinitialiser-password")
+def admin_reinitialiser_password(req: RequeteResetPassword, x_admin_key: str = Header(None)):
+    """Réinitialise le mot de passe d'un utilisateur identifié par son email."""
+    verifier_admin(x_admin_key)
+    email = req.email.strip().lower()
+    if len(req.nouveau_password) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe trop court (minimum 6 caractères)")
+    utilisateur = obtenir_utilisateur_par_email(email)
+    if not utilisateur:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    mettre_a_jour_password(utilisateur["nom_utilisateur"], req.nouveau_password)
+    return {"message": f"Mot de passe de '{utilisateur['nom_utilisateur']}' réinitialisé"}
+
+
+@app.post("/api/admin/ajouter-temps")
+def admin_ajouter_temps(req: RequeteAjouterTemps, x_admin_key: str = Header(None)):
+    """Ajoute manuellement des jours d'accès à l'abonnement d'un utilisateur."""
+    verifier_admin(x_admin_key)
+    email = req.email.strip().lower()
+    if req.jours <= 0 or req.jours > 3650:
+        raise HTTPException(status_code=400, detail="Nombre de jours invalide (1–3650)")
+    utilisateur = obtenir_utilisateur_par_email(email)
+    if not utilisateur:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    ok = prolonger_licence(email, req.jours)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Aucune licence active trouvée pour cet utilisateur")
+    return {"message": f"{req.jours} jour(s) ajouté(s) pour '{email}'"}
 
 
 @app.post("/api/admin/definir-role")
