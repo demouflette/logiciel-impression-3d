@@ -21,6 +21,7 @@ namespace logiciel_d_impression_3d
         // ── Mode Série ────────────────────────────────────────────────────────
         private NumericUpDown numStlQuantite;
         private NumericUpDown num3mfQuantite;
+        private Label lbl3mfQuantite;
 
         // ── Onglet STL / OrcaSlicer ───────────────────────────────────────────
         private TabPage tabPageStl;
@@ -819,27 +820,24 @@ namespace logiciel_d_impression_3d
 
         private void AjouterQuantite3mf()
         {
-            // Position relative au bas réel du groupBox (DPI-aware)
-            int yBase = groupBox3mfCalcul.Bottom + 8;
-            var lblQ = new Label
+            // Positions provisoires — recalculées dans Load après DPI scaling
+            lbl3mfQuantite = new Label
             {
                 Text = "Quantité (série) :",
-                Left = 620, Top = yBase + 3,
+                Left = 620, Top = 522,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F)
             };
             num3mfQuantite = new NumericUpDown
             {
-                Left = 760, Top = yBase,
+                Left = 760, Top = 519,
                 Width = 70, Height = 25,
                 Minimum = 1, Maximum = 9999,
                 Value = 1, DecimalPlaces = 0,
                 Font = new Font("Segoe UI", 9F)
             };
 
-            btnCalculerDevis3mf.Top = yBase + 35;
-
-            tabPage3mf.Controls.AddRange(new Control[] { lblQ, num3mfQuantite });
+            tabPage3mf.Controls.AddRange(new Control[] { lbl3mfQuantite, num3mfQuantite });
             ThemeManager.StyleAllControls(num3mfQuantite.Parent ?? tabPage3mf);
         }
 
@@ -2323,6 +2321,16 @@ namespace logiciel_d_impression_3d
             // Lancer la vérification en arrière-plan après construction complète (pas en mode démo)
             if (!userManager.EstModeDemo)
                 this.Load += (s, e) => VerifierPromoAsync();
+
+            // Recalcul DPI-aware après scaling : groupBox height et positions quantité
+            this.Load += (s, e) =>
+            {
+                groupBox3mfCalcul.Height = num3mfNombreCouleurs.Bottom + 20;
+                int yBase = groupBox3mfCalcul.Bottom + 8;
+                if (lbl3mfQuantite != null) lbl3mfQuantite.Top = yBase + 3;
+                if (num3mfQuantite != null) num3mfQuantite.Top = yBase;
+                btnCalculerDevis3mf.Top = yBase + 35;
+            };
         }
 
         private void VerifierPromoAsync()

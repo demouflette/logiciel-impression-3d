@@ -2,7 +2,7 @@
 ; G�n�r� avec Inno Setup
 
 #define MyAppName "Crea-Cout 3D"
-#define MyAppVersion "1.8.4.0"
+#define MyAppVersion "1.8.5.0"
 #define MyAppPublisher "DemouFlette"
 #define MyAppURL "https://github.com/demouflette/logiciel-impression-3d-updates"
 #define MyAppExeName "logiciel d'impression 3d.exe"
