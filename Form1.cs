@@ -817,26 +817,25 @@ namespace logiciel_d_impression_3d
 
         private void AjouterQuantite3mf()
         {
-            // Ajoute un champ "Quantité" entre le groupBox et le bouton Calculer
-            // btnCalculerDevis3mf est à y=430 sur tabPage3mf
+            // groupBox3mfCalcul (Top=175, Height=280) se termine à Y=455
+            // Les contrôles doivent être SOUS le groupBox (Y > 455)
             var lblQ = new Label
             {
                 Text = "Quantité (série) :",
-                Left = 620, Top = 427,
+                Left = 620, Top = 462,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F)
             };
             num3mfQuantite = new NumericUpDown
             {
-                Left = 760, Top = 424,
+                Left = 760, Top = 459,
                 Width = 70, Height = 25,
                 Minimum = 1, Maximum = 9999,
                 Value = 1, DecimalPlaces = 0,
                 Font = new Font("Segoe UI", 9F)
             };
 
-            // Décaler le bouton vers le bas pour faire de la place
-            btnCalculerDevis3mf.Top = 460;
+            btnCalculerDevis3mf.Top = 497;
 
             tabPage3mf.Controls.AddRange(new Control[] { lblQ, num3mfQuantite });
             ThemeManager.StyleAllControls(num3mfQuantite.Parent ?? tabPage3mf);
