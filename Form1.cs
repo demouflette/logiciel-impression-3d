@@ -718,6 +718,8 @@ namespace logiciel_d_impression_3d
             groupBox3mfFile.Height = 155;
             groupBox3mfInfo.Top = 175;
             groupBox3mfCalcul.Top = 175;
+            // num3mfNombreCouleurs est à Y=300 dans le groupBox (Height original=280) → coupé
+            groupBox3mfCalcul.Height = 340;
 
             var lblGcode = new Label
             {
@@ -817,25 +819,25 @@ namespace logiciel_d_impression_3d
 
         private void AjouterQuantite3mf()
         {
-            // groupBox3mfCalcul (Top=175, Height=280) se termine à Y=455
-            // Les contrôles doivent être SOUS le groupBox (Y > 455)
+            // groupBox3mfCalcul (Top=175, Height=340) se termine à Y=515
+            // Les contrôles doivent être SOUS le groupBox (Y > 515)
             var lblQ = new Label
             {
                 Text = "Quantité (série) :",
-                Left = 620, Top = 462,
+                Left = 620, Top = 522,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F)
             };
             num3mfQuantite = new NumericUpDown
             {
-                Left = 760, Top = 459,
+                Left = 760, Top = 519,
                 Width = 70, Height = 25,
                 Minimum = 1, Maximum = 9999,
                 Value = 1, DecimalPlaces = 0,
                 Font = new Font("Segoe UI", 9F)
             };
 
-            btnCalculerDevis3mf.Top = 497;
+            btnCalculerDevis3mf.Top = 553;
 
             tabPage3mf.Controls.AddRange(new Control[] { lblQ, num3mfQuantite });
             ThemeManager.StyleAllControls(num3mfQuantite.Parent ?? tabPage3mf);
