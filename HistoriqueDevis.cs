@@ -17,6 +17,8 @@ namespace logiciel_d_impression_3d
         public DateTime Date { get; set; }
         public string Titre { get; set; }
         public decimal PrixTotalTTC { get; set; }
+        public string NumeroDevis { get; set; } = "";
+        public bool Annule { get; set; } = false;
         public string ContenuDevis { get; set; }
     }
 
@@ -37,7 +39,7 @@ namespace logiciel_d_impression_3d
                 .Replace("\r\n", "¶")
                 .Replace("\n", "¶");
 
-            string ligne = $"{entree.Date:yyyy-MM-dd HH:mm:ss}|{entree.Titre}|{entree.PrixTotalTTC:F2}|{contenuEchappe}";
+            string ligne = $"{entree.Date:yyyy-MM-dd HH:mm:ss}|{entree.Titre}|{entree.PrixTotalTTC:F2}|{entree.NumeroDevis ?? ""}|{(entree.Annule ? "1" : "0")}|{contenuEchappe}";
 
             using (StreamWriter sw = new StreamWriter(FichierHistorique, true, Encoding.UTF8))
             {
@@ -67,7 +69,7 @@ namespace logiciel_d_impression_3d
                             .Replace("|", "§")
                             .Replace("\r\n", "¶")
                             .Replace("\n", "¶");
-                        sw.WriteLine($"{entree.Date:yyyy-MM-dd HH:mm:ss}|{entree.Titre}|{entree.PrixTotalTTC:F2}|{contenuEchappe}");
+                        sw.WriteLine($"{entree.Date:yyyy-MM-dd HH:mm:ss}|{entree.Titre}|{entree.PrixTotalTTC:F2}|{entree.NumeroDevis ?? ""}|{(entree.Annule ? "1" : "0")}|{contenuEchappe}");
                     }
                 }
                 LogManager.Info($"Nettoyage historique : {supprimees} entrée(s) supprimée(s) (> {joursConservation} jours)");
@@ -87,11 +89,35 @@ namespace logiciel_d_impression_3d
             {
                 if (string.IsNullOrWhiteSpace(ligne)) continue;
 
-                string[] parties = ligne.Split(new[] { '|' }, 4);
+                string[] parties = ligne.Split(new[] { '|' }, 6);
                 if (parties.Length < 4) continue;
 
                 try
                 {
+                    // Format 4 : date|titre|prix|contenu (très ancien)
+                    // Format 5 : date|titre|prix|numero|contenu
+                    // Format 6 : date|titre|prix|numero|annule|contenu (actuel)
+                    string contenuBrut;
+                    string numeroDevis;
+                    bool annule;
+                    if (parties.Length == 4)
+                    {
+                        numeroDevis = "";
+                        annule = false;
+                        contenuBrut = parties[3];
+                    }
+                    else if (parties.Length == 5)
+                    {
+                        numeroDevis = parties[3];
+                        annule = false;
+                        contenuBrut = parties[4];
+                    }
+                    else
+                    {
+                        numeroDevis = parties[3];
+                        annule = parties[4] == "1";
+                        contenuBrut = parties[5];
+                    }
                     EntreeHistorique entree = new EntreeHistorique
                     {
                         Date = DateTime.ParseExact(parties[0].Trim(), "yyyy-MM-dd HH:mm:ss",
@@ -99,7 +125,9 @@ namespace logiciel_d_impression_3d
                         Titre = parties[1],
                         PrixTotalTTC = decimal.Parse(parties[2],
                             System.Globalization.CultureInfo.InvariantCulture),
-                        ContenuDevis = parties[3]
+                        NumeroDevis = numeroDevis,
+                        Annule = annule,
+                        ContenuDevis = contenuBrut
                             .Replace("§", "|")
                             .Replace("¶", "\r\n")
                     };
@@ -124,10 +152,16 @@ namespace logiciel_d_impression_3d
         private DataGridView dgvHistorique;
         private Button btnRevoir;
         private Button btnSupprimer;
+        private Button btnNonVendu;
         private Button btnExporterCSV;
         private Button btnFermer;
         private Panel panelBoutons;
         private Panel panelRecherche;
+        private Panel panelStats;
+        private Label lblNbDevisVal;
+        private Label lblTotalVal;
+        private Label lblCeMoisVal;
+        private Label lblCetteAnneeVal;
         private TextBox txtRecherche;
         private DateTimePicker dtpDebut;
         private DateTimePicker dtpFin;
@@ -231,6 +265,38 @@ namespace logiciel_d_impression_3d
 
             panelRecherche.Controls.AddRange(new Control[] { txtRecherche, lblDu, dtpDebut, lblAu, dtpFin, btnFiltrer, btnReinitialiser });
 
+            // Panel statistiques
+            panelStats = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 62,
+                Padding = new Padding(10, 5, 10, 5)
+            };
+
+            int sx = 15;
+            int gap = 185;
+            var fontTitre = new System.Drawing.Font("Segoe UI", 8f);
+            var fontVal = new System.Drawing.Font("Segoe UI", 11f, FontStyle.Bold);
+
+            var lblNbDevisTitre = new Label { Text = "Vendus / Total", Location = new Point(sx, 8), AutoSize = true, Font = fontTitre };
+            lblNbDevisVal = new Label { Text = "0", Location = new Point(sx, 26), AutoSize = true, Font = fontVal };
+
+            var lblTotalTitre = new Label { Text = "Total TTC", Location = new Point(sx + gap, 8), AutoSize = true, Font = fontTitre };
+            lblTotalVal = new Label { Text = "0,00 €", Location = new Point(sx + gap, 26), AutoSize = true, Font = fontVal };
+
+            var lblCeMoisTitre = new Label { Text = "Ce mois", Location = new Point(sx + gap * 2, 8), AutoSize = true, Font = fontTitre };
+            lblCeMoisVal = new Label { Text = "0,00 €", Location = new Point(sx + gap * 2, 26), AutoSize = true, Font = fontVal };
+
+            var lblCetteAnneeTitre = new Label { Text = "Cette année", Location = new Point(sx + gap * 3, 8), AutoSize = true, Font = fontTitre };
+            lblCetteAnneeVal = new Label { Text = "0,00 €", Location = new Point(sx + gap * 3, 26), AutoSize = true, Font = fontVal };
+
+            panelStats.Controls.AddRange(new Control[] {
+                lblNbDevisTitre, lblNbDevisVal,
+                lblTotalTitre, lblTotalVal,
+                lblCeMoisTitre, lblCeMoisVal,
+                lblCetteAnneeTitre, lblCetteAnneeVal
+            });
+
             // DataGridView
             dgvHistorique = new DataGridView
             {
@@ -279,11 +345,21 @@ namespace logiciel_d_impression_3d
             };
             btnSupprimer.Click += BtnSupprimer_Click;
 
+            btnNonVendu = new Button
+            {
+                Text = "Non vendu",
+                Size = new Size(120, 35),
+                Location = new Point(290, 10),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnNonVendu.Click += BtnNonVendu_Click;
+
             btnExporterCSV = new Button
             {
                 Text = "Exporter CSV",
                 Size = new Size(120, 35),
-                Location = new Point(290, 10),
+                Location = new Point(420, 10),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -292,15 +368,16 @@ namespace logiciel_d_impression_3d
             btnFermer = new Button
             {
                 Text = "Fermer",
-                Size = new Size(120, 35),
-                Location = new Point(420, 10),
+                Size = new Size(100, 35),
+                Location = new Point(550, 10),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnFermer.Click += (s, e) => this.Close();
 
-            panelBoutons.Controls.AddRange(new Control[] { btnRevoir, btnSupprimer, btnExporterCSV, btnFermer });
+            panelBoutons.Controls.AddRange(new Control[] { btnRevoir, btnSupprimer, btnNonVendu, btnExporterCSV, btnFermer });
             this.Controls.Add(dgvHistorique);
+            this.Controls.Add(panelStats);
             this.Controls.Add(panelRecherche);
             this.Controls.Add(panelBoutons);
             this.AcceptButton = btnFermer;
@@ -313,12 +390,18 @@ namespace logiciel_d_impression_3d
             ThemeManager.StyleDataGridView(dgvHistorique);
             ThemeManager.StyleButton(btnRevoir, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
             ThemeManager.StyleButton(btnSupprimer, ThemeManager.DangerRed, ThemeManager.DangerRedDark);
+            ThemeManager.StyleButton(btnNonVendu, ThemeManager.AccentOrange, ThemeManager.AccentOrangeDark);
             ThemeManager.StyleButton(btnExporterCSV, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
             ThemeManager.StyleButton(btnFermer, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
             ThemeManager.StyleButton(btnFiltrer, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
             ThemeManager.StyleButton(btnReinitialiser, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
             ThemeManager.StyleTextBox(txtRecherche);
             panelRecherche.BackColor = ThemeManager.BackgroundCard;
+            panelStats.BackColor = ThemeManager.BackgroundMain;
+            lblNbDevisVal.ForeColor = ThemeManager.PrimaryBlue;
+            lblTotalVal.ForeColor = ThemeManager.SecondaryGreen;
+            lblCeMoisVal.ForeColor = ThemeManager.AccentOrange;
+            lblCetteAnneeVal.ForeColor = ThemeManager.TextPrimary;
         }
 
         private void RemplirGrille()
@@ -328,8 +411,40 @@ namespace logiciel_d_impression_3d
             for (int i = historiqueFiltré.Count - 1; i >= 0; i--)
             {
                 var e = historiqueFiltré[i];
-                dgvHistorique.Rows.Add(e.Date.ToString("dd/MM/yyyy HH:mm"), e.Titre, $"{e.PrixTotalTTC:F2} €");
+                string titre = e.Annule ? $"[Non vendu] {e.Titre}" : e.Titre;
+                dgvHistorique.Rows.Add(e.Date.ToString("dd/MM/yyyy HH:mm"), titre, $"{e.PrixTotalTTC:F2} €");
+                if (e.Annule)
+                {
+                    var row = dgvHistorique.Rows[dgvHistorique.Rows.Count - 1];
+                    row.DefaultCellStyle.ForeColor = Color.Gray;
+                    row.DefaultCellStyle.Font = new Font(dgvHistorique.Font, FontStyle.Strikeout);
+                }
             }
+            MettreAJourStatistiques();
+        }
+
+        private void MettreAJourStatistiques()
+        {
+            if (lblNbDevisVal == null) return;
+            DateTime maintenant = DateTime.Now;
+            int nbVendus = 0;
+            decimal total = 0m, ceMois = 0m, cetteAnnee = 0m;
+            foreach (var e in historiqueFiltré)
+            {
+                if (e.Annule) continue;
+                nbVendus++;
+                total += e.PrixTotalTTC;
+                if (e.Date.Year == maintenant.Year)
+                {
+                    cetteAnnee += e.PrixTotalTTC;
+                    if (e.Date.Month == maintenant.Month)
+                        ceMois += e.PrixTotalTTC;
+                }
+            }
+            lblNbDevisVal.Text = $"{nbVendus} / {historiqueFiltré.Count}";
+            lblTotalVal.Text = $"{total:F2} €";
+            lblCeMoisVal.Text = $"{ceMois:F2} €";
+            lblCetteAnneeVal.Text = $"{cetteAnnee:F2} €";
         }
 
         private void AppliquerFiltre()
@@ -369,7 +484,7 @@ namespace logiciel_d_impression_3d
         {
             var entree = ObtenirEntreeSelectionnee();
             if (entree == null) return;
-            new DevisForm($"Devis du {entree.Date:dd/MM/yyyy HH:mm} - {entree.Titre}", entree.ContenuDevis).ShowDialog();
+            new DevisForm($"Devis du {entree.Date:dd/MM/yyyy HH:mm} - {entree.Titre}", entree.ContenuDevis, entree.NumeroDevis).ShowDialog();
         }
 
         private void BtnSupprimer_Click(object sender, EventArgs e)
@@ -385,6 +500,20 @@ namespace logiciel_d_impression_3d
                 ReécrireFichier();
                 RemplirGrille();
             }
+        }
+
+        private void BtnNonVendu_Click(object sender, EventArgs e)
+        {
+            var entree = ObtenirEntreeSelectionnee();
+            if (entree == null) return;
+
+            entree.Annule = !entree.Annule;
+            string msg = entree.Annule
+                ? "Ce devis est marqué comme non vendu et exclu des statistiques."
+                : "Ce devis est réactivé et inclus dans les statistiques.";
+            ReécrireFichier();
+            RemplirGrille();
+            MessageBox.Show(msg, "Statut mis à jour", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void BtnExporterCSV_Click(object sender, EventArgs e)
@@ -423,7 +552,7 @@ namespace logiciel_d_impression_3d
                         .Replace("|", "§")
                         .Replace("\r\n", "¶")
                         .Replace("\n", "¶");
-                    sw.WriteLine($"{entree.Date:yyyy-MM-dd HH:mm:ss}|{entree.Titre}|{entree.PrixTotalTTC:F2}|{contenuEchappe}");
+                    sw.WriteLine($"{entree.Date:yyyy-MM-dd HH:mm:ss}|{entree.Titre}|{entree.PrixTotalTTC:F2}|{entree.NumeroDevis ?? ""}|{(entree.Annule ? "1" : "0")}|{contenuEchappe}");
                 }
             }
         }

@@ -84,6 +84,9 @@ namespace logiciel_d_impression_3d
             // Configurer l'onglet entreprise
             CreerOngletEntreprise();
 
+            // Configurer l'onglet avancé
+            CreerOngletAvance();
+
             // Verrouiller les paramètres premium si pas d'abonnement actif
             AppliquerVerrouillageParametres();
         }
@@ -118,6 +121,8 @@ namespace logiciel_d_impression_3d
         private TextBox txtTelephoneEntreprise;
         private TextBox txtEmailEntreprise;
         private TextBox txtSiretEntreprise;
+        private TextBox txtCheminLogo;
+        private Button btnParcourirLogo;
         private CheckBox chkAfficherNom;
         private CheckBox chkAfficherAdresse;
         private CheckBox chkAfficherTelephone;
@@ -137,7 +142,7 @@ namespace logiciel_d_impression_3d
             {
                 Text = "Coordonnées de l'entreprise",
                 Location = new Point(20, 20),
-                Size = new Size(700, 320),
+                Size = new Size(700, 380),
                 Font = new Font("Segoe UI", 10f)
             };
 
@@ -165,13 +170,27 @@ namespace logiciel_d_impression_3d
 
             var lblSiret = new Label { Text = "SIRET :", Location = new Point(lblX, y + 3), AutoSize = true };
             txtSiretEntreprise = new TextBox { Location = new Point(txtX, y), Size = new Size(txtW, 25) };
+            y += espacement;
+
+            var lblLogo = new Label { Text = "Logo :", Location = new Point(lblX, y + 3), AutoSize = true };
+            txtCheminLogo = new TextBox { Location = new Point(txtX, y), Size = new Size(385, 25) };
+            btnParcourirLogo = new Button { Text = "Parcourir...", Location = new Point(txtX + 390, y), Size = new Size(85, 25), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand };
+            btnParcourirLogo.Click += (s, ev) => {
+                using (var ofd = new OpenFileDialog())
+                {
+                    ofd.Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg";
+                    ofd.Title = "Choisir un logo pour le devis";
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                        txtCheminLogo.Text = ofd.FileName;
+                }
+            };
             y += espacement + 10;
 
             // Groupe "Afficher sur le devis"
             var groupBoxAffichage = new GroupBox
             {
                 Text = "Afficher sur le devis",
-                Location = new Point(20, 350),
+                Location = new Point(20, 415),
                 Size = new Size(700, 80),
                 Font = new Font("Segoe UI", 10f)
             };
@@ -200,7 +219,8 @@ namespace logiciel_d_impression_3d
                 lblAdresse, txtAdresseEntreprise,
                 lblTelephone, txtTelephoneEntreprise,
                 lblEmail, txtEmailEntreprise,
-                lblSiret, txtSiretEntreprise
+                lblSiret, txtSiretEntreprise,
+                lblLogo, txtCheminLogo, btnParcourirLogo
             });
 
             tabPageEntreprise.Controls.Add(groupBox);
@@ -213,6 +233,7 @@ namespace logiciel_d_impression_3d
             txtTelephoneEntreprise.Text = parametres.TelephoneEntreprise ?? "";
             txtEmailEntreprise.Text = parametres.EmailEntreprise ?? "";
             txtSiretEntreprise.Text = parametres.SiretEntreprise ?? "";
+            txtCheminLogo.Text = parametres.CheminLogo ?? "";
             chkAfficherNom.Checked = parametres.AfficherNomEntreprise;
             chkAfficherAdresse.Checked = parametres.AfficherAdresseEntreprise;
             chkAfficherTelephone.Checked = parametres.AfficherTelephoneEntreprise;
@@ -221,6 +242,114 @@ namespace logiciel_d_impression_3d
 
             // Appliquer le thème
             ThemeManager.StyleAllControls(tabPageEntreprise);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // ONGLET AVANCÉ
+        // ═══════════════════════════════════════════════════════
+
+        private void CreerOngletAvance()
+        {
+            var tabPageAvance = new TabPage
+            {
+                Text = "Avancé",
+                BackColor = Color.FromArgb(245, 247, 250),
+                Padding = new Padding(3)
+            };
+
+            var groupBox = new GroupBox
+            {
+                Text = "Sauvegarde / Restauration des paramètres",
+                Location = new Point(20, 20),
+                Size = new Size(680, 155),
+                Font = new Font("Segoe UI", 10f)
+            };
+
+            var lblInfo = new Label
+            {
+                Text = "Exportez vos paramètres (bobines, coûts, entreprise…) pour les sauvegarder ou les transférer vers une autre installation.",
+                Location = new Point(15, 28),
+                Size = new Size(645, 35),
+                AutoSize = false
+            };
+
+            var btnExporter = new Button
+            {
+                Text = "Exporter les paramètres (.cc3d)",
+                Location = new Point(15, 80),
+                Size = new Size(235, 35),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnExporter.Click += (s, e) =>
+            {
+                using (var sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "Paramètres Crea-Coût 3D (*.cc3d)|*.cc3d";
+                    sfd.FileName = $"parametres_{DateTime.Now:yyyy-MM-dd}.cc3d";
+                    sfd.Title = "Exporter les paramètres";
+                    if (sfd.ShowDialog() == DialogResult.OK)
+                    {
+                        try
+                        {
+                            File.Copy(FichierParametres, sfd.FileName, true);
+                            MessageBox.Show($"Paramètres exportés :\n{sfd.FileName}", "Export réussi",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Erreur lors de l'export :\n{ex.Message}", "Erreur",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            };
+
+            var btnImporter = new Button
+            {
+                Text = "Importer des paramètres (.cc3d)",
+                Location = new Point(270, 80),
+                Size = new Size(235, 35),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnImporter.Click += (s, e) =>
+            {
+                using (var ofd = new OpenFileDialog())
+                {
+                    ofd.Filter = "Paramètres Crea-Coût 3D (*.cc3d)|*.cc3d";
+                    ofd.Title = "Importer des paramètres";
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                    {
+                        if (MessageBox.Show("Remplacer tous les paramètres actuels par ceux du fichier importé ?",
+                            "Confirmer l'import", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        {
+                            try
+                            {
+                                File.Copy(ofd.FileName, FichierParametres, true);
+                                InvaliderCache();
+                                MessageBox.Show("Paramètres importés avec succès. La fenêtre va se fermer.",
+                                    "Import réussi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                this.DialogResult = DialogResult.Cancel;
+                                this.Close();
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Erreur lors de l'import :\n{ex.Message}", "Erreur",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                    }
+                }
+            };
+
+            groupBox.Controls.AddRange(new Control[] { lblInfo, btnExporter, btnImporter });
+            tabPageAvance.Controls.Add(groupBox);
+            tabControl1.TabPages.Add(tabPageAvance);
+
+            ThemeManager.StyleAllControls(tabPageAvance);
+            ThemeManager.StyleButton(btnExporter, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
+            ThemeManager.StyleButton(btnImporter, ThemeManager.PrimaryBlue, ThemeManager.PrimaryBlueDark);
         }
 
         private void ConfigurerColonnesBobines()
@@ -472,6 +601,7 @@ namespace logiciel_d_impression_3d
             parametres.TelephoneEntreprise = txtTelephoneEntreprise.Text.Trim();
             parametres.EmailEntreprise = txtEmailEntreprise.Text.Trim();
             parametres.SiretEntreprise = txtSiretEntreprise.Text.Trim();
+            parametres.CheminLogo = txtCheminLogo.Text.Trim();
             parametres.AfficherNomEntreprise = chkAfficherNom.Checked;
             parametres.AfficherAdresseEntreprise = chkAfficherAdresse.Checked;
             parametres.AfficherTelephoneEntreprise = chkAfficherTelephone.Checked;
@@ -649,6 +779,25 @@ namespace logiciel_d_impression_3d
                             }
                             debutBobines++;
                         }
+                        // Logo
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            param.CheminLogo = lines[debutBobines];
+                            debutBobines++;
+                        }
+                        // Compteur numéros de devis (format "année:numéro")
+                        if (lines.Length > debutBobines && !lines[debutBobines].Contains("|"))
+                        {
+                            string[] partsNum = lines[debutBobines].Split(':');
+                            if (partsNum.Length == 2 &&
+                                int.TryParse(partsNum[0], out int annee) &&
+                                int.TryParse(partsNum[1], out int num))
+                            {
+                                param.AnneeNumeroDevis = annee;
+                                param.ProchainNumeroDevis = num;
+                            }
+                            debutBobines++;
+                        }
 
                         // Lire les bobines
                         for (int i = debutBobines; i < lines.Length; i++)
@@ -686,7 +835,7 @@ namespace logiciel_d_impression_3d
             return defaultValue;
         }
 
-        private void SauvegarderParametres(ParametresImpression param)
+        private static void SauvegarderParametres(ParametresImpression param)
         {
             try
             {
@@ -705,7 +854,9 @@ namespace logiciel_d_impression_3d
                     param.TelephoneEntreprise ?? "",
                     param.EmailEntreprise ?? "",
                     param.SiretEntreprise ?? "",
-                    $"{(param.AfficherNomEntreprise ? "1" : "0")},{(param.AfficherAdresseEntreprise ? "1" : "0")},{(param.AfficherTelephoneEntreprise ? "1" : "0")},{(param.AfficherEmailEntreprise ? "1" : "0")},{(param.AfficherSiretEntreprise ? "1" : "0")}"
+                    $"{(param.AfficherNomEntreprise ? "1" : "0")},{(param.AfficherAdresseEntreprise ? "1" : "0")},{(param.AfficherTelephoneEntreprise ? "1" : "0")},{(param.AfficherEmailEntreprise ? "1" : "0")},{(param.AfficherSiretEntreprise ? "1" : "0")}",
+                    param.CheminLogo ?? "",
+                    $"{param.AnneeNumeroDevis}:{param.ProchainNumeroDevis}"
                 };
 
                 foreach (var bobine in param.Bobines)
@@ -776,6 +927,21 @@ namespace logiciel_d_impression_3d
         {
             parametresCache = null;
         }
+
+        public static string ObtenirEtIncrementerNumeroDevis()
+        {
+            var p = ObtenirParametres();
+            int anneeActuelle = DateTime.Now.Year;
+            if (p.AnneeNumeroDevis != anneeActuelle)
+            {
+                p.AnneeNumeroDevis = anneeActuelle;
+                p.ProchainNumeroDevis = 1;
+            }
+            string numero = $"DEV-{p.AnneeNumeroDevis}-{p.ProchainNumeroDevis:D4}";
+            p.ProchainNumeroDevis++;
+            SauvegarderParametres(p);
+            return numero;
+        }
     }
 
     public class ParametresImpression
@@ -799,6 +965,9 @@ namespace logiciel_d_impression_3d
         public bool AfficherTelephoneEntreprise { get; set; } = false;
         public bool AfficherEmailEntreprise { get; set; } = false;
         public bool AfficherSiretEntreprise { get; set; } = false;
+        public string CheminLogo { get; set; } = "";
+        public int ProchainNumeroDevis { get; set; } = 1;
+        public int AnneeNumeroDevis { get; set; } = 0;
         public List<Bobine> Bobines { get; set; } = new List<Bobine>();
     }
 
