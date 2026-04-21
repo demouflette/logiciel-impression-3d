@@ -18,6 +18,10 @@ namespace logiciel_d_impression_3d
         private ThreeMFParser.ThreeMFFile fichier3mfAnalyse;
         private bool valeurSlicerUtilisees = false;
 
+        // ── Mode Série ────────────────────────────────────────────────────────
+        private NumericUpDown numStlQuantite;
+        private NumericUpDown num3mfQuantite;
+
         // ── Onglet STL / OrcaSlicer ───────────────────────────────────────────
         private TabPage tabPageStl;
         private TextBox txtStlFile;
@@ -258,6 +262,12 @@ namespace logiciel_d_impression_3d
             // Initialiser l'onglet STL / OrcaSlicer
             InitialiserOngletStl();
 
+            // Ajouter import G-code Bambu dans l'onglet 3MF
+            AjouterImportGcode3mf();
+
+            // Ajouter le champ quantité à l'onglet 3MF
+            AjouterQuantite3mf();
+
             // Verrouiller les fonctionnalités premium si pas d'abonnement actif
             AppliquerVerrouillageAbonnement();
         }
@@ -380,11 +390,18 @@ namespace logiciel_d_impression_3d
             numStlNombreCouleurs = new NumericUpDown { Left = 465, Top = cy, Width = 55, Minimum = 2, Maximum = 16, Value = 2, Visible = false };
             cy += 34;
 
+            var lblStlQuantite = new Label { Text = "Quantité (série) :", Left = cx, Top = cy + 3, AutoSize = true };
+            numStlQuantite = new NumericUpDown { Left = 130, Top = cy, Width = 70, Minimum = 1, Maximum = 9999, Value = 1, DecimalPlaces = 0 };
+            cy += 34;
+
             btnCalculerDevisStl = new Button
             {
                 Text = "Calculer le devis STL",
                 Left = cx, Top = cy, Width = 200, Height = 32
             };
+
+            // Agrandir le GroupBox pour accueillir la ligne quantité
+            grpCalc.Height += 34;
 
             grpCalc.Controls.AddRange(new Control[] {
                 lblPrinter, cmbStlPrinter,
@@ -392,6 +409,7 @@ namespace logiciel_d_impression_3d
                 lblPoids, numStlPoidsFilament,
                 lblTemps, numStlTempsImpression,
                 chkStlAMS, lblStlNombreCouleurs, numStlNombreCouleurs,
+                lblStlQuantite, numStlQuantite,
                 btnCalculerDevisStl });
 
             // ── Événements ────────────────────────────────────────────────────
@@ -577,6 +595,7 @@ namespace logiciel_d_impression_3d
             {
                 var parametres = ParametresImpressionForm.ObtenirParametres();
 
+                int quantite = numStlQuantite != null ? (int)numStlQuantite.Value : 1;
                 decimal poidsFilament = numStlPoidsFilament.Value;
                 decimal tempsHeures = numStlTempsImpression.Value;
                 int nombreCouleurs = chkStlAMS.Checked ? (int)numStlNombreCouleurs.Value : 1;
@@ -599,9 +618,17 @@ namespace logiciel_d_impression_3d
                 decimal coutMainOeuvre = tempsHeures * parametres.CoutMainOeuvreHeure;
                 decimal coutAmortissement = tempsHeures * parametres.AmortissementMachineHeure;
 
+                // Coût pour UNE pièce
                 decimal coutProductionHT = coutMatiere + coutElectricite + coutMainOeuvre + coutAmortissement;
-                decimal marge = coutProductionHT * (parametres.MargeParObjet / 100m);
-                decimal sousTotalHT = coutProductionHT + marge;
+                decimal marge1 = coutProductionHT * (parametres.MargeParObjet / 100m);
+                decimal sousTotalHT1 = coutProductionHT + marge1;
+                decimal montantTVA1 = sousTotalHT1 * (parametres.TVA / 100m);
+                decimal prixUnitaireTTC = sousTotalHT1 + montantTVA1;
+
+                // Coûts totaux pour N pièces
+                decimal coutProductionHT_total = coutProductionHT * quantite;
+                decimal marge = coutProductionHT_total * (parametres.MargeParObjet / 100m);
+                decimal sousTotalHT = coutProductionHT_total + marge;
                 decimal montantTVA = sousTotalHT * (parametres.TVA / 100m);
                 decimal prixTotalTTC = sousTotalHT + montantTVA;
 
@@ -631,7 +658,7 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine($"📦 Poids total : {poidsTotal:F2} g");
                 sb.AppendLine();
                 sb.AppendLine("───────────────────────────────────────────────────");
-                sb.AppendLine("  DÉTAILS DES COÛTS");
+                sb.AppendLine("  DÉTAILS DES COÛTS (par pièce)");
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"💰 Coût matière : {coutMatiere:F2} €");
                 sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
@@ -641,13 +668,26 @@ namespace logiciel_d_impression_3d
                 if (coutAmortissement > 0)
                     sb.AppendLine($"🏭 Amortissement : {coutAmortissement:F2} €");
                 sb.AppendLine($"🔧 Coût production HT : {coutProductionHT:F2} €");
-                sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%) : {marge:F2} €");
+                sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%) : {marge1:F2} €");
+                sb.AppendLine($"   💰 Prix unitaire TTC : {prixUnitaireTTC:F2} €");
+                if (quantite > 1)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("───────────────────────────────────────────────────");
+                    sb.AppendLine($"  SÉRIE : {quantite} pièces");
+                    sb.AppendLine("───────────────────────────────────────────────────");
+                    sb.AppendLine($"🔧 Coût production HT total : {coutProductionHT_total:F2} €");
+                    sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%) : {marge:F2} €");
+                }
                 sb.AppendLine();
                 sb.AppendLine("═══════════════════════════════════════════════════");
                 sb.AppendLine($"   Sous-total HT : {sousTotalHT:F2} €");
                 sb.AppendLine($"   TVA ({parametres.TVA}%) : {montantTVA:F2} €");
                 sb.AppendLine("───────────────────────────────────────────────────");
-                sb.AppendLine($"   💰 PRIX TOTAL TTC : {prixTotalTTC:F2} €");
+                if (quantite > 1)
+                    sb.AppendLine($"   💰 PRIX TOTAL TTC ({quantite} pièces) : {prixTotalTTC:F2} €");
+                else
+                    sb.AppendLine($"   💰 PRIX TOTAL TTC : {prixTotalTTC:F2} €");
                 sb.AppendLine("═══════════════════════════════════════════════════");
 
                 string contenu = sb.ToString();
@@ -666,6 +706,140 @@ namespace logiciel_d_impression_3d
                 MessageBox.Show($"Erreur lors du calcul : {ex.Message}", "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // IMPORT G-CODE BAMBU DANS L'ONGLET 3MF
+        // ══════════════════════════════════════════════════════════════════════
+
+        private void AjouterImportGcode3mf()
+        {
+            // Étendre le groupBox pour accueillir la nouvelle ligne
+            groupBox3mfFile.Height = 155;
+            groupBox3mfInfo.Top = 175;
+            groupBox3mfCalcul.Top = 175;
+
+            var lblGcode = new Label
+            {
+                Text = "G-code Bambu :",
+                Left = 15, Top = 128,
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F)
+            };
+
+            var txtGcode3mfPath = new TextBox
+            {
+                Left = 160, Top = 125,
+                Width = 390, Height = 25,
+                ReadOnly = true,
+                Font = new Font("Segoe UI", 9F)
+            };
+
+            var btnBrowseGcode3mf = new Button
+            {
+                Text = "Parcourir...",
+                Left = 558, Top = 123,
+                Width = 110, Height = 28,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+
+            var btnImporterGcode3mf = new Button
+            {
+                Text = "Importer valeurs",
+                Left = 675, Top = 123,
+                Width = 145, Height = 28,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+
+            btnBrowseGcode3mf.Click += (s, e) =>
+            {
+                using (var ofd = new OpenFileDialog())
+                {
+                    ofd.Filter = "Fichiers G-code (*.gcode;*.gc;*.g)|*.gcode;*.gc;*.g|Tous les fichiers (*.*)|*.*";
+                    ofd.Title = "Sélectionnez le G-code exporté depuis Bambu Studio";
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                        txtGcode3mfPath.Text = ofd.FileName;
+                }
+            };
+
+            btnImporterGcode3mf.Click += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtGcode3mfPath.Text) ||
+                    !System.IO.File.Exists(txtGcode3mfPath.Text))
+                {
+                    MessageBox.Show("Veuillez sélectionner un fichier G-code valide.", "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                try
+                {
+                    var resultat = SlicerManager.ParserFichierGcode(txtGcode3mfPath.Text);
+                    if (!resultat.Succes)
+                    {
+                        MessageBox.Show($"Impossible de lire le G-code :\n{resultat.MessageErreur}",
+                            "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    valeurSlicerUtilisees = true;
+
+                    if (resultat.PoidsFilamentGrammes > 0)
+                        num3mfPoidsFilament.Value = Math.Min(9999m, Math.Round(resultat.PoidsFilamentGrammes, 2));
+                    if (resultat.TempsMinutes > 0)
+                        num3mfTempsImpression.Value = Math.Min(999m, Math.Round(resultat.TempsMinutes / 60m, 2));
+
+                    lblStatutSlicer.Text = "G-code Bambu importé (valeurs précises)";
+                    lblStatutSlicer.ForeColor = ThemeManager.SecondaryGreen;
+
+                    string msg = $"G-code importé : {System.IO.Path.GetFileName(txtGcode3mfPath.Text)}\n";
+                    if (resultat.PoidsFilamentGrammes > 0)
+                        msg += $"Poids : {resultat.PoidsFilamentGrammes:F2} g\n";
+                    if (resultat.TempsMinutes > 0)
+                        msg += $"Temps : {(int)(resultat.TempsMinutes / 60)}h {(int)(resultat.TempsMinutes % 60):D2}min\n";
+                    MessageBox.Show(msg, "G-code importé", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Erreur lors de l'import : {ex.Message}", "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
+            groupBox3mfFile.Controls.AddRange(new Control[] {
+                lblGcode, txtGcode3mfPath, btnBrowseGcode3mf, btnImporterGcode3mf });
+
+            ThemeManager.StyleButton(btnBrowseGcode3mf, ThemeManager.NeutralGray, ThemeManager.NeutralGrayDark);
+            ThemeManager.StyleButton(btnImporterGcode3mf, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
+        }
+
+        private void AjouterQuantite3mf()
+        {
+            // Ajoute un champ "Quantité" entre le groupBox et le bouton Calculer
+            // btnCalculerDevis3mf est à y=430 sur tabPage3mf
+            var lblQ = new Label
+            {
+                Text = "Quantité (série) :",
+                Left = 620, Top = 427,
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F)
+            };
+            num3mfQuantite = new NumericUpDown
+            {
+                Left = 760, Top = 424,
+                Width = 70, Height = 25,
+                Minimum = 1, Maximum = 9999,
+                Value = 1, DecimalPlaces = 0,
+                Font = new Font("Segoe UI", 9F)
+            };
+
+            // Décaler le bouton vers le bas pour faire de la place
+            btnCalculerDevis3mf.Top = 460;
+
+            tabPage3mf.Controls.AddRange(new Control[] { lblQ, num3mfQuantite });
+            ThemeManager.StyleAllControls(num3mfQuantite.Parent ?? tabPage3mf);
         }
 
         private void AppliquerVerrouillageAbonnement()
@@ -1038,6 +1212,7 @@ namespace logiciel_d_impression_3d
                 var parametres = ParametresImpressionForm.ObtenirParametres();
 
                 // Calculer les coûts
+                int quantite = num3mfQuantite != null ? (int)num3mfQuantite.Value : 1;
                 decimal poidsFilament = num3mfPoidsFilament.Value;
                 decimal tempsHeures = num3mfTempsImpression.Value;
                 int nombreCouleurs = chk3mfAMS.Checked ? (int)num3mfNombreCouleurs.Value : 1;
@@ -1068,17 +1243,18 @@ namespace logiciel_d_impression_3d
                 decimal coutMainOeuvre = tempsHeures * parametres.CoutMainOeuvreHeure;
                 decimal coutAmortissement = tempsHeures * parametres.AmortissementMachineHeure;
 
-                // Coût de production HT
+                // Coût de production HT pour UNE pièce
                 decimal coutProductionHT = coutMatiere + coutElectricite + coutMainOeuvre + coutAmortissement;
+                decimal marge1 = coutProductionHT * (parametres.MargeParObjet / 100m);
+                decimal sousTotalHT1 = coutProductionHT + marge1;
+                decimal montantTVA1 = sousTotalHT1 * (parametres.TVA / 100m);
+                decimal prixUnitaireTTC = sousTotalHT1 + montantTVA1;
 
-                // Appliquer la marge (en pourcentage)
-                decimal marge = coutProductionHT * (parametres.MargeParObjet / 100m);
-                decimal sousTotalHT = coutProductionHT + marge;
-
-                // Calculer la TVA
+                // Coûts totaux pour N pièces (tous les coûts sont variables en impression 3D)
+                decimal coutProductionHT_total = coutProductionHT * quantite;
+                decimal marge = coutProductionHT_total * (parametres.MargeParObjet / 100m);
+                decimal sousTotalHT = coutProductionHT_total + marge;
                 decimal montantTVA = sousTotalHT * (parametres.TVA / 100m);
-
-                // Prix total TTC
                 decimal prixTotalTTC = sousTotalHT + montantTVA;
 
                 // Afficher le résultat
@@ -1112,7 +1288,7 @@ namespace logiciel_d_impression_3d
                 }
                 sb.AppendLine();
                 sb.AppendLine("───────────────────────────────────────────────────");
-                sb.AppendLine("  DÉTAILS DES COÛTS");
+                sb.AppendLine("  DÉTAILS DES COÛTS (par pièce)");
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"💰 Coût matière: {coutMatiere:F2} €");
                 sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
@@ -1123,13 +1299,26 @@ namespace logiciel_d_impression_3d
                 if (coutAmortissement > 0)
                     sb.AppendLine($"🏭 Amortissement: {coutAmortissement:F2} € ({tempsHeures:F2}h × {parametres.AmortissementMachineHeure:F2} €/h)");
                 sb.AppendLine($"🔧 Coût production HT: {coutProductionHT:F2} €");
-                sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%): {marge:F2} €");
+                sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%): {marge1:F2} €");
+                sb.AppendLine($"   💰 Prix unitaire TTC : {prixUnitaireTTC:F2} €");
+                if (quantite > 1)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("───────────────────────────────────────────────────");
+                    sb.AppendLine($"  SÉRIE : {quantite} pièces");
+                    sb.AppendLine("───────────────────────────────────────────────────");
+                    sb.AppendLine($"🔧 Coût production HT total: {coutProductionHT_total:F2} €");
+                    sb.AppendLine($"📈 Marge ({parametres.MargeParObjet}%): {marge:F2} €");
+                }
                 sb.AppendLine();
                 sb.AppendLine("═══════════════════════════════════════════════════");
                 sb.AppendLine($"   Sous-total HT: {sousTotalHT:F2} €");
                 sb.AppendLine($"   TVA ({parametres.TVA}%): {montantTVA:F2} €");
                 sb.AppendLine("───────────────────────────────────────────────────");
-                sb.AppendLine($"   💰 PRIX TOTAL TTC: {prixTotalTTC:F2} €");
+                if (quantite > 1)
+                    sb.AppendLine($"   💰 PRIX TOTAL TTC ({quantite} pièces): {prixTotalTTC:F2} €");
+                else
+                    sb.AppendLine($"   💰 PRIX TOTAL TTC: {prixTotalTTC:F2} €");
                 sb.AppendLine("═══════════════════════════════════════════════════");
 
                 // Sauvegarder dans l'historique

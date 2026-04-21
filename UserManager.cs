@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Security;
 
 namespace logiciel_d_impression_3d
 {
@@ -285,12 +286,69 @@ namespace logiciel_d_impression_3d
 
         // ── Réinitialisation mot de passe ─────────────────────────────────────
 
+        [Obsolete("Utiliser DemanderResetPassword + ConfirmerResetPassword")]
         public bool ResetPassword(string username, string email, string newPassword)
         {
-            // Dans la nouvelle architecture, le reset passe par le serveur.
-            // Le serveur doit implémenter un endpoint de reset (pas encore disponible).
-            // Pour l'instant : non supporté (retourne false).
             return false;
+        }
+
+        /// <summary>
+        /// Étape 1 : demande l'envoi d'un code reset à 6 chiffres par email.
+        /// </summary>
+        public bool DemanderResetPassword(string email, out string erreur)
+        {
+            erreur = "";
+            try
+            {
+                string corps = $"{{\"email\":\"{EchapperJson(email)}\"}}";
+                AppelerApi("/api/utilisateurs/demander-reset", "POST", corps, timeout: 8000);
+                return true;
+            }
+            catch (WebException ex) when (ex.Response is HttpWebResponse resp)
+            {
+                switch ((int)resp.StatusCode)
+                {
+                    case 404: erreur = "Aucun compte associé à cette adresse email."; break;
+                    default:  erreur = "Erreur serveur. Réessayez plus tard."; break;
+                }
+                return false;
+            }
+            catch
+            {
+                erreur = "Impossible de joindre le serveur. Vérifiez votre connexion.";
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Étape 2 : valide le code et change le mot de passe.
+        /// </summary>
+        public bool ConfirmerResetPassword(string email, string code, string nouveauPassword, out string erreur)
+        {
+            erreur = "";
+            try
+            {
+                string corps = $"{{\"email\":\"{EchapperJson(email)}\"," +
+                               $"\"code\":\"{EchapperJson(code)}\"," +
+                               $"\"nouveau_password\":\"{EchapperJson(nouveauPassword)}\"}}";
+                AppelerApi("/api/utilisateurs/confirmer-reset", "POST", corps, timeout: 8000);
+                return true;
+            }
+            catch (WebException ex) when (ex.Response is HttpWebResponse resp)
+            {
+                switch ((int)resp.StatusCode)
+                {
+                    case 400: erreur = LireCorpsErreur(ex); break;
+                    case 404: erreur = "Utilisateur introuvable."; break;
+                    default:  erreur = "Erreur serveur. Réessayez plus tard."; break;
+                }
+                return false;
+            }
+            catch
+            {
+                erreur = "Impossible de joindre le serveur. Vérifiez votre connexion.";
+                return false;
+            }
         }
 
         // ── Cache de session ──────────────────────────────────────────────────
@@ -300,7 +358,21 @@ namespace logiciel_d_impression_3d
             try
             {
                 if (!File.Exists(CachePath)) return null;
-                string ligne = File.ReadAllText(CachePath, Encoding.UTF8).Trim();
+                byte[] octets = File.ReadAllBytes(CachePath);
+
+                string ligne;
+                try
+                {
+                    // Format chiffré DPAPI (nouveau)
+                    byte[] dechiffre = ProtectedData.Unprotect(octets, null, DataProtectionScope.CurrentUser);
+                    ligne = Encoding.UTF8.GetString(dechiffre).Trim();
+                }
+                catch
+                {
+                    // Fallback : ancien format texte clair (migration transparente)
+                    ligne = Encoding.UTF8.GetString(octets).Trim();
+                }
+
                 return SessionCache.Deserialiser(ligne);
             }
             catch { return null; }
@@ -310,7 +382,9 @@ namespace logiciel_d_impression_3d
         {
             try
             {
-                File.WriteAllText(CachePath, cache.Serialiser(), Encoding.UTF8);
+                byte[] data = Encoding.UTF8.GetBytes(cache.Serialiser());
+                byte[] chiffre = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                File.WriteAllBytes(CachePath, chiffre);
             }
             catch (Exception ex)
             {

@@ -72,18 +72,31 @@ namespace logiciel_d_impression_3d
                 return;
             }
 
-            if (userManager.ResetPassword(currentUser.Username, currentUser.Email, newPassword))
+            // Envoyer un code de confirmation par email, puis ouvrir le formulaire à l'étape 2
+            if (userManager.DemanderResetPassword(currentUser.Email, out string erreurCode))
             {
-                MessageBox.Show("Mot de passe modifié avec succès !", "Succès", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                txtCurrentPassword.Clear();
-                txtNewPassword.Clear();
-                txtConfirmPassword.Clear();
+                MessageBox.Show(
+                    $"Un code de confirmation a été envoyé à :\n{currentUser.Email}\n\n" +
+                    "Saisissez-le dans la fenêtre suivante avec votre nouveau mot de passe.",
+                    "Code envoyé", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                var resetForm = new ResetPasswordForm(userManager, currentUser.Email);
+                if (resetForm.ShowDialog() == DialogResult.OK)
+                {
+                    MessageBox.Show("Mot de passe modifié avec succès !", "Succès",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    txtCurrentPassword.Clear();
+                    txtNewPassword.Clear();
+                    txtConfirmPassword.Clear();
+                }
             }
             else
             {
-                MessageBox.Show("Erreur lors de la modification du mot de passe.", "Erreur", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    string.IsNullOrEmpty(erreurCode)
+                        ? "Impossible d'envoyer le code de confirmation. Vérifiez votre connexion."
+                        : erreurCode,
+                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
