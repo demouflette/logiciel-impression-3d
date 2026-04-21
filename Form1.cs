@@ -22,6 +22,10 @@ namespace logiciel_d_impression_3d
         private NumericUpDown numStlQuantite;
         private NumericUpDown num3mfQuantite;
         private Label lbl3mfQuantite;
+        private List<AmsSlot> amsSlotsConfig = new List<AmsSlot>();
+        private Button btnConfigurerAMS;
+        private List<AmsSlot> amsSlotsConfigStl = new List<AmsSlot>();
+        private Button btnConfigurerAMSStl;
 
         // ── Onglet STL / OrcaSlicer ───────────────────────────────────────────
         private TabPage tabPageStl;
@@ -389,6 +393,15 @@ namespace logiciel_d_impression_3d
             chkStlAMS = new CheckBox { Text = "Multi-couleur (AMS)", Left = 240, Top = cy + 2, AutoSize = true };
             lblStlNombreCouleurs = new Label { Text = "Couleurs :", Left = 400, Top = cy + 3, AutoSize = true, Visible = false };
             numStlNombreCouleurs = new NumericUpDown { Left = 465, Top = cy, Width = 55, Minimum = 2, Maximum = 16, Value = 2, Visible = false };
+            btnConfigurerAMSStl = new Button { Text = "Bobines...", Left = 528, Top = cy, Width = 95, Height = 26, FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Visible = false };
+            btnConfigurerAMSStl.Click += (s, e) =>
+            {
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+                using (var f = new AmsConfigForm((int)numStlNombreCouleurs.Value, amsSlotsConfigStl, parametres.Bobines))
+                    if (f.ShowDialog(this) == DialogResult.OK)
+                        amsSlotsConfigStl = f.Slots;
+            };
+            numStlNombreCouleurs.ValueChanged += (s, e) => amsSlotsConfigStl = new List<AmsSlot>();
             cy += 34;
 
             var lblStlQuantite = new Label { Text = "Quantité (série) :", Left = cx, Top = cy + 3, AutoSize = true };
@@ -409,7 +422,7 @@ namespace logiciel_d_impression_3d
                 lblMatiere, cmbStlMatiere,
                 lblPoids, numStlPoidsFilament,
                 lblTemps, numStlTempsImpression,
-                chkStlAMS, lblStlNombreCouleurs, numStlNombreCouleurs,
+                chkStlAMS, lblStlNombreCouleurs, numStlNombreCouleurs, btnConfigurerAMSStl,
                 lblStlQuantite, numStlQuantite,
                 btnCalculerDevisStl });
 
@@ -424,6 +437,8 @@ namespace logiciel_d_impression_3d
             {
                 lblStlNombreCouleurs.Visible = chkStlAMS.Checked;
                 numStlNombreCouleurs.Visible = chkStlAMS.Checked;
+                btnConfigurerAMSStl.Visible = chkStlAMS.Checked;
+                if (!chkStlAMS.Checked) amsSlotsConfigStl = new List<AmsSlot>();
             };
 
             // Styler
@@ -611,8 +626,19 @@ namespace logiciel_d_impression_3d
                 decimal poidsTotal = poidsFilament + poidsPurge;
 
                 string matiere = cmbStlMatiere.SelectedItem?.ToString() ?? "PLA";
-                decimal prixKgFilament = ObtenirPrixMoyenBobines(parametres, matiere);
-                decimal coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
+                decimal prixKgFilament;
+                decimal coutMatiere;
+                if (chkStlAMS.Checked && amsSlotsConfigStl != null && amsSlotsConfigStl.Count > 0)
+                {
+                    decimal poidsParSlot = poidsTotal / amsSlotsConfigStl.Count;
+                    coutMatiere = amsSlotsConfigStl.Sum(sl => (poidsParSlot / 1000m) * sl.PrixKg);
+                    prixKgFilament = amsSlotsConfigStl.Average(sl => sl.PrixKg);
+                }
+                else
+                {
+                    prixKgFilament = ObtenirPrixMoyenBobines(parametres, matiere);
+                    coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
+                }
 
                 var specsImp = ImprimanteSpecsManager.ObtenirSpecs(cmbStlPrinter.SelectedItem?.ToString() ?? "");
                 decimal coutElectricite = specsImp.ConsommationMoyenneKw * tempsHeures * parametres.CoutElectriciteKwh;
@@ -653,6 +679,11 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"⏱️  Temps d'impression : {tempsHeures:F2} heures");
                 sb.AppendLine($"🎨 Mode : {(chkStlAMS.Checked ? $"Multi-couleur ({nombreCouleurs} couleurs)" : "Mono-couleur")}");
+                if (chkStlAMS.Checked && amsSlotsConfigStl != null && amsSlotsConfigStl.Count > 0)
+                {
+                    foreach (var slot in amsSlotsConfigStl)
+                        sb.AppendLine($"    AMS {amsSlotsConfigStl.IndexOf(slot) + 1}: {slot.Couleur} — {slot.Matiere} ({slot.PrixKg:F2} €/kg)");
+                }
                 sb.AppendLine($"📊 Poids filament net : {poidsFilament:F2} g");
                 if (poidsPurge > 0)
                     sb.AppendLine($"🔄 Poids purge AMS ({parametres.PourcentagePurgeAMS}%) : {poidsPurge:F2} g");
@@ -662,7 +693,16 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine("  DÉTAILS DES COÛTS (par pièce)");
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"💰 Coût matière : {coutMatiere:F2} €");
-                sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
+                if (chkStlAMS.Checked && amsSlotsConfigStl != null && amsSlotsConfigStl.Count > 0)
+                {
+                    decimal poidsParSlot = poidsTotal / amsSlotsConfigStl.Count;
+                    foreach (var slot in amsSlotsConfigStl)
+                        sb.AppendLine($"    AMS {amsSlotsConfigStl.IndexOf(slot) + 1}: {slot.Couleur} {slot.Matiere} — {poidsParSlot:F2} g × {slot.PrixKg:F2} €/kg = {(poidsParSlot / 1000m * slot.PrixKg):F2} €");
+                }
+                else
+                {
+                    sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
+                }
                 sb.AppendLine($"⚡ Coût électricité : {coutElectricite:F2} €");
                 if (coutMainOeuvre > 0)
                     sb.AppendLine($"👷 Main-d'œuvre : {coutMainOeuvre:F2} €");
@@ -715,12 +755,50 @@ namespace logiciel_d_impression_3d
 
         private void AjouterImportGcode3mf()
         {
-            // Étendre le groupBox pour accueillir la nouvelle ligne
+            // Étendre le groupBox pour accueillir la nouvelle ligne G-code
             groupBox3mfFile.Height = 155;
             groupBox3mfInfo.Top = 175;
             groupBox3mfCalcul.Top = 175;
-            // Hauteur calculée depuis la position réelle (DPI-aware) de num3mfNombreCouleurs
-            groupBox3mfCalcul.Height = num3mfNombreCouleurs.Bottom + 20;
+
+            // ── Mise en page 2 colonnes dans groupBox3mfCalcul ──────────────
+            // Colonne gauche (X=15) : Imprimante, Temps, Poids
+            // Colonne droite (X=180) : AMS, Nombre de couleurs
+            // → les contrôles AMS passent de Y=235-300 à Y=35-100 : plus jamais coupés
+            int colD = 180; // X colonne droite
+
+            cmb3mfPrinter.Width = 145;
+
+            num3mfTempsImpression.Width = 145;
+
+            num3mfPoidsFilament.Width = 145;
+
+            chk3mfAMS.Location = new System.Drawing.Point(colD, 35);
+            lbl3mfNombreCouleurs.Location = new System.Drawing.Point(colD, 80);
+            num3mfNombreCouleurs.Location = new System.Drawing.Point(colD, 105);
+            num3mfNombreCouleurs.Width = 90;
+
+            // Bouton "Configurer bobines..." visible uniquement quand AMS coché
+            btnConfigurerAMS = new Button
+            {
+                Text = "Configurer bobines...",
+                Left = colD, Top = 143,
+                Width = 148, Height = 26,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Visible = false
+            };
+            btnConfigurerAMS.Click += (s, e) =>
+            {
+                var parametres = ParametresImpressionForm.ObtenirParametres();
+                using (var f = new AmsConfigForm((int)num3mfNombreCouleurs.Value, amsSlotsConfig, parametres.Bobines))
+                {
+                    if (f.ShowDialog(this) == DialogResult.OK)
+                        amsSlotsConfig = f.Slots;
+                }
+            };
+            num3mfNombreCouleurs.ValueChanged += (s, e) => amsSlotsConfig = new List<AmsSlot>();
+            groupBox3mfCalcul.Controls.Add(btnConfigurerAMS);
+            ThemeManager.StyleButton(btnConfigurerAMS, ThemeManager.SecondaryGreen, ThemeManager.SecondaryGreenDark);
 
             var lblGcode = new Label
             {
@@ -820,22 +898,24 @@ namespace logiciel_d_impression_3d
 
         private void AjouterQuantite3mf()
         {
-            // Positions provisoires — recalculées dans Load après DPI scaling
+            // groupBox3mfCalcul : Top=175, Height=280 → Bottom=455
             lbl3mfQuantite = new Label
             {
                 Text = "Quantité (série) :",
-                Left = 620, Top = 522,
+                Left = 620, Top = 463,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F)
             };
             num3mfQuantite = new NumericUpDown
             {
-                Left = 760, Top = 519,
+                Left = 760, Top = 460,
                 Width = 70, Height = 25,
                 Minimum = 1, Maximum = 9999,
                 Value = 1, DecimalPlaces = 0,
                 Font = new Font("Segoe UI", 9F)
             };
+
+            btnCalculerDevis3mf.Top = 495;
 
             tabPage3mf.Controls.AddRange(new Control[] { lbl3mfQuantite, num3mfQuantite });
             ThemeManager.StyleAllControls(num3mfQuantite.Parent ?? tabPage3mf);
@@ -1175,6 +1255,10 @@ namespace logiciel_d_impression_3d
         {
             lbl3mfNombreCouleurs.Visible = chk3mfAMS.Checked;
             num3mfNombreCouleurs.Visible = chk3mfAMS.Checked;
+            if (btnConfigurerAMS != null)
+                btnConfigurerAMS.Visible = chk3mfAMS.Checked;
+            if (!chk3mfAMS.Checked)
+                amsSlotsConfig = new List<AmsSlot>();
         }
 
         /// <summary>
@@ -1227,9 +1311,20 @@ namespace logiciel_d_impression_3d
 
                 decimal poidsTotal = poidsFilament + poidsPurge;
 
-                // Calcul du coût matière (prix moyen des bobines PLA ou prix par défaut)
-                decimal prixKgFilament = ObtenirPrixMoyenBobines(parametres, "PLA");
-                decimal coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
+                // Calcul du coût matière — répartition équitable du poids entre chaque slot AMS
+                decimal prixKgFilament;
+                decimal coutMatiere;
+                if (chk3mfAMS.Checked && amsSlotsConfig != null && amsSlotsConfig.Count > 0)
+                {
+                    decimal poidsParSlot = poidsTotal / amsSlotsConfig.Count;
+                    coutMatiere = amsSlotsConfig.Sum(sl => (poidsParSlot / 1000m) * sl.PrixKg);
+                    prixKgFilament = amsSlotsConfig.Average(sl => sl.PrixKg); // pour affichage
+                }
+                else
+                {
+                    prixKgFilament = ObtenirPrixMoyenBobines(parametres, "PLA");
+                    coutMatiere = (poidsTotal / 1000m) * prixKgFilament;
+                }
 
                 // Calcul du coût électricité selon l'imprimante sélectionnée
                 var specs3mf = ImprimanteSpecsManager.ObtenirSpecs(cmb3mfPrinter.SelectedItem?.ToString() ?? "");
@@ -1274,6 +1369,11 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"⏱️  Temps d'impression: {tempsHeures:F2} heures");
                 sb.AppendLine($"🎨 Mode: {(chk3mfAMS.Checked ? $"Multi-couleur ({nombreCouleurs} couleurs)" : "Mono-couleur")}");
+                if (chk3mfAMS.Checked && amsSlotsConfig != null && amsSlotsConfig.Count > 0)
+                {
+                    foreach (var slot in amsSlotsConfig)
+                        sb.AppendLine($"    AMS {amsSlotsConfig.IndexOf(slot) + 1}: {slot.Couleur} — {slot.Matiere} ({slot.PrixKg:F2} €/kg)");
+                }
                 if (valeurSlicerUtilisees)
                 {
                     sb.AppendLine($"📊 Poids filament total: {poidsFilament:F2} g (supports + purge inclus)");
@@ -1290,7 +1390,16 @@ namespace logiciel_d_impression_3d
                 sb.AppendLine("  DÉTAILS DES COÛTS (par pièce)");
                 sb.AppendLine("───────────────────────────────────────────────────");
                 sb.AppendLine($"💰 Coût matière: {coutMatiere:F2} €");
-                sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
+                if (chk3mfAMS.Checked && amsSlotsConfig != null && amsSlotsConfig.Count > 0)
+                {
+                    decimal poidsParSlot = poidsTotal / amsSlotsConfig.Count;
+                    foreach (var slot in amsSlotsConfig)
+                        sb.AppendLine($"    AMS {amsSlotsConfig.IndexOf(slot) + 1}: {slot.Couleur} {slot.Matiere} — {poidsParSlot:F2} g × {slot.PrixKg:F2} €/kg = {(poidsParSlot / 1000m * slot.PrixKg):F2} €");
+                }
+                else
+                {
+                    sb.AppendLine($"    ({prixKgFilament:F2} €/kg × {poidsTotal / 1000:F3} kg)");
+                }
                 sb.AppendLine($"⚡ Coût électricité: {coutElectricite:F2} €");
                 sb.AppendLine($"    ({consommationKwh:F3} kWh × {parametres.CoutElectriciteKwh:F2} €/kWh)");
                 if (coutMainOeuvre > 0)
@@ -2321,16 +2430,6 @@ namespace logiciel_d_impression_3d
             // Lancer la vérification en arrière-plan après construction complète (pas en mode démo)
             if (!userManager.EstModeDemo)
                 this.Load += (s, e) => VerifierPromoAsync();
-
-            // Recalcul DPI-aware après scaling : groupBox height et positions quantité
-            this.Load += (s, e) =>
-            {
-                groupBox3mfCalcul.Height = num3mfNombreCouleurs.Bottom + 20;
-                int yBase = groupBox3mfCalcul.Bottom + 8;
-                if (lbl3mfQuantite != null) lbl3mfQuantite.Top = yBase + 3;
-                if (num3mfQuantite != null) num3mfQuantite.Top = yBase;
-                btnCalculerDevis3mf.Top = yBase + 35;
-            };
         }
 
         private void VerifierPromoAsync()

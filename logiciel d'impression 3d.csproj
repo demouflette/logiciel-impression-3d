@@ -164,6 +164,10 @@
     <Compile Include="User.cs" />
     <Compile Include="UserManager.cs" />
     <Compile Include="UserManagerDuplicate.cs" />
+    <Compile Include="AmsSlot.cs" />
+    <Compile Include="AmsConfigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <EmbeddedResource Include="logo_activation.png" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
